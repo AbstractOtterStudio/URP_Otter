@@ -1,0 +1,215 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e8bd769f7e0cd5b4eb874fa06b6cbc0a, type: 3}
+  m_Name: ConfigFile
+  m_EditorClassIdentifier: 
+  animalSettings:
+  - poolName: 0
+    patrolPoints:
+    - destinations:
+      - {x: 17.37, y: 6.04, z: -28.93}
+      - {x: 29.78, y: 6.04, z: -33.09}
+    - destinations:
+      - {x: 11.3, y: 6.18, z: -25.71}
+      - {x: 28.5, y: 6.18, z: -46.05}
+      - {x: 48.87, y: 6.18, z: -40.1}
+      - {x: 37.77, y: 6.18, z: -28.56}
+    - destinations:
+      - {x: 20.29, y: 6.04, z: -29.61}
+      - {x: 30.47, y: 6.04, z: -31.28}
+    - destinations:
+      - {x: 23.14, y: 6.04, z: -29.61}
+      - {x: 36.32, y: 6.04, z: -31.77}
+    - destinations:
+      - {x: 20.49, y: 6.14, z: -28.61}
+      - {x: 44.43, y: 6.14, z: -32.54}
+    - destinations:
+      - {x: 18.17, y: 6.44, z: -27.3}
+      - {x: 12.27, y: 6.44, z: -15.16}
+    - destinations:
+      - {x: 20.38, y: 2.15, z: 39.3}
+      - {x: 41, y: 2.15, z: 53}
+      - {x: 36.5, y: 2.15, z: 80}
+      - {x: 52.7, y: 2.15, z: 89.1}
+      - {x: 72.1, y: 2.15, z: 72.9}
+      - {x: 54.9, y: 2.15, z: 56.3}
+      - {x: 37.3, y: 2.15, z: 49.1}
+    - destinations:
+      - {x: 21.88, y: 2.15, z: 22.61}
+      - {x: 39.3, y: 2.15, z: 16.8}
+    - destinations:
+      - {x: 20.37, y: 2.15, z: 36.06}
+      - {x: 41.8, y: 2.15, z: 53.9}
+      - {x: 36.4, y: 2.15, z: 81.1}
+      - {x: 55, y: 2.15, z: 88.7}
+      - {x: 72.4, y: 2.15, z: 74.5}
+      - {x: 60, y: 2.15, z: 55.8}
+      - {x: 36.9, y: 2.15, z: 49.9}
+    - destinations:
+      - {x: 70.09, y: 2.15, z: 53.53}
+      - {x: 74.7, y: 2.15, z: 22.6}
+    - destinations:
+      - {x: 68.18174, y: 2.15, z: 51.53537}
+      - {x: 76.2, y: 2.15, z: 29.2}
+    - destinations:
+      - {x: 67.59901, y: 2.15, z: 53.5288}
+      - {x: 75.3, y: 2.15, z: 32.2}
+    - destinations:
+      - {x: 23.99, y: 2.15, z: 37.24}
+      - {x: 41.6, y: 2.15, z: 51.4}
+      - {x: 71.6, y: 2.15, z: 57.8}
+  - poolName: 1
+    patrolPoints:
+    - destinations:
+      - {x: -7.37, y: 0.17, z: 21.09}
+      - {x: -4.93, y: 0.17, z: 9.8}
+    - destinations:
+      - {x: -18.4, y: 0.24, z: 45.36}
+      - {x: -11, y: 0.24, z: 35.51}
+      - {x: -15.51, y: 0.24, z: 26.55}
+      - {x: -30.66, y: 0.24, z: 37.67}
+      - {x: -23.08, y: 0.24, z: 45.47}
+  - poolName: 2
+    patrolPoints:
+    - destinations:
+      - {x: -35.55, y: 0.31, z: -7.92}
+    - destinations:
+      - {x: 59.88, y: 2.255, z: 60.61}
+  - poolName: 3
+    patrolPoints:
+    - destinations:
+      - {x: -11.35, y: 0.34, z: -25.51}
+    - destinations:
+      - {x: 78.73, y: 2.31, z: 88}
+    - destinations:
+      - {x: 78.73, y: 2.31, z: 83.58}
+    - destinations:
+      - {x: 134, y: 6.2, z: 84.7}
+    - destinations:
+      - {x: 119.6, y: 2.16, z: -13.6}
+  - poolName: 4
+    patrolPoints:
+    - destinations:
+      - {x: -29.74, y: 0.27, z: 32.15}
+    - destinations:
+      - {x: -10.84, y: 0.2, z: 45.3}
+  - poolName: 5
+    patrolPoints:
+    - destinations:
+      - {x: 32.98, y: -0.15, z: -3}
+      - {x: 42.47, y: -0.15, z: -4.42}
+    - destinations:
+      - {x: -8.4, y: 0, z: 44.2}
+      - {x: -7.1, y: 0, z: 23.9}
+    - destinations:
+      - {x: 113.4, y: 1.99, z: -42.12}
+      - {x: 99.9, y: 1.99, z: -42.2}
+    - destinations:
+      - {x: 116.9, y: 6.03, z: 21.7}
+      - {x: 134.7, y: 6.03, z: 22.6}
+    - destinations:
+      - {x: 110.4, y: 6.03, z: 65.4}
+      - {x: 110.2, y: 6.03, z: 44.4}
+    - destinations:
+      - {x: 132.11, y: 6.03, z: 91.79}
+      - {x: 121.7, y: 6.03, z: 84.2}
+  - poolName: 6
+    patrolPoints:
+    - destinations:
+      - {x: 33.61, y: 1.6, z: 32.38}
+      - {x: 44.64, y: 1.6, z: 32.38}
+    - destinations:
+      - {x: 19.54, y: 1.68, z: 100.78}
+      - {x: 28.17, y: 1.68, z: 100.78}
+    - destinations:
+      - {x: 19.54, y: 1.68, z: 100.78}
+      - {x: 28.17, y: 1.68, z: 100.78}
+    - destinations:
+      - {x: 72, y: 1.68, z: 6.8}
+      - {x: 72.1, y: 1.68, z: 21.6}
+    - destinations:
+      - {x: 67.3, y: 1.79, z: 84.3}
+      - {x: 47, y: 1.79, z: 88.3}
+  - poolName: 7
+    patrolPoints:
+    - destinations:
+      - {x: -21.4, y: -1.273, z: 6.9}
+      - {x: -18.52, y: -1.273, z: 14.2}
+      - {x: -21.43, y: -1.273, z: 20.03}
+      - {x: -18.15, y: -1.273, z: 26.26}
+    - destinations:
+      - {x: 39, y: 1.41, z: 77.38}
+      - {x: 37.6, y: 1.41, z: 97.3}
+      - {x: 19.4, y: 1.41, z: 98.7}
+      - {x: 18.8, y: 1.41, z: 78}
+      - {x: 30.3, y: 1.41, z: 76.6}
+    - destinations:
+      - {x: 116.63, y: 5.8, z: 20.35}
+      - {x: 106, y: 5.8, z: 22.7}
+    - destinations:
+      - {x: 138.54, y: 5.8, z: 43.17}
+      - {x: 134.5, y: 5.8, z: 50}
+      - {x: 149.78, y: 5.8, z: 81.77}
+    - destinations:
+      - {x: 110.12, y: 5.8, z: 54.06}
+      - {x: 108.8, y: 5.8, z: 71.9}
+  buttonHints:
+  - hintType: 0
+    hintSprite: {fileID: 21300000, guid: 0751707dbf403f74a9758d37bf6484a8, type: 3}
+  - hintType: 1
+    hintSprite: {fileID: 21300000, guid: d874f6d6e270b0940837277f11f5131d, type: 3}
+  - hintType: 2
+    hintSprite: {fileID: 21300000, guid: 2978bf315285b0244bb0e785aabb75b1, type: 3}
+  - hintType: 3
+    hintSprite: {fileID: 21300000, guid: d70053ee9f2dffe4491f601efa99bfbf, type: 3}
+  soundEffects:
+  - name: 0
+    clip: {fileID: 8300000, guid: e113d3d7328fd0a4a88f02ca92500472, type: 3}
+  - name: 1
+    clip: {fileID: 8300000, guid: cd1c74cb7c6116c4bbe26b7067e02f4a, type: 3}
+  - name: 2
+    clip: {fileID: 8300000, guid: 8f6b56d97e6e3b44aa3dffc5bd87281b, type: 3}
+  - name: 3
+    clip: {fileID: 8300000, guid: fe93aef40265fd748a3c21b54c352872, type: 3}
+  - name: 4
+    clip: {fileID: 8300000, guid: aa30c8b411cc21b438de80176399071b, type: 3}
+  - name: 5
+    clip: {fileID: 8300000, guid: 88124c2e051c85b46a8ccf0c34a34cfb, type: 3}
+  - name: 6
+    clip: {fileID: 8300000, guid: 05f2419287015b84badc811991bfab47, type: 3}
+  - name: 7
+    clip: {fileID: 8300000, guid: 9bebd5f9257125c4197e86eb7c2a4f88, type: 3}
+  - name: 8
+    clip: {fileID: 8300000, guid: 17eb5eac3ce28b34799eef735ce5eaa4, type: 3}
+  - name: 9
+    clip: {fileID: 8300000, guid: 6986d1cfc1f6ad04486473c95b9d61c7, type: 3}
+  - name: 10
+    clip: {fileID: 8300000, guid: 0e1bcd5376c094740a89b9f4f0d87ed2, type: 3}
+  - name: 11
+    clip: {fileID: 8300000, guid: 7f16d01a789b7ea498b8e410c54ce640, type: 3}
+  - name: 12
+    clip: {fileID: 8300000, guid: b3e33775541c2cb49b04e556fd41911f, type: 3}
+  - name: 13
+    clip: {fileID: 8300000, guid: 2501d15f45272fa4e8c7b0c59f739e48, type: 3}
+  - name: 14
+    clip: {fileID: 8300000, guid: 870f758d9e822ee4fb28750fe2bc0ea0, type: 3}
+  - name: 15
+    clip: {fileID: 8300000, guid: a3a953ab5377ae445ac35d460d700b25, type: 3}
+  - name: 16
+    clip: {fileID: 8300000, guid: 73c73328369395f4ca440d22393fcb67, type: 3}
+  - name: 17
+    clip: {fileID: 8300000, guid: 7398db80c64630540bf667323194111a, type: 3}
+  - name: 18
+    clip: {fileID: 8300000, guid: 2a1c20cc21a2c854d80ad05f09f77502, type: 3}
+  backgroundMusics:
+  - name: 0
+    clip: {fileID: 8300000, guid: b505dccc5e920384aa2a27640aad6b8b, type: 3}
