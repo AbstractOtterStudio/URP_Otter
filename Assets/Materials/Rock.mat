@@ -8,9 +8,9 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Rock
-  m_Shader: {fileID: -6465566751694194690, guid: 2a36b2db4e3004f46bd28d37d53ef422, type: 3}
+  m_Shader: {fileID: 4800000, guid: bee44b4a58655ee4cbff107302a3e131, type: 3}
   m_ShaderKeywords: DR_CEL_EXTRA_ON _CELPRIMARYMODE_SINGLE _FLAT_RIM_ENABLED _FLAT_SHADOWS_ENABLED
-    _FLAT_SPECULAR_ENABLED _UNITYSHADOWMODE_NONE
+    _FLAT_SPECULAR_ENABLED _TEXTUREBLENDINGMODE_MULTIPLY _UNITYSHADOWMODE_NONE
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
@@ -159,12 +159,12 @@ Material:
     - _VertexColorsEnabled: 0
     - _ZWrite: 1
     m_Colors:
-    - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
+    - _BaseColor: {r: 0.4811321, g: 0.41776094, b: 0.25645247, a: 1}
     - _BrightenColor: {r: 0.59607846, g: 0.47216174, b: 0.34901962, a: 0}
     - _Color: {r: 0.8113208, g: 0.74652207, b: 0.22579211, a: 1}
     - _ColorCelShadow: {r: 0.38581347, g: 0.38787434, b: 0.9622642, a: 1}
-    - _ColorDim: {r: 0.59233713, g: 0.6868547, b: 0.8207547, a: 1}
-    - _ColorDimCurve: {r: 0.85, g: 0.85, b: 0.85, a: 0.85}
+    - _ColorDim: {r: 0.6039216, g: 0.5568628, b: 0.45098042, a: 1}
+    - _ColorDimCurve: {r: 0.6, g: 0.5568628, b: 0.44705886, a: 0.85}
     - _ColorDimExtra: {r: 0.41865435, g: 0.50092953, b: 0.6037736, a: 0.85}
     - _ColorDimSteps: {r: 0.85, g: 0.85, b: 0.85, a: 0.85}
     - _ColorGradient: {r: 0.9150943, g: 0.056114297, b: 0.056114297, a: 1}
