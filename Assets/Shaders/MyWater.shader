@@ -4,6 +4,7 @@ Shader "FlatKit/MyWater"
     {
         [Header(Colors)][Space]
         [KeywordEnum(Linear, Gradient Texture)] _ColorMode ("     Source{Colors}", Float) = 0.0
+        [KeywordEnum(Luma, Multiplicative)] _WaterBlendMode ("     Water Blend", Int) = 0
         _ColorShallow ("[_COLORMODE_LINEAR]     Shallow", Color) = (0.35, 0.6, 0.75, 0.8) // Color alpha controls opacity
         _ColorDeep ("[_COLORMODE_LINEAR]     Deep", Color) = (0.65, 0.9, 1.0, 1.0)
         [NoScaleOffset] _ColorGradient("[_COLORMODE_GRADIENT_TEXTURE]     Gradient", 2D) = "white" {}
@@ -15,8 +16,9 @@ Shader "FlatKit/MyWater"
 
 
         [Space]
-        _WaterClearness("     Transparency", Range(0, 1)) = 0.3
-        _ShadowStrength("     Shadow strength", Range(0, 1)) = 0.35
+        //_WaterClearness("     Transparency", Range(0, 1)) = 0.3
+        _ShadowColor("     Shadow Color", Color) = (0.5, 0.5, 0.5, 1.0)
+        _ShadowStrength("     Surface Shadow", Range(0, 1)) = 0.35
 
         [Header(Crest)][Space]
         _CrestColor("     Color{Crest}", Color) = (1.0, 1.0, 1.0, 0.9)
@@ -49,6 +51,7 @@ Shader "FlatKit/MyWater"
         [Space]
         _FoamSpeed("[!_FOAMMODE_NONE]     Speed{Foam}", Float) = 0.1
         _FoamDirection("[!_FOAMMODE_NONE]     Direction{Foam}", Range(-1.0, 1.0)) = 0
+        _FoamFadeSpeed("     Foam fade speed", Float) = 0.1
 
         [Space][Header(Refraction)][Space]
         _RefractionFrequency("     Frequency", Float) = 35
@@ -83,11 +86,14 @@ Shader "FlatKit/MyWater"
         Pass
         {
             HLSLPROGRAM
-            #pragma prefer_hlslcc gles
-            #pragma exclude_renderers d3d11_9x
-            #pragma target 2.0
+            //#pragma prefer_hlslcc gles
+            //#pragma exclude_renderers d3d11_9x
+            //#pragma target 2.0
+            #pragma target 4.0
+            #pragma enable_d3d11_debug_symbols
 
             #pragma shader_feature_local _COLORMODE_LINEAR _COLORMODE_GRADIENT_TEXTURE
+            #pragma shader_feature_local _WATERBLENDMODE_LUMA _WATERBLENDMODE_MULTIPLICATIVE
             #pragma shader_feature_local _FOAMMODE_NONE _FOAMMODE_GRADIENT_NOISE _FOAMMODE_TEXTURE
             #pragma shader_feature_local _WAVEMODE_NONE _WAVEMODE_ROUND _WAVEMODE_GRID _WAVEMODE_POINTY
 
@@ -119,19 +125,21 @@ Shader "FlatKit/MyWater"
             half4 _ColorShallow, _ColorDeep;
             #endif
 
+            half4 _ShadowColor;
+
             float _FadeDistance, _WaterDepth, _StartFade;
             float _Alpha;
 
             half _LightContribution;
 
             half _WaveFrequency, _WaveAmplitude, _WaveSpeed, _WaveDirection, _WaveNoise;
-            half _WaterClearness, _CrestSize, _CrestSharpness, _ShadowStrength;
+            half /*_WaterClearness, */_CrestSize, _CrestSharpness, _ShadowStrength;
 
             half4 _CrestColor;
             half4 _FoamColor;
             half _FoamDepth, _FoamAmount, _FoamScale, _FoamSharpness, _FoamStretchX, _FoamStretchY, _FoamSpeed,
-                 _FoamDirection, _FoamNoiseAmount, _RefractionFrequency, _RefractionAmplitude, _RefractionSpeed,
-                 _RefractionScale, _FresnelAmount, _FresnelSharpness, _SunReflection;
+                _FoamDirection, _FoamNoiseAmount, _RefractionFrequency, _RefractionAmplitude, _RefractionSpeed,
+                _RefractionScale, _FresnelAmount, _FresnelSharpness, _SunReflection, _FoamFadeSpeed;
 
             half4 _SpecularColor;
             half _SpecularStrength;
@@ -324,6 +332,8 @@ Shader "FlatKit/MyWater"
                 const float2 screen_uv = i.screenPosition.xy / i.screenPosition.w;
                 //const float depth_fade_original = DepthFade(screen_uv, i);
                 const float water_depth_original = GetWaterDepth(screen_uv, i);
+                //if (water_depth_original < 0.001) // If above water surface
+                //    discard;
                 const float depth_fade_original = saturate((water_depth_original - _FadeDistance) / _WaterDepth);
                 float2 displaced_uv = screen_uv + noise11_refraction * _RefractionAmplitude * depth_fade_original;
                 //float depth_fade = DepthFade(displaced_uv, i);
@@ -337,7 +347,7 @@ Shader "FlatKit/MyWater"
                     //depth_fade = DepthFade(displaced_uv, i);
                     depth_fade = depth_fade_original;
                 }
-                //depth_fade = lerp(depth_fade_original, depth_fade, _Alpha);
+                depth_fade = lerp(depth_fade_original, depth_fade, _Alpha);
                 const half3 scene_color = SampleSceneColor(displaced_uv);
                 half3 c = scene_color;
 
@@ -355,8 +365,12 @@ Shader "FlatKit/MyWater"
                 color_shallow = SAMPLE_TEXTURE2D(_ColorGradient, sampler_ColorGradient, float2(0.0f, 0.5f));
                 #endif
 
-                //depth_color.rgb *= c;
+                #ifdef _WATERBLENDMODE_LUMA
                 depth_color.rgb = hint(c, depth_color);
+                #endif
+                #ifdef _WATERBLENDMODE_MULTIPLICATIVE
+                depth_color.rgb *= c;
+                #endif
                 c = lerp(c, depth_color.rgb, depth_color.a * saturate(water_depth / _StartFade));
                 //c = lerp(c, depth_color.rgb, depth_color.a);
 
@@ -372,44 +386,47 @@ Shader "FlatKit/MyWater"
 
                 // Foam.
                 #if !defined(_FOAMMODE_NONE)
-                    float uv_angle = atan2(i.uv.y, i.uv.x);
-                    float cs = cos(uv_angle + _FoamDirection * PI);
-                    float sn = sin(uv_angle + _FoamDirection * PI);
-                    float2 rotated_uv = float2(i.uv.x * cs - i.uv.y * sn, i.uv.x * sn + i.uv.y * cs);
-                    float2 noise_uv_foam = rotated_uv * 100.0f + _Time.zz * _FoamSpeed;
-
-                    float noise_foam_base;
-                #if defined(_FOAMMODE_TEXTURE)
-                        float2 stretch_factor = float2(_FoamStretchX, _FoamStretchY);
-                        noise_foam_base = SAMPLE_TEXTURE2D(_NoiseMap, sampler_NoiseMap,
-                            noise_uv_foam * stretch_factor / (_FoamScale * 100.0)).r;
+                float foam = saturate(water_depth / _FoamDepth);
+                c = lerp(_FoamColor.rgb, c, foam * _FoamColor.a);
                 #endif
+                //#if !defined(_FOAMMODE_NONE)
+                //    float uv_angle = atan2(i.uv.y, i.uv.x);
+                //    float cs = cos(uv_angle + _FoamDirection * PI);
+                //    float sn = sin(uv_angle + _FoamDirection * PI);
+                //    float2 rotated_uv = float2(i.uv.x * cs - i.uv.y * sn, i.uv.x * sn + i.uv.y * cs);
+                //    float2 noise_uv_foam = rotated_uv * 100.0f + _Time.zz * _FoamSpeed;
 
-                #if defined(_FOAMMODE_GRADIENT_NOISE)
-                        float2 stretch_factor = float2(_FoamStretchX, _FoamStretchY);
-                        noise_foam_base = GradientNoise(noise_uv_foam * stretch_factor, _FoamScale);
-                #endif
+                //    float noise_foam_base;
+                //#if defined(_FOAMMODE_TEXTURE)
+                //        float2 stretch_factor = float2(_FoamStretchX, _FoamStretchY);
+                //        noise_foam_base = SAMPLE_TEXTURE2D(_NoiseMap, sampler_NoiseMap,
+                //            noise_uv_foam * stretch_factor / (_FoamScale * 100.0)).r;
+                //#endif
 
-                    float foam_blur = 1.0 - _FoamSharpness;
-                    //float shore_fade = saturate(depth_fade / _FoamDepth);
-                    //float hard_foam_end = 0.1;
-                    //float soft_foam_end = hard_foam_end + foam_blur * 0.3;
-                    //float foam_shore = smoothstep(0.5 - foam_blur * 0.5, 0.5 + foam_blur * 0.5, noise_foam_base);
-                    //foam_shore = saturate(smoothstep(soft_foam_end, hard_foam_end, shore_fade) +
-                    //    smoothstep(1, soft_foam_end, shore_fade) * foam_shore * _FoamNoiseAmount);
+                //#if defined(_FOAMMODE_GRADIENT_NOISE)
+                //        float2 stretch_factor = float2(_FoamStretchX, _FoamStretchY);
+                //        noise_foam_base = GradientNoise(noise_uv_foam * stretch_factor, _FoamScale);
+                //#endif
 
-                    float foam_shore = 0.0;
-                
-                    float foam_surface = smoothstep(noise_foam_base, noise_foam_base + foam_blur, _FoamAmount);
-                    foam_surface = smoothstep(0.5 - foam_blur * 0.5, 0.5 + foam_blur * 0.5, foam_surface);
+                //    float foam_blur = 1.0 - _FoamSharpness;
+                //    float shore_fade = saturate(depth_fade / _FoamDepth);
+                //    float hard_foam_end = 0.1;
+                //    float soft_foam_end = hard_foam_end + foam_blur * 0.3;
+                //    float foam_shore = smoothstep(0.5 - foam_blur * 0.5, 0.5 + foam_blur * 0.5, noise_foam_base);
+                //    foam_shore = saturate(smoothstep(soft_foam_end, hard_foam_end, shore_fade) +
+                //        smoothstep(1, soft_foam_end, shore_fade) * foam_shore * _FoamNoiseAmount);
+                //
+                //    float foam_surface = smoothstep(noise_foam_base, noise_foam_base + foam_blur, _FoamAmount);
+                //    foam_surface = smoothstep(0.5 - foam_blur * 0.5, 0.5 + foam_blur * 0.5, foam_surface);
 
-                    // fade as time goes by
-                    foam_surface *= noise01_refraction;
+                //    // fade as time goes by
+                //    noise_uv_foam += _Time.zz * _FoamFadeSpeed;
+                //    const float noise01_foam = GradientNoise(noise_uv_foam, _FoamScale);
+                //    foam_surface *= noise01_foam;
 
-                    float foam = saturate(foam_shore + foam_surface);
-                    c = lerp(c, _FoamColor.rgb, foam * _FoamColor.a);
-                #endif
-                    return half4(c, _Alpha);
+                //    float foam = saturate(foam_shore + foam_surface);
+                //    c = lerp(c, _FoamColor.rgb, foam * _FoamColor.a);
+                //#endif
 
                 // Shadow.
                 #if defined(_MAIN_LIGHT_SHADOWS)
@@ -424,7 +441,7 @@ Shader "FlatKit/MyWater"
                     vertexInput.positionWS = i.positionWS.xyz;
                     float4 shadowCoord = GetShadowCoord(vertexInput);
                     half shadowAttenutation = MainLightRealtimeShadow(shadowCoord);
-                    c = lerp(c, c * color_shallow, _ShadowStrength * (1.0h - shadowAttenutation));
+                    c = lerp(c, c * _ShadowColor, _ShadowStrength * (1.0h - shadowAttenutation));
                 #endif
 
                 /*
