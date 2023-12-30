@@ -386,8 +386,8 @@ Shader "FlatKit/MyWater"
 
                 // Foam.
                 #if !defined(_FOAMMODE_NONE)
-                float foam = saturate(water_depth / _FoamDepth);
-                c = lerp(_FoamColor.rgb, c, foam * _FoamColor.a);
+                float foam = saturate(_FoamDepth / water_depth);
+                c = lerp(c, _FoamColor.rgb, foam * _FoamColor.a);
                 #endif
                 //#if !defined(_FOAMMODE_NONE)
                 //    float uv_angle = atan2(i.uv.y, i.uv.x);
