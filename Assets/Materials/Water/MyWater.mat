@@ -101,10 +101,11 @@ Material:
     - _DetailNormalMapScale: 1
     - _DstBlend: 0
     - _EnvironmentReflections: 1
-    - _FadeDistance: 2
+    - _FadeDistance: 3
     - _FoamAmount: 0.28
-    - _FoamDepth: 0.09
+    - _FoamDepth: 0.1
     - _FoamDirection: 0
+    - _FoamFadeSpeed: 0.1
     - _FoamMode: 1
     - _FoamNoiseAmount: 0.508
     - _FoamScale: 1.03
@@ -126,12 +127,12 @@ Material:
     - _RefractionFrequency: 35
     - _RefractionScale: 1
     - _RefractionSpeed: 0.1
-    - _ShadowStrength: 1
+    - _ShadowStrength: 0
     - _Smoothness: 0.5
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SrcBlend: 1
-    - _StartFade: 1
+    - _StartFade: 0.5
     - _Surface: 0
     - _WaterBlendMode: 1
     - _WaterClearness: 0
@@ -151,7 +152,7 @@ Material:
     - _ColorShallow: {r: 0.6509804, g: 0.9758658, b: 1, a: 1}
     - _CrestColor: {r: 1, g: 1, b: 1, a: 0.6431373}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
-    - _FoamColor: {r: 1, g: 1, b: 1, a: 1}
+    - _FoamColor: {r: 1, g: 1, b: 1, a: 0.6392157}
     - _ShadowColor: {r: 0.4528302, g: 0.4528302, b: 0.4528302, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
   m_BuildTextureStacks: []
