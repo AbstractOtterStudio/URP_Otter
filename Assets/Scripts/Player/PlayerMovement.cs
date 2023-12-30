@@ -23,7 +23,7 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField]
     private float playerdiveSpeed = 3;
     [SerializeField]
-    private float colliderRebackSpeed = 5;
+    private float colliderRebackSpeed = 3;
     private float m_playerCurSpeed;
     private bool m_isFloat;
     private float playerDiveAim;
@@ -208,17 +208,23 @@ public class PlayerMovement : MonoBehaviour
     }
 
     /// <summary>
-    /// Correct Player Direction When Player Hit the COllider
+    /// Correct Player Direction When Player Hit the Collider
     /// </summary>
     /// <param name="collision"></param>
     public void OnCollisionEnter(Collision collision)
-    {  
-        ContactPoint contactPoint = collision.contacts[0];
-        Vector3 newDir = Vector3.zero;
-        Vector3 curDir = transform.TransformDirection(Vector3.forward);
-        newDir = Vector3.Reflect(Dir, contactPoint.normal);
-        rot = Quaternion.FromToRotation(Vector3.forward, newDir);
-        m_rigidbody.velocity = ( newDir.normalized * m_preVelocity.x / (m_preVelocity.normalized.x + 0.01f) ).normalized * colliderRebackSpeed;
+    {
+        //ContactPoint contactPoint = collision.contacts[0];
+        //Vector3 curDir = transform.TransformDirection(Vector3.forward);
+        //Vector3 newDir = Vector3.Reflect(curDir, contactPoint.normal);
+        //rot = Quaternion.FromToRotation(Vector3.forward, newDir);
+        //m_rigidbody.velocity = ( newDir.normalized * m_preVelocity.x / (m_preVelocity.normalized.x + 0.01f) ).normalized * colliderRebackSpeed;
+
+        //Vector3 reboundVelocity = newDir.normalized * colliderRebackSpeed;
+        //m_rigidbody.velocity = reboundVelocity;
+        if (collision.gameObject.GetComponent<TerrainEffectBase>()) return;
+        Vector3 normal = collision.contacts[0].normal;
+        Vector3 edgeDirection = Vector3.ProjectOnPlane(m_rigidbody.velocity, normal).normalized;
+        m_rigidbody.velocity = edgeDirection * colliderRebackSpeed;
     }
 
     /// <summary>
