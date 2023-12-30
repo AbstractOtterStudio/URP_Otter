@@ -54,6 +54,7 @@ Shader "FlatKit/MyWater"
         _FoamFadeSpeed("     Foam fade speed", Float) = 0.1
 
         [Space][Header(Refraction)][Space]
+        _RefractionDirection("     Direction{Refraction}", Range(0.0, 2.0)) = 0
         _RefractionFrequency("     Frequency", Float) = 35
         _RefractionAmplitude("     Amplitude", Range(0, 0.1)) = 0.01
         _RefractionSpeed("     Speed", Float) = 0.1
@@ -139,7 +140,7 @@ Shader "FlatKit/MyWater"
             half4 _FoamColor;
             half _FoamDepth, _FoamAmount, _FoamScale, _FoamSharpness, _FoamStretchX, _FoamStretchY, _FoamSpeed,
                 _FoamDirection, _FoamNoiseAmount, _RefractionFrequency, _RefractionAmplitude, _RefractionSpeed,
-                _RefractionScale, _FresnelAmount, _FresnelSharpness, _SunReflection, _FoamFadeSpeed;
+                _RefractionScale, _FresnelAmount, _FresnelSharpness, _SunReflection, _FoamFadeSpeed, _RefractionDirection;
 
             half4 _SpecularColor;
             half _SpecularStrength;
@@ -328,26 +329,25 @@ Shader "FlatKit/MyWater"
                 // Refraction.
                 const float2 noise_uv_refraction = i.uv * _RefractionFrequency + _Time.zz * _RefractionSpeed;
                 const float noise01_refraction = GradientNoise(noise_uv_refraction, _RefractionScale);
-                const float noise11_refraction = noise01_refraction * 2.0f - 1.0f;
                 const float2 screen_uv = i.screenPosition.xy / i.screenPosition.w;
                 //const float depth_fade_original = DepthFade(screen_uv, i);
                 const float water_depth_original = GetWaterDepth(screen_uv, i);
-                //if (water_depth_original < 0.001) // If above water surface
-                //    discard;
                 const float depth_fade_original = saturate((water_depth_original - _FadeDistance) / _WaterDepth);
-                float2 displaced_uv = screen_uv + noise11_refraction * _RefractionAmplitude * depth_fade_original;
+                float2 displaced_uv = screen_uv + noise01_refraction * _RefractionAmplitude /* * depth_fade_original*/ * 
+                    float2(sin(_RefractionDirection * PI), cos(_RefractionDirection * PI));
                 //float depth_fade = DepthFade(displaced_uv, i);
-                const float water_depth = GetWaterDepth(displaced_uv, i);
+                float water_depth = GetWaterDepth(displaced_uv, i);
                 float depth_fade = saturate((water_depth - _FadeDistance) / _WaterDepth);
 
 
-                if (depth_fade <= 0.0f) // If above water surface.
+                if (water_depth <= 0.0f) // If above water surface.
                 {
                     displaced_uv = screen_uv;
                     //depth_fade = DepthFade(displaced_uv, i);
                     depth_fade = depth_fade_original;
+                    water_depth = water_depth_original;
                 }
-                depth_fade = lerp(depth_fade_original, depth_fade, _Alpha);
+                //depth_fade = lerp(depth_fade_original, depth_fade, _Alpha);
                 const half3 scene_color = SampleSceneColor(displaced_uv);
                 half3 c = scene_color;
 
@@ -384,9 +384,10 @@ Shader "FlatKit/MyWater"
                                         i.waveHeight) * _CrestColor.a);
                 }
 
-                // Foam.
                 #if !defined(_FOAMMODE_NONE)
-                float foam = saturate(_FoamDepth / water_depth);
+                // Foam Shore.
+
+                float foam = saturate(-_FoamDepth / -water_depth_original); // want foam above water surface
                 c = lerp(c, _FoamColor.rgb, foam * _FoamColor.a);
                 #endif
                 //#if !defined(_FOAMMODE_NONE)

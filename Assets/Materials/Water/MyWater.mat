@@ -123,7 +123,8 @@ Material:
     - _Parallax: 0.005
     - _QueueOffset: 0
     - _ReceiveShadows: 1
-    - _RefractionAmplitude: 0.01
+    - _RefractionAmplitude: 0.005
+    - _RefractionDirection: 1
     - _RefractionFrequency: 35
     - _RefractionScale: 1
     - _RefractionSpeed: 0.1
@@ -132,7 +133,7 @@ Material:
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SrcBlend: 1
-    - _StartFade: 0.5
+    - _StartFade: 0
     - _Surface: 0
     - _WaterBlendMode: 1
     - _WaterClearness: 0
