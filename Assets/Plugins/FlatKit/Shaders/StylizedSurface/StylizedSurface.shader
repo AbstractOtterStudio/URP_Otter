@@ -335,6 +335,77 @@
             #include "Packages/com.unity.render-pipelines.universal/Shaders/Utils/Universal2D.hlsl"
             ENDHLSL
         }
+
+
+        Pass
+        {
+            Name "WorldSpaceOutline"
+            Tags{ "LightMode" = "WorldSpaceOutline" }
+            Blend[_SrcBlend][_DstBlend]
+            ZTest LEqual
+            ZWrite[_ZWrite]
+            Cull[_Cull]
+
+            HLSLPROGRAM
+
+            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+
+            #pragma vertex vert
+            #pragma fragment frag
+
+            float3 _ShorelineExpansion;
+            float _ShorelineMinimalDepth;
+            //sampler2D _WaterDepthBuffer;
+
+            struct Attributes
+            {
+                float4 vertex : POSITION;
+            };
+            struct v2f
+            {
+                float3 WPOS : TEXCOORD0;
+                float4 CPOS : SV_POSITION;
+            };
+
+            //inline float GetWaterDepth(v2f i)
+            //{
+            //    const float is_ortho = unity_OrthoParams.w;
+            //    const float is_persp = 1.0 - unity_OrthoParams.w;
+
+            //    float depth = i.CPOS.z;
+            //    const float scene_depth = lerp(_ProjectionParams.z, _ProjectionParams.y, depth) * is_ortho +
+            //        LinearEyeDepth(depth, _ZBufferParams) * is_persp;
+
+            //    const float2 uv = i.CPOS.xy / _ScreenParams.x;
+            //    depth = tex2D(_WaterDepthBuffer, uv).r;
+
+            //    if (depth == 0.0) depth = 1.0;
+
+            //    const float surface_depth = lerp(_ProjectionParams.z, _ProjectionParams.y, depth) * is_ortho +
+            //        LinearEyeDepth(depth, _ZBufferParams) * is_persp;
+
+            //    return scene_depth - surface_depth;
+            //}
+
+            v2f vert(Attributes i)
+            {
+                v2f o;
+                float3 origin_origin = TransformObjectToWorld(float3(0, 0, 0)).xyz;
+                float3 wpos_origin = TransformObjectToWorld(i.vertex);
+                float3 tmp = wpos_origin - origin_origin;
+                tmp.y = 0;
+                o.WPOS = wpos_origin + normalize(tmp) * _ShorelineExpansion;
+                o.CPOS = TransformWorldToHClip(o.WPOS);
+
+                return o;
+            }
+            float frag(v2f i) : SV_Target
+            {
+                return 1.0;
+            }
+            ENDHLSL
+        }
     }
 
     Fallback "Hidden/Universal Render Pipeline/FallbackError"

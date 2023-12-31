@@ -34,7 +34,7 @@ public class WaterDepthPass : ScriptableRenderPass
 
         ConfigureTarget(waterDepthTex, waterDepthTex);
         //ConfigureClear(ClearFlag.All, Color.black);
-        ConfigureClear(ClearFlag.All, Color.white);
+        ConfigureClear(ClearFlag.All, Color.white); // doesn't work
     }
     public override void OnCameraCleanup(CommandBuffer cmd)
     {
@@ -65,7 +65,7 @@ public class WaterDepthPass : ScriptableRenderPass
 public class WaterDepthRendererFeature : ScriptableRendererFeature
 {
     public LayerMask Layer;
-    public RenderPassEvent InjectionPoint = RenderPassEvent.BeforeRenderingPrepasses;
+    public RenderPassEvent InjectionPoint = RenderPassEvent.AfterRenderingShadows;
 
     WaterDepthPass renderPass = null;
     public override void AddRenderPasses(ScriptableRenderer renderer,
