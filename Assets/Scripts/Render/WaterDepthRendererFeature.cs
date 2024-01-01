@@ -12,7 +12,7 @@ public class WaterDepthPass : ScriptableRenderPass
     LayerMask layerMask;
     FilteringSettings filteringSettings;
     List<ShaderTagId> shaderTagIdList = new List<ShaderTagId>();
-    RenderTargetIdentifier waterDepthTex;
+    RenderTargetIdentifier WaterDepthTex;
 
     public WaterDepthPass(RenderPassEvent renderPassEvent, LayerMask layerMask)
     {
@@ -30,9 +30,9 @@ public class WaterDepthPass : ScriptableRenderPass
         descriptor.msaaSamples = 1;
 
         cmd.GetTemporaryRT(WaterRenderProperties.WaterDepthBufferID, descriptor, FilterMode.Point);
-        waterDepthTex = new RenderTargetIdentifier(WaterRenderProperties.WaterDepthBufferID, 0, CubemapFace.Unknown, -1);
+        WaterDepthTex = new RenderTargetIdentifier(WaterRenderProperties.WaterDepthBufferID, 0, CubemapFace.Unknown, -1);
 
-        ConfigureTarget(waterDepthTex, waterDepthTex);
+        ConfigureTarget(WaterDepthTex, WaterDepthTex);
         //ConfigureClear(ClearFlag.All, Color.black);
         ConfigureClear(ClearFlag.All, Color.white); // doesn't work
     }
@@ -49,8 +49,13 @@ public class WaterDepthPass : ScriptableRenderPass
         CommandBuffer cmd = CommandBufferPool.Get();
         using (new ProfilingScope(cmd, new ProfilingSampler("Draw Water Depth")))
         {
+            //cmd.SetViewMatrix(renderingData.cameraData.GetViewMatrix());
+            //cmd.SetProjectionMatrix(renderingData.cameraData.GetProjectionMatrix());
+            //context.ExecuteCommandBuffer(cmd);
+            //cmd.Clear();
+
             context.DrawRenderers(renderingData.cullResults, ref drawingSettings, ref filteringSettings);
-            cmd.SetGlobalTexture(WaterRenderProperties.WaterDepthBufferID, waterDepthTex);
+            cmd.SetGlobalTexture(WaterRenderProperties.WaterDepthBufferID, WaterDepthTex);
         }
         context.ExecuteCommandBuffer(cmd);
         CommandBufferPool.Release(cmd);

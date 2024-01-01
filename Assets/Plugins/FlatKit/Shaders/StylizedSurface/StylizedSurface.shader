@@ -340,23 +340,33 @@
         Pass
         {
             Name "WorldSpaceOutline"
-            Tags{ "LightMode" = "WorldSpaceOutline" }
-            Blend[_SrcBlend][_DstBlend]
+            Tags{ "LightMode" = "WorldSpaceOutline" "DisableBatching" = "True" }
             ZTest LEqual
-            ZWrite[_ZWrite]
+            ZWrite Off
             Cull[_Cull]
+
+             //Stencil
+             //{
+             //    Ref 255
+             //    Comp NotEqual
+             //    Pass Replace
+             //}
 
             HLSLPROGRAM
 
+
             #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+
+            #pragma enable_d3d11_debug_symbols
+            #pragma shader_feature __WRITE_SHORELINE_BUFFER
 
             #pragma vertex vert
             #pragma fragment frag
 
             float3 _ShorelineExpansion;
-            float _ShorelineMinimalDepth;
-            //sampler2D _WaterDepthBuffer;
+            float _ShorelineMaxDepth;
+            sampler2D _WaterDepthBuffer;
 
             struct Attributes
             {
@@ -368,30 +378,31 @@
                 float4 CPOS : SV_POSITION;
             };
 
-            //inline float GetWaterDepth(v2f i)
-            //{
-            //    const float is_ortho = unity_OrthoParams.w;
-            //    const float is_persp = 1.0 - unity_OrthoParams.w;
+            inline float GetWaterDepth(v2f i)
+            {
+                const float is_ortho = unity_OrthoParams.w;
+                const float is_persp = 1.0 - unity_OrthoParams.w;
 
-            //    float depth = i.CPOS.z;
-            //    const float scene_depth = lerp(_ProjectionParams.z, _ProjectionParams.y, depth) * is_ortho +
-            //        LinearEyeDepth(depth, _ZBufferParams) * is_persp;
+                float depth = i.CPOS.z;
+                const float scene_depth = lerp(_ProjectionParams.z, _ProjectionParams.y, depth) * is_ortho +
+                    LinearEyeDepth(depth, _ZBufferParams) * is_persp;
 
-            //    const float2 uv = i.CPOS.xy / _ScreenParams.x;
-            //    depth = tex2D(_WaterDepthBuffer, uv).r;
+                //const float2 uv = i.CPOS.xy / i.CPOS.w * 0.5 + 0.5;
+                const float2 uv = float2(i.CPOS.x / _ScreenParams.x, i.CPOS.y / _ScreenParams.y);
+                depth = tex2D(_WaterDepthBuffer, uv).r;
 
-            //    if (depth == 0.0) depth = 1.0;
+                if (depth == 0.0) depth = 1.0;
 
-            //    const float surface_depth = lerp(_ProjectionParams.z, _ProjectionParams.y, depth) * is_ortho +
-            //        LinearEyeDepth(depth, _ZBufferParams) * is_persp;
+                const float surface_depth = lerp(_ProjectionParams.z, _ProjectionParams.y, depth) * is_ortho +
+                    LinearEyeDepth(depth, _ZBufferParams) * is_persp;
 
-            //    return scene_depth - surface_depth;
-            //}
+                return scene_depth - surface_depth;
+            }
 
             v2f vert(Attributes i)
             {
                 v2f o;
-                float3 origin_origin = TransformObjectToWorld(float3(0, 0, 0)).xyz;
+                float3 origin_origin = TransformObjectToWorld(float3(0, 0, 0));
                 float3 wpos_origin = TransformObjectToWorld(i.vertex);
                 float3 tmp = wpos_origin - origin_origin;
                 tmp.y = 0;
@@ -400,9 +411,14 @@
 
                 return o;
             }
-            float frag(v2f i) : SV_Target
+            half frag(v2f i) : SV_Target
             {
-                return 1.0;
+                if (GetWaterDepth(i) > _ShorelineMaxDepth) discard;
+                #ifdef  __WRITE_SHORELINE_BUFFER
+                    return 1.0;
+                #else
+                    return 0.0;
+                #endif
             }
             ENDHLSL
         }

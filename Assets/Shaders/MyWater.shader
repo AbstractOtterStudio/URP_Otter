@@ -38,7 +38,7 @@ Shader "FlatKit/MyWater"
         [NoScaleOffset] _NoiseMap("[_FOAMMODE_TEXTURE]           Texture{Foam}", 2D) = "white" {}
         _FoamColor("[!_FOAMMODE_NONE]     Color{Foam}", Color) = (1, 1, 1, 1)
         [Space]
-        _FoamDepth("[!_FOAMMODE_NONE]     Shore Depth{Foam}", Float) = 0.5
+        _ShoreFoamDepth("[!_FOAMMODE_NONE]     Shore Foam Depth{Foam}", Float) = 0.5
         _FoamNoiseAmount("[!_FOAMMODE_NONE]     Shore Blending{Foam}", Range(0.0, 1.0)) = 1.0
         [Space]
         _FoamAmount("[!_FOAMMODE_NONE]     Amount{Foam}", Range(0, 3)) = 0.25
@@ -82,10 +82,11 @@ Shader "FlatKit/MyWater"
         LOD 200
         Blend SrcAlpha OneMinusSrcAlpha
         Lighting Off
-        ZWrite[_ZWrite]
 
         Pass
         {
+            ZWrite Off
+            ZTest Always
             HLSLPROGRAM
             //#pragma prefer_hlslcc gles
             //#pragma exclude_renderers d3d11_9x
@@ -138,16 +139,21 @@ Shader "FlatKit/MyWater"
 
             half4 _CrestColor;
             half4 _FoamColor;
-            half _FoamDepth, _FoamAmount, _FoamScale, _FoamSharpness, _FoamStretchX, _FoamStretchY, _FoamSpeed,
+            half _ShoreFoamDepth, _FoamAmount, _FoamScale, _FoamSharpness, _FoamStretchX, _FoamStretchY, _FoamSpeed,
                 _FoamDirection, _FoamNoiseAmount, _RefractionFrequency, _RefractionAmplitude, _RefractionSpeed,
-                _RefractionScale, _FresnelAmount, _FresnelSharpness, _SunReflection, _FoamFadeSpeed, _RefractionDirection;
+                _RefractionScale, _FresnelAmount, _FresnelSharpness, _SunReflection, _FoamFadeSpeed, _RefractionDirection,
+                _SurfaceFoamStartDepth, _SurfaceFoamEndDepth;
 
             half4 _SpecularColor;
             half _SpecularStrength;
 
+            sampler2D _ShorelineBuffer;
+
             TEXTURE2D(_NoiseMap);
             SAMPLER(sampler_NoiseMap);
             float4 _NoiseMap_ST;
+
+            sampler2D _WaterDepthBuffer;
 
             struct VertexInput
             {
@@ -209,7 +215,7 @@ Shader "FlatKit/MyWater"
 
                 // Separately handles orthographic and perspective cameras.
                 const float scene_depth = lerp(_ProjectionParams.z, _ProjectionParams.y, depth_packed) * is_ortho +
-                    LinearEyeDepth(SampleSceneDepth(uv), _ZBufferParams) * is_persp;
+                    LinearEyeDepth(depth_packed, _ZBufferParams) * is_persp;
                 const float surface_depth = lerp(_ProjectionParams.z, _ProjectionParams.y, i.screenPosition.z) *
                     is_ortho + i.
                                screenPosition.w * is_persp;
@@ -326,6 +332,7 @@ Shader "FlatKit/MyWater"
                 UNITY_SETUP_INSTANCE_ID(i);
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
 
+
                 // Refraction.
                 const float2 noise_uv_refraction = i.uv * _RefractionFrequency + _Time.zz * _RefractionSpeed;
                 const float noise01_refraction = GradientNoise(noise_uv_refraction, _RefractionScale);
@@ -365,79 +372,32 @@ Shader "FlatKit/MyWater"
                 color_shallow = SAMPLE_TEXTURE2D(_ColorGradient, sampler_ColorGradient, float2(0.0f, 0.5f));
                 #endif
 
-                #ifdef _WATERBLENDMODE_LUMA
+                #if defined(_WATERBLENDMODE_LUMA)
                 depth_color.rgb = hint(c, depth_color);
                 #endif
-                #ifdef _WATERBLENDMODE_MULTIPLICATIVE
+                #if defined(_WATERBLENDMODE_MULTIPLICATIVE)
                 depth_color.rgb *= c;
                 #endif
                 c = lerp(c, depth_color.rgb, depth_color.a * saturate(water_depth / _StartFade));
-                //c = lerp(c, depth_color.rgb, depth_color.a);
-
-                //return half4(c, _Alpha);
-
-                // Crest.
-                {
-                    const half c_inv = 1.0f - _CrestSize;
-                    c = lerp(c, _CrestColor.rgb,
-                             smoothstep(c_inv, saturate(c_inv + (1.0f - _CrestSharpness)),
-                                        i.waveHeight) * _CrestColor.a);
-                }
 
                 #if !defined(_FOAMMODE_NONE)
-                // Foam Shore.
+                // Foam.
+                float foam_shore = saturate(abs(_ShoreFoamDepth / water_depth_original));
 
-                float foam = saturate(-_FoamDepth / -water_depth_original); // want foam above water surface
-                c = lerp(c, _FoamColor.rgb, foam * _FoamColor.a);
+
+                // Foam around shore
+
+                if (tex2D(_ShorelineBuffer, screen_uv).r > 0)
+                {
+                    if (water_depth_original > 0)
+                        foam_shore = 1.0;
+                }
+
+                c = lerp(c, _FoamColor.rgb, foam_shore * _FoamColor.a);
                 #endif
-                //#if !defined(_FOAMMODE_NONE)
-                //    float uv_angle = atan2(i.uv.y, i.uv.x);
-                //    float cs = cos(uv_angle + _FoamDirection * PI);
-                //    float sn = sin(uv_angle + _FoamDirection * PI);
-                //    float2 rotated_uv = float2(i.uv.x * cs - i.uv.y * sn, i.uv.x * sn + i.uv.y * cs);
-                //    float2 noise_uv_foam = rotated_uv * 100.0f + _Time.zz * _FoamSpeed;
-
-                //    float noise_foam_base;
-                //#if defined(_FOAMMODE_TEXTURE)
-                //        float2 stretch_factor = float2(_FoamStretchX, _FoamStretchY);
-                //        noise_foam_base = SAMPLE_TEXTURE2D(_NoiseMap, sampler_NoiseMap,
-                //            noise_uv_foam * stretch_factor / (_FoamScale * 100.0)).r;
-                //#endif
-
-                //#if defined(_FOAMMODE_GRADIENT_NOISE)
-                //        float2 stretch_factor = float2(_FoamStretchX, _FoamStretchY);
-                //        noise_foam_base = GradientNoise(noise_uv_foam * stretch_factor, _FoamScale);
-                //#endif
-
-                //    float foam_blur = 1.0 - _FoamSharpness;
-                //    float shore_fade = saturate(depth_fade / _FoamDepth);
-                //    float hard_foam_end = 0.1;
-                //    float soft_foam_end = hard_foam_end + foam_blur * 0.3;
-                //    float foam_shore = smoothstep(0.5 - foam_blur * 0.5, 0.5 + foam_blur * 0.5, noise_foam_base);
-                //    foam_shore = saturate(smoothstep(soft_foam_end, hard_foam_end, shore_fade) +
-                //        smoothstep(1, soft_foam_end, shore_fade) * foam_shore * _FoamNoiseAmount);
-                //
-                //    float foam_surface = smoothstep(noise_foam_base, noise_foam_base + foam_blur, _FoamAmount);
-                //    foam_surface = smoothstep(0.5 - foam_blur * 0.5, 0.5 + foam_blur * 0.5, foam_surface);
-
-                //    // fade as time goes by
-                //    noise_uv_foam += _Time.zz * _FoamFadeSpeed;
-                //    const float noise01_foam = GradientNoise(noise_uv_foam, _FoamScale);
-                //    foam_surface *= noise01_foam;
-
-                //    float foam = saturate(foam_shore + foam_surface);
-                //    c = lerp(c, _FoamColor.rgb, foam * _FoamColor.a);
-                //#endif
 
                 // Shadow.
                 #if defined(_MAIN_LIGHT_SHADOWS)
-                    /*
-                    struct VertexPositionInputs
-                        float3 positionWS; // World space position
-                        float3 positionVS; // View space position
-                        float4 positionCS; // Homogeneous clip space position
-                        float4 positionNDC;// Homogeneous normalized device coordinates
-                    */
                     VertexPositionInputs vertexInput = (VertexPositionInputs)0;
                     vertexInput.positionWS = i.positionWS.xyz;
                     float4 shadowCoord = GetShadowCoord(vertexInput);
@@ -445,42 +405,45 @@ Shader "FlatKit/MyWater"
                     c = lerp(c, c * _ShadowColor, _ShadowStrength * (1.0h - shadowAttenutation));
                 #endif
 
-                /*
-                // Specular.
-                {
-                    const float3 normalWS = NormalizeNormalPerPixel(i.normal);
-                    const float3 viewDirWS = SafeNormalize(i.viewDir);
-
-                    const Light mainLight = GetMainLight(); // _MainLightColor, _MainLightPosition
-
-                    // Fresnel.
-                    float fresnel = Pow4(saturate(_FresnelAmount * 2.0 - saturate(dot(normalWS, -viewDirWS))));
-                    const float fresnel_blur = 1.0 - _FresnelSharpness;
-                    fresnel = smoothstep(0.5 - fresnel_blur * 0.5, 0.5 + fresnel_blur * 0.5, fresnel);
-                    c = lerp(c, _SpecularColor.rgb, fresnel * _SpecularColor.a);
-
-                    // Sun reflection.
-                    const float3 reflect_view = reflect(-viewDirWS.xzy, normalWS.xzy);
-                    const float light_reflection_alignment = saturate(dot(_MainLightPosition.xyz, reflect_view));
-
-                    const float3 reflect_planar = reflect(-viewDirWS.xzy, half3(0, 0, 1));
-                    const float plane_reflection_alignment = saturate(dot(_MainLightPosition.xyz, reflect_planar));
-
-                    c += step(0.9, plane_reflection_alignment) * step(0.985, light_reflection_alignment) *
-                        mainLight.color * _SpecularColor.rgb * _SpecularColor.a * _SunReflection;
-
-                    // Sun glitter.
-                    // TODO.
-                }
-                */
-
                 c *= lerp(half3(1, 1, 1), _MainLightColor.rgb, _LightContribution);
 
                 c = MixFog(c, i.fogFactor);
                 
-                //return half4(c,lerp(0.5,1,_Alpha));
                 return half4(c, _Alpha);
             }
+            ENDHLSL
+        }
+
+
+
+        Pass
+        {
+            Name "DepthOnly"
+            Tags{"LightMode" = "DepthOnly"}
+
+            ZWrite On
+            ZTest LEqual
+            ColorMask 0
+
+            HLSLPROGRAM
+            // Required to compile gles 2.0 with standard srp library
+            #pragma prefer_hlslcc gles
+            #pragma exclude_renderers d3d11_9x
+            #pragma target 2.0
+
+            #pragma vertex DepthOnlyVertex
+            #pragma fragment DepthOnlyFragment
+
+            // -------------------------------------
+            // Material Keywords
+            #pragma shader_feature _ALPHATEST_ON
+
+            //--------------------------------------
+            // GPU Instancing
+            #pragma multi_compile_instancing
+
+            #include "Packages/com.unity.render-pipelines.universal/Shaders/UnlitInput.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/Shaders/DepthOnlyPass.hlsl"
             ENDHLSL
         }
     }
