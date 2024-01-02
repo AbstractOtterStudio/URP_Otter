@@ -425,13 +425,15 @@
                 if (scene_depth - surface_depth > _ShorelineMaxDepth) discard;
                 #ifdef  __WRITE_SHORELINE_BUFFER
                     //return 1.0;
-                    float3 dir = i.WPOS - i.WO;
+                    //float3 dir = i.WPOS - i.WO;
+                float3 worldPos = _WorldSpaceCameraPos + normalize(i.WPOS - _WorldSpaceCameraPos) * surface_depth;
+                    float3 dir = worldPos - i.WO;
                     dir.y = 0;
                     float dist = length(dir);
                     dir = normalize(dir);
-                    float dir_out = atan2(dir.z, dir.x) / TWO_PI + 0.5;
-                    uint dir_packed = dir_out * 0xffu;
-                    return asfloat(0xff000000u | (dir_packed << 16) | f32tof16(dist)); // weight, dir, dist
+                    float dir_out = atan2(dir.z, dir.x) / TWO_PI + 0.499999999;
+                    uint dir_packed = uint(dir_out * 255) << 16;
+                    return asfloat(0xff000000u | dir_packed | f32tof16(dist)); // weight, dir, dist
                 #else
                     return 0;
                 #endif

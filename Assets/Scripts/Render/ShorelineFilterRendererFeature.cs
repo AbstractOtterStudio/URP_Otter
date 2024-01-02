@@ -30,7 +30,7 @@ public class ShorelineFilterPass : ScriptableRenderPass
         // descriptor.colorFormat = RenderTextureFormat.R8;
         descriptor.colorFormat = RenderTextureFormat.RFloat;
         descriptor.depthBufferBits = 0;
-        //descriptor.msaaSamples = 1;
+        descriptor.msaaSamples = 1;
 
         cmd.GetTemporaryRT(tmpTexId, descriptor);
         TmpTex = new RenderTargetIdentifier(tmpTexId);

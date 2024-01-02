@@ -401,9 +401,8 @@ Shader "Water/MyWater"
                 const int _FoamFilterHalfSize = 1;
                 const int _FoamFilterSquareSize = 9;
                 const float _FoamFilterStride = 4.0;
-                float shoreline = tex2D(_ShorelineBuffer, screen_uv).r;
-                shoreline = float(asuint(shoreline) >> 24) / 255.0;
-
+                const uint shorelineData = asuint(tex2D(_ShorelineBuffer, screen_uv).r);
+                float shoreline = float(shorelineData >> 24) / 255.0;
 
                 // Debug uv rotation
                 //float uv_angle = atan2(i.uv.y, i.uv.x);
@@ -448,13 +447,18 @@ Shader "Water/MyWater"
                     //float2 noise_uv_foam = rotated_uv * 100.0f + _Time.zz * _FoamSpeed;
 
 
+                    //float shorelineAngle, shorelineDist;
+                    //shorelineAngle = float((shorelineData >> 16) & 0x000000ffu) / 255.0 * TWO_PI - PI;
+                    //shorelineDist = f16tof32(shorelineData & 0x0000ffffu);
                     //float2 noise_uv_foam;
                     //noise_uv_foam.x = shorelineAngle / TWO_PI + 0.5;
-                    //float3 dir = float3(cos(shorelineAngle + _FoamDirection * PI), 0, sin(shorelineAngle + _FoamDirection * PI));
+                    //float3 dir = float3(cos(shorelineAngle), 0, sin(shorelineAngle));
                     //float3 WO = i.positionWS.xyz - dir * shorelineDist; // retrieve object's origin
-                    //float4 CO = TransformObjectToHClip(WO);
-                    //float2 UVO = CO.xy / CO.w;
-                    //noise_uv_foam.y = length(UVO); noise_uv_foam.y += _Time.z * _FoamSpeed;
+                    //float4 CO = TransformWorldToHClip(WO);
+                    //float4 UVO = ComputeScreenPos(CO);
+                    //UVO.xy /= UVO.w;
+                    //return half4(length(UVO.xy) * shoreline, length(UVO.xy) * shoreline, length(UVO.xy) * shoreline, 1);
+                    //noise_uv_foam.y = length(UVO.xy); noise_uv_foam.y += _Time.z * _FoamSpeed;
 
                     float noise_foam_base = 0.0;
                     #if defined(_FOAMMODE_TEXTURE)
@@ -474,7 +478,7 @@ Shader "Water/MyWater"
                     #endif
 
                     #if defined(_FOAMMODE_GRADIENT_NOISE)
-                        float2 noise_uv_foam = i.uv * 100.0f + _Time.zz * _FoamSpeed;
+                        //float2 noise_uv_foam = i.uv * 100.0f + _Time.zz * _FoamSpeed;
                         float2 stretch_factor = float2(_FoamStretchX, _FoamStretchY);
                         noise_foam_base = GradientNoise(noise_uv_foam * stretch_factor, _FoamScale);
                     #endif

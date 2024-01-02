@@ -14,6 +14,7 @@ Shader "Water/ShorelineBlur"
 		#pragma vertex vert
 		#pragma fragment frag
 
+		#pragma enable_d3d11_debug_symbols
 		#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 		#pragma multi_compile __BLUR_SIZE_3 __BLUR_SIZE_5 __BLUR_SIZE_7 __BLUR_SIZE_9
 
@@ -103,7 +104,6 @@ Shader "Water/ShorelineBlur"
 				}
 				data_out &= 0x00ffffffu;
 				data_out |= uint(saturate(sum) * 255) << 24;
-				//return sum;
 				return asfloat(data_out);
 			}
 			ENDHLSL
