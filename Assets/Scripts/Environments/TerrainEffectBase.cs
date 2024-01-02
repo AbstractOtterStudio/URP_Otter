@@ -20,12 +20,7 @@ public class TerrainEffectBase : TerrainBase
     [SerializeField] protected Transform up;
     [SerializeField] protected Transform down;
 
-    //Time for Player Pass the Terrain
-    [SerializeField]
-    [Range(1,3)]
-    protected float effectTime;
-    protected float effectHeight;
-    protected Vector2 effectLength = Vector2.zero;
+    [SerializeField] protected float waterfallForce;
 
     protected float tempHeight;
     [SerializeField] protected float oriPlayerHeight;
@@ -35,27 +30,22 @@ public class TerrainEffectBase : TerrainBase
 
     //Use to Forbid Player Enter When Player in Dive PlaceState
     [SerializeField] protected GameObject forbidWalls;
+
+    [SerializeField] private float lastDistFromUp = 0;
+    [SerializeField] private float curDistFromUp = -1;
+    private Transform playerTrans;
+    [SerializeField] protected float vel;
+    [SerializeField] protected float minVel;
+    [SerializeField] protected float maxVel;
+
     void Start()
     {
-        if (forbidWalls == null) {
-            Debug.LogError($"Add Forbid Walls On the Script ! : {gameObject.name}");
-        }
-
-        effectTime = effectTime * 0.7f + effectTime * 0.3f / waterfallLevel;
-        effectHeight = (up.position.y - down.position.y) / effectTime;
-        //effectLength = new Vector2(up.position.x - down.position.x, up.position.z - down.position.z) / effectTime;
-        //effectHeight = ( up.transform.position.y - down.transform.position.y ) / effectParam;
-        // effectHeight = Mathf.Sin(Math.Min(Mathf.Abs(waterfallMode.rotation.x * 180),180 - Mathf.Abs(waterfallMode.rotation.x * 180))) * waterfallMode.lossyScale.y / effectParam;
-        // effectLength = Mathf.Cos(Math.Min(Mathf.Abs(waterfallMode.rotation.x * 180),180 - Mathf.Abs(waterfallMode.rotation.x * 180))) * waterfallMode.lossyScale.y / effectParam;
-
+        effectHeightRatio = (up.position.y - down.position.y) / Vector3.Distance(up.position, down.position);
     }
 
-    void FixedUpdate()
+    void Update()
     {
-        if (hasEffect) {
-            EffectPlayer();
-            AccuratePlayerPos();
-        }
+        
     }
 
     /// <summary>
@@ -65,11 +55,14 @@ public class TerrainEffectBase : TerrainBase
     /// <param name="other"></param>
     protected void OnTriggerEnter(Collider other)
     {
-        if (!hasEffect && other.GetComponent<PlayerMovement>()) {
-            if (other.GetComponent<PlayerStateController>().playerPlaceState == PlayerPlaceState.Dive) {
+        if (!hasEffect && other.GetComponent<PlayerMovement>())
+        {
+            if (other.GetComponent<PlayerStateController>().playerPlaceState == PlayerPlaceState.Dive)
+            {
                 return;
             }
-            else {
+            else
+            {
                 forbidWalls.SetActive(false);
                 oriPlayerHeight = other.transform.position.y;
             }
@@ -79,16 +72,7 @@ public class TerrainEffectBase : TerrainBase
                 playerMovement.EffectCurSpeed(0.1f);
             }
             hasEffect = true;
-            // lastDistance = Mathf.Abs(up.transform.position.x - playerMovement.transform.position.x)
-            // * Mathf.Abs(up.transform.position.x - playerMovement.transform.position.x)
-            // + Mathf.Abs(up.transform.position.z - playerMovement.transform.position.z)
-            // *Mathf.Abs(up.transform.position.z - playerMovement.transform.position.z);
-            if (Vector3.Distance(up.position, playerMovement.transform.position) > Vector3.Distance(down.position, playerMovement.transform.position)) {
-                effectHeightRatio = (up.position.y - playerMovement.transform.position.y) / Vector3.Distance(up.position, playerMovement.transform.position);
-            }
-            else {
-                effectHeightRatio = - (down.position.y - playerMovement.transform.position.y) / Vector3.Distance(down.position, playerMovement.transform.position);
-            }
+            playerTrans = other.transform;
         }
     }
 
@@ -99,43 +83,63 @@ public class TerrainEffectBase : TerrainBase
     /// <param name="other"></param>
     protected void OnTriggerExit(Collider other)
     {
-        if (hasEffect && other.GetComponent<PlayerMovement>()) {
-            //playerMovement.ReturnCurSpeed(effectPlayerRatio);
-            if (other.GetComponent<PlayerProperty>().currentLevel < waterfallLevel)
+        if (hasEffect && other.GetComponent<PlayerMovement>())
+        {
+            if (other.transform.position.y > (up.position.y + down.position.y) / 2 && oriPlayerHeight > (up.position.y + down.position.y) / 2)
             {
-                playerMovement.ReturnCurSpeed(0.1f);
+                playerMovement.transform.position = new Vector3(playerMovement.transform.position.x, oriPlayerHeight, playerMovement.transform.position.z);
             }
-            if (other.transform.position.y > (up.position.y + down.position.y) / 2 && oriPlayerHeight > (up.position.y + down.position.y) / 2) {
-                playerMovement.transform.position = new Vector3 (playerMovement.transform.position.x, oriPlayerHeight, playerMovement.transform.position.z);
+            else if (other.transform.position.y < (up.position.y + down.position.y) / 2 && oriPlayerHeight < (up.position.y + down.position.y) / 2)
+            {
+                playerMovement.transform.position = new Vector3(playerMovement.transform.position.x, oriPlayerHeight, playerMovement.transform.position.z);
             }
-            else if (other.transform.position.y < (up.position.y + down.position.y) / 2 && oriPlayerHeight < (up.position.y + down.position.y) / 2) {
-                playerMovement.transform.position = new Vector3 (playerMovement.transform.position.x, oriPlayerHeight, playerMovement.transform.position.z);
-            }
-            else if (other.transform.position.y > (up.position.y + down.position.y) / 2 && oriPlayerHeight < (up.position.y + down.position.y) / 2) {
+            else if (other.transform.position.y > (up.position.y + down.position.y) / 2 && oriPlayerHeight < (up.position.y + down.position.y) / 2)
+            {
                 playerMovement.transform.position = playerMovement.transform.position.Y(oriPlayerHeight + waterfallLevel * GlobalSetting.waterFallHeight);
                 //playerMovement.transform.position = new Vector3 (playerMovement.transform.position.x, oriPlayerHeight + waterfallLevel * GlobalSetting.WaterFallHeight, playerMovement.transform.position.z);
-                playerMovement.SetDiveOrFloatHeight(true,waterfallLevel * GlobalSetting.waterFallHeight);
+                playerMovement.SetDiveOrFloatHeight(true, waterfallLevel * GlobalSetting.waterFallHeight);
             }
-            else if (other.transform.position.y < (up.position.y + down.position.y) / 2 && oriPlayerHeight > (up.position.y + down.position.y) / 2){
+            else if (other.transform.position.y < (up.position.y + down.position.y) / 2 && oriPlayerHeight > (up.position.y + down.position.y) / 2)
+            {
                 playerMovement.transform.position = playerMovement.transform.position.Y(oriPlayerHeight - waterfallLevel * GlobalSetting.waterFallHeight);
                 //playerMovement.transform.position = new Vector3 (playerMovement.transform.position.x, oriPlayerHeight - waterfallLevel * GlobalSetting.WaterFallHeight, playerMovement.transform.position.z);
-                playerMovement.SetDiveOrFloatHeight(false,waterfallLevel * GlobalSetting.waterFallHeight);
+                playerMovement.SetDiveOrFloatHeight(false, waterfallLevel * GlobalSetting.waterFallHeight);
             }
             playerMovement = null;
             forbidWalls.SetActive(true);
             hasEffect = false;
+            playerTrans = null;
+            curDistFromUp = -1;
+            lastDistFromUp = 0;
             waterFallParticle.gameObject.SetActive(false);
         }
     }
 
-    protected void AccuratePlayerPos() {
-        tempHeight = up.position.y - effectHeightRatio * Vector3.Distance (up.position, playerMovement.transform.position);
-        playerMovement.transform.position = new Vector3 (playerMovement.transform.position.x, tempHeight, playerMovement.transform.position.z);
-    }
-
-    protected void EffectPlayer() {
-        if (playerMovement.GetComponent<PlayerStateController>().playerSpeedState != PlayerSpeedState.Fast) {
-            playerMovement.transform.position -= new Vector3 (effectLength.x, effectHeight, effectLength.y) * Time.deltaTime; 
+    protected void WaterFallSpeedEffect()
+    {
+        if (hasEffect && playerTrans != null && playerMovement != null)
+        {
+            vel = playerTrans.GetComponent<PlayerMovement>().GetCurrentSpeed();
+            if (curDistFromUp > -1)
+            {
+                lastDistFromUp = curDistFromUp;
+            }
+            curDistFromUp = Vector3.Distance(up.position, playerTrans.position);
+            if (curDistFromUp <= lastDistFromUp)
+            {
+                if (vel > minVel)
+                {
+                    playerMovement.EffectCurSpeed(0.85f);
+                }
+            }
+            else
+            {
+                if (vel < maxVel)
+                {
+                    playerMovement.EffectCurSpeed(2f);
+                }
+            }
+            playerTrans.position = new Vector3(playerTrans.position.x, oriPlayerHeight + effectHeightRatio * Vector3.Distance(up.position, playerTrans.position), playerTrans.position.z);
         }
-	}
+    }
 }
