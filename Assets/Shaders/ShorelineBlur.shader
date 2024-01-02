@@ -66,13 +66,18 @@ Shader "Water/ShorelineBlur"
 			{
 				float2 res = _MainTex_TexelSize.xy;
 				float sum = 0;
-
+				uint data_out = 0;
 				for (float y = -_BlurHalfSize; y <= _BlurHalfSize; y++)
 				{
 					float2 offset = float2(0, y * res.y);
-					sum += SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, IN.uv + offset) * _BlurWeight[y + _BlurHalfSize];
+					uint data = asuint(SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, IN.uv + offset).r);
+					if (y == 0) data_out = data;
+					float weight = float(data >> 24) / 255.0;
+					sum += weight * _BlurWeight[y + _BlurHalfSize];
 				}
-				return sum;
+				data_out &= 0x00ffffffu;
+				data_out |= uint(saturate(sum) * 255) << 24;
+				return asfloat(data_out);
 			}
 			ENDHLSL
 		}
@@ -86,13 +91,20 @@ Shader "Water/ShorelineBlur"
 			{
 				float2 res = _MainTex_TexelSize.xy;
 				float sum = 0;
+				uint data_out = 0;
 
 				for (float x = -_BlurHalfSize; x <= _BlurHalfSize; x++)
 				{
 					float2 offset = float2(x * res.x, 0);
-					sum += SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, IN.uv + offset) * _BlurWeight[x + _BlurHalfSize];
+					uint data = asuint(SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, IN.uv + offset).r);
+					if (x == 0) data_out = data;
+					float weight = float(data >> 24) / 255.0;
+					sum += weight * _BlurWeight[x + _BlurHalfSize];
 				}
-				return sum;
+				data_out &= 0x00ffffffu;
+				data_out |= uint(saturate(sum) * 255) << 24;
+				//return sum;
+				return asfloat(data_out);
 			}
 			ENDHLSL
 		}

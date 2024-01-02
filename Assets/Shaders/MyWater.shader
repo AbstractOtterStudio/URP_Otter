@@ -402,6 +402,7 @@ Shader "Water/MyWater"
                 const int _FoamFilterSquareSize = 9;
                 const float _FoamFilterStride = 4.0;
                 float shoreline = tex2D(_ShorelineBuffer, screen_uv).r;
+                shoreline = float(asuint(shoreline) >> 24) / 255.0;
 
 
                 // Debug uv rotation
