@@ -10,7 +10,7 @@ Material:
   m_Name: MyWater
   m_Shader: {fileID: 4800000, guid: 3966d837d6b84eb489f7b8d0271eebe3, type: 3}
   m_ShaderKeywords: FOAMTEXTURESAMPLEMODE_STACK _COLORMODE_LINEAR _FOAMMODE_TEXTURE
-    _FOAMSAMPLEMODE_STACK _FOAMTEXTURESAMPLEMODE_MOVE _OPAQUE_OFF _WATERBLENDMODE_MULTIPLICATIVE
+    _FOAMSAMPLEMODE_MOVE _FOAMTEXTURESAMPLEMODE_MOVE _OPAQUE_OFF _WATERBLENDMODE_MULTIPLICATIVE
     _WATERBLENDMODE_YUV _WAVEMODE_ROUND
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
@@ -59,7 +59,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _NoiseMap:
-        m_Texture: {fileID: 2800000, guid: e9a49b952ee904c22913fa9818a060e6, type: 3}
+        m_Texture: {fileID: 2800000, guid: 0623839c566024935a21928df8bfba56, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _OcclusionMap:
@@ -112,7 +112,7 @@ Material:
     - _FoamFilterStride: 1
     - _FoamMode: 2
     - _FoamNoiseAmount: 0.597
-    - _FoamSampleMode: 1
+    - _FoamSampleMode: 0
     - _FoamScale: 0.2
     - _FoamSharpness: 0
     - _FoamSpeed: 0.1
