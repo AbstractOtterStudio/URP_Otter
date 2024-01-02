@@ -422,7 +422,7 @@
             {
                 float scene_depth, surface_depth;
                 GetWaterDepth(i, scene_depth, surface_depth);
-                if (scene_depth - surface_depth > _ShorelineMaxDepth) discard;
+                if (abs(scene_depth - surface_depth) > _ShorelineMaxDepth) discard;
                 #ifdef  __WRITE_SHORELINE_BUFFER
                     //return 1.0;
                     //float3 dir = i.WPOS - i.WO;
