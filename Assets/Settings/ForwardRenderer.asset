@@ -14,7 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_RendererFeatures:
   - {fileID: 3577427722442133707}
-  m_RendererFeatureMap: cb50cc3d8f93a531
+  - {fileID: 213980489076143202}
+  - {fileID: 3266438382835682973}
+  m_RendererFeatureMap: cb50cc3d8f93a53162743f001f36f8029d4e9f2167b8542d
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
   xrSystemData: {fileID: 11400000, guid: 60e1133243b97e347b653163a8c01b64, type: 2}
   shaders:
@@ -43,6 +45,43 @@ MonoBehaviour:
   m_ShadowTransparentReceive: 1
   m_RenderingMode: 0
   m_AccurateGbufferNormals: 0
+--- !u!114 &213980489076143202
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dfbed0219079d0643828d851d1888efb, type: 3}
+  m_Name: WaterDepthRendererFeature
+  m_EditorClassIdentifier: 
+  m_Active: 1
+  Layer:
+    serializedVersion: 2
+    m_Bits: 16
+  InjectionPoint: 150
+--- !u!114 &3266438382835682973
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 78af4d232745836489b0569b8ed1bb17, type: 3}
+  m_Name: ShorelineRendererFeature
+  m_EditorClassIdentifier: 
+  m_Active: 1
+  Layer:
+    serializedVersion: 2
+    m_Bits: 128
+  InjectionPoint: 250
+  ExpansionStart: {x: 0.4, y: 0, z: 0.4}
+  ExpansionEnd: {x: 1, y: 0, z: 1}
+  MaxDepth: 1
 --- !u!114 &3577427722442133707
 MonoBehaviour:
   m_ObjectHideFlags: 0
