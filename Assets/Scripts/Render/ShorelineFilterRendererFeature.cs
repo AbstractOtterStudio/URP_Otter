@@ -9,7 +9,8 @@ using UnityEngine.Rendering;
 /// </summary>
 public class ShorelineFilterPass : ScriptableRenderPass
 {
-    public int BlurStrength = 1;
+    public enum FilterSize { Three, Five, Seve, Nine };
+    public FilterSize filterSize = FilterSize.Five;
     Material material = null;
     int tmpTexId = Shader.PropertyToID("_ShorelineFilterTempBuffer");
     RenderTargetIdentifier ShorelineTex;
@@ -24,6 +25,8 @@ public class ShorelineFilterPass : ScriptableRenderPass
     public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
     {
         RenderTextureDescriptor descriptor = renderingData.cameraData.cameraTargetDescriptor;
+        descriptor.width = Mathf.CeilToInt(descriptor.width / WaterRenderProperties.ShorelineDownsampling.x);
+        descriptor.height = Mathf.CeilToInt(descriptor.height / WaterRenderProperties.ShorelineDownsampling.y);
         // descriptor.colorFormat = RenderTextureFormat.R8;
         descriptor.colorFormat = RenderTextureFormat.RFloat;
         descriptor.depthBufferBits = 0;
@@ -42,7 +45,22 @@ public class ShorelineFilterPass : ScriptableRenderPass
         CommandBuffer cmd = CommandBufferPool.Get();
         using (new ProfilingScope(cmd, new ProfilingSampler("Filt Shoreline Mask")))
         {
-            Shader.SetGlobalFloat(Shader.PropertyToID("_BoxBlurStrength"), BlurStrength);
+            switch (filterSize)
+            {
+                default:
+                case FilterSize.Three:
+                    Shader.EnableKeyword("__BLUR_SIZE_3");
+                    break;
+                case FilterSize.Five:
+                    Shader.EnableKeyword("__BLUR_SIZE_5");
+                    break;
+                case FilterSize.Seve:
+                    Shader.EnableKeyword("__BLUR_SIZE_7");
+                    break;
+                case FilterSize.Nine:
+                    Shader.EnableKeyword("__BLUR_SIZE_9");
+                    break;
+            }
             Blit(cmd, ShorelineTex, TmpTex, material, 0); // shader pass 0
             Blit(cmd, TmpTex, ShorelineTex, material, 1); // shader pass 1
         }
@@ -59,13 +77,13 @@ public class ShorelineFilterPass : ScriptableRenderPass
 public class ShorelineFilterRendererFeature : ScriptableRendererFeature
 {
     public RenderPassEvent InjectionPoint = RenderPassEvent.BeforeRenderingOpaques;
-    public int BlurStrenth = 1;
+    public ShorelineFilterPass.FilterSize filterSize = ShorelineFilterPass.FilterSize.Five;
 
     ShorelineFilterPass renderPass = null;
     public override void AddRenderPasses(ScriptableRenderer renderer,
                                     ref RenderingData renderingData)
     {
-        renderPass.BlurStrength = BlurStrenth;
+        renderPass.filterSize = filterSize;
         if (renderingData.cameraData.cameraType == CameraType.Game)
             renderer.EnqueuePass(renderPass);
     }

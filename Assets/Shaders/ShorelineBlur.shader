@@ -5,7 +5,7 @@ Shader "Water/ShorelineBlur"
 		_MainTex("Texture", 2D) = "white"
 	}
 
-	SubShader
+		SubShader
 	{
 		ZTest Always
 		ZWrite Off
@@ -15,7 +15,21 @@ Shader "Water/ShorelineBlur"
 		#pragma fragment frag
 
 		#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+		#pragma shader_keyword __BLUR_SIZE_3 __BLUR_SIZE_5 __BLUR_SIZE_7 __BLUR_SIZE_9
 
+		#if defined(__BLUR_SIZE_3)
+		static const int _BlurHalfSize = 1;
+		static const float _BlurWeight[3] = {0.27406862, 0.45186276, 0.27406862};
+		#elif defined(__BLUR_SIZE_5)
+		static const int _BlurHalfSize = 2;
+		static const float _BlurWeight[5] = { 0.13357471, 0.22921512, 0.27442033, 0.22921512, 0.13357471 };
+		#elif defined(__BLUR_SIZE_7)
+		static const int _BlurHalfSize = 3;
+		static const float _BlurWeight[7] = { 0.08605388, 0.13620448, 0.17940889, 0.19666549, 0.17940889, 0.13620448, 0.08605388 };
+		#else
+		static const int _BlurHalfSize = 4;
+		static const float _BlurWeight[9] = { 0.0629702, 0.0929025, 0.12264921, 0.14489292, 0.15317033, 0.14489292, 0.12264921, 0.0929025, 0.0629702 };
+		#endif
 		struct Attributes
 		{
 			float4 positionOS : POSITION;
@@ -33,8 +47,6 @@ Shader "Water/ShorelineBlur"
 		SAMPLER(sampler_MainTex);
 		float4 _MainTex_TexelSize;
 		float4 _MainTex_ST;
-
-		int _BoxBlurStrength;
 
 		Varyings vert(Attributes IN)
 		{
@@ -55,14 +67,12 @@ Shader "Water/ShorelineBlur"
 				float2 res = _MainTex_TexelSize.xy;
 				float sum = 0;
 
-				int samples = 2 * _BoxBlurStrength + 1;
-
-				for (float y = 0; y < samples; y++)
+				for (float y = -_BlurHalfSize; y <= _BlurHalfSize; y++)
 				{
-					float2 offset = float2(0, y - _BoxBlurStrength);
-					sum += SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, IN.uv + offset * res);
+					float2 offset = float2(0, y * res.y);
+					sum += SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, IN.uv + offset) * _BlurWeight[y + _BlurHalfSize];
 				}
-				return sum / samples;
+				return sum;
 			}
 			ENDHLSL
 		}
@@ -77,15 +87,12 @@ Shader "Water/ShorelineBlur"
 				float2 res = _MainTex_TexelSize.xy;
 				float sum = 0;
 
-				int samples = 2 * _BoxBlurStrength + 1;
-
-				for (float x = 0; x < samples; x++)
+				for (float x = -_BlurHalfSize; x <= _BlurHalfSize; x++)
 				{
-					float2 offset = float2(x - _BoxBlurStrength, 0);
-					sum += SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, IN.uv + offset * res);
+					float2 offset = float2(x * res.x, 0);
+					sum += SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, IN.uv + offset) * _BlurWeight[x + _BlurHalfSize];
 				}
-
-				return sum / samples;
+				return sum;
 			}
 			ENDHLSL
 		}

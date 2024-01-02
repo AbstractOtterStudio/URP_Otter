@@ -27,6 +27,8 @@ public class ShorelinePass : ScriptableRenderPass
     public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
     {
         RenderTextureDescriptor descriptor = renderingData.cameraData.cameraTargetDescriptor;
+        descriptor.width = Mathf.CeilToInt(descriptor.width / WaterRenderProperties.ShorelineDownsampling.x);
+        descriptor.height = Mathf.CeilToInt(descriptor.height / WaterRenderProperties.ShorelineDownsampling.y);
         // descriptor.colorFormat = RenderTextureFormat.R8;
         descriptor.colorFormat = RenderTextureFormat.RFloat;
         descriptor.depthBufferBits = 0;

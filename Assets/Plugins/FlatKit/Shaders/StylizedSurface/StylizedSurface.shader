@@ -379,6 +379,7 @@
                 float3 WPOS : TEXCOORD0;
                 float3 WPOS_ORIG : TEXCOORD1;
                 nointerpolation float3 WO : TEXCOORD2;
+                float4 SPOS : TEXCOORD3;
                 float4 CPOS : SV_POSITION;
             };
 
@@ -392,7 +393,7 @@
                     LinearEyeDepth(depth, _ZBufferParams) * is_persp;
 
                 //const float2 uv = i.CPOS.xy / i.CPOS.w * 0.5 + 0.5;
-                const float2 uv = float2(i.CPOS.x / _ScreenParams.x, i.CPOS.y / _ScreenParams.y);
+                const float2 uv = i.SPOS.xy / i.SPOS.w;
                 depth = tex2D(_WaterDepthBuffer, uv).r;
 
                 if (depth == 0.0) depth = 1.0;
@@ -414,7 +415,7 @@
                     o.WPOS = o.WPOS_ORIG + normalize(tmp) * _ShorelineExpansionStart;
                 #endif
                 o.CPOS = TransformWorldToHClip(o.WPOS);
-
+                o.SPOS = ComputeScreenPos(o.CPOS);
                 return o;
             }
             half frag(v2f i/*, out half z_overwrite : SV_Depth*/) : SV_Target
