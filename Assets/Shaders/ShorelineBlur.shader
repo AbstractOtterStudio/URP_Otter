@@ -15,7 +15,7 @@ Shader "Water/ShorelineBlur"
 		#pragma fragment frag
 
 		#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
-		#pragma shader_keyword __BLUR_SIZE_3 __BLUR_SIZE_5 __BLUR_SIZE_7 __BLUR_SIZE_9
+		#pragma multi_compile __BLUR_SIZE_3 __BLUR_SIZE_5 __BLUR_SIZE_7 __BLUR_SIZE_9
 
 		#if defined(__BLUR_SIZE_3)
 		static const int _BlurHalfSize = 1;

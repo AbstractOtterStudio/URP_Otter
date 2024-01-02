@@ -35,6 +35,7 @@ Shader "Water/MyWater"
 
         [Space][Header(Foam)][Space]
         [KeywordEnum(None, Gradient Noise, Texture)] _FoamMode ("     Source{Foam}", Float) = 1.0
+        [KeywordEnum(Move, Stack)] _FoamSampleMode("[_FOAMMODE_TEXTURE]           Sample Mode{Foam}", Float) = 1.0
         [NoScaleOffset] _NoiseMap("[_FOAMMODE_TEXTURE]           Texture{Foam}", 2D) = "white" {}
         _FoamColor("[!_FOAMMODE_NONE]     Color{Foam}", Color) = (1, 1, 1, 1)
         [Space]
@@ -86,7 +87,7 @@ Shader "Water/MyWater"
         Pass
         {
             ZWrite Off
-            ZTest Always
+            ZTest LEqual
             HLSLPROGRAM
             //#pragma prefer_hlslcc gles
             //#pragma exclude_renderers d3d11_9x
@@ -97,6 +98,7 @@ Shader "Water/MyWater"
             #pragma shader_feature_local _COLORMODE_LINEAR _COLORMODE_GRADIENT_TEXTURE
             #pragma shader_feature_local _WATERBLENDMODE_LUMA _WATERBLENDMODE_MULTIPLICATIVE
             #pragma shader_feature_local _FOAMMODE_NONE _FOAMMODE_GRADIENT_NOISE _FOAMMODE_TEXTURE
+            #pragma shader_fetaure_local _FOAMSAMPLEMODE_MOVE _FOAMSAMPLEMODE_STACK
             #pragma shader_feature_local _WAVEMODE_NONE _WAVEMODE_ROUND _WAVEMODE_GRID _WAVEMODE_POINTY
 
             #pragma multi_compile_fog
@@ -443,7 +445,6 @@ Shader "Water/MyWater"
                     //float sn = sin(uv_angle + shorelineAngle);
                     //float2 rotated_uv = float2(i.uv.x * cs - i.uv.y * sn, i.uv.x * sn + i.uv.y * cs);
                     //float2 noise_uv_foam = rotated_uv * 100.0f + _Time.zz * _FoamSpeed;
-                    float2 noise_uv_foam = i.uv * 100.0f + _Time.zz * _FoamSpeed;
 
 
                     //float2 noise_uv_foam;
@@ -454,14 +455,25 @@ Shader "Water/MyWater"
                     //float2 UVO = CO.xy / CO.w;
                     //noise_uv_foam.y = length(UVO); noise_uv_foam.y += _Time.z * _FoamSpeed;
 
-                    float noise_foam_base;
+                    float noise_foam_base = 0.0;
                     #if defined(_FOAMMODE_TEXTURE)
                         float2 stretch_factor = float2(_FoamStretchX, _FoamStretchY);
-                        noise_foam_base = SAMPLE_TEXTURE2D(_NoiseMap, sampler_NoiseMap,
-                            noise_uv_foam * stretch_factor / (_FoamScale * 100.0)).r;
+                        //#if defined(_FOAMSAMPLEMODE_MOVE)
+                            float2 noise_uv_foam = i.uv * 100.0f + _Time.zz * _FoamSpeed; 
+                            noise_uv_foam *= stretch_factor / (_FoamScale * 100.0);
+                            noise_foam_base = SAMPLE_TEXTURE2D(_NoiseMap, sampler_NoiseMap, noise_uv_foam).r;
+                        //#elif defined(_FOAMSAMPLEMODE_STACK)
+                        //    float2 noise_uv_foam = i.uv * 100.0f;
+                        //    noise_uv_foam *= stretch_factor / (_FoamScale * 100.0);
+                        //    float base1 = SAMPLE_TEXTURE2D(_NoiseMap, sampler_NoiseMap, noise_uv_foam).r;
+                        //    float base2 = SAMPLE_TEXTURE2D(_NoiseMap, sampler_NoiseMap, -noise_uv_foam).r;
+                        //    noise_foam_base = lerp(base1, base2, smoothstep(0.0, 0.5, abs(frac(_Time.z * _FoamSpeed) - 0.5)));
+                        //    //noise_foam_base = lerp(base1, base2, abs(sin(_Time.z * _FoamSpeed)));
+                        //#endif
                     #endif
 
                     #if defined(_FOAMMODE_GRADIENT_NOISE)
+                        float2 noise_uv_foam = i.uv * 100.0f + _Time.zz * _FoamSpeed;
                         float2 stretch_factor = float2(_FoamStretchX, _FoamStretchY);
                         noise_foam_base = GradientNoise(noise_uv_foam * stretch_factor, _FoamScale);
                     #endif

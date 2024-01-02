@@ -9,7 +9,7 @@ using UnityEngine.Rendering;
 /// </summary>
 public class ShorelineFilterPass : ScriptableRenderPass
 {
-    public enum FilterSize { Three, Five, Seve, Nine };
+    public enum FilterSize { Three, Five, Seven, Nine };
     public FilterSize filterSize = FilterSize.Five;
     Material material = null;
     int tmpTexId = Shader.PropertyToID("_ShorelineFilterTempBuffer");
@@ -49,18 +49,32 @@ public class ShorelineFilterPass : ScriptableRenderPass
             {
                 default:
                 case FilterSize.Three:
-                    Shader.EnableKeyword("__BLUR_SIZE_3");
+                    cmd.EnableShaderKeyword("__BLUR_SIZE_3");
+                    cmd.DisableShaderKeyword("__BLUR_SIZE_5");
+                    cmd.DisableShaderKeyword("__BLUR_SIZE_7");
+                    cmd.DisableShaderKeyword("__BLUR_SIZE_9");
                     break;
                 case FilterSize.Five:
-                    Shader.EnableKeyword("__BLUR_SIZE_5");
+                    cmd.EnableShaderKeyword("__BLUR_SIZE_5");
+                    cmd.DisableShaderKeyword("__BLUR_SIZE_3");
+                    cmd.DisableShaderKeyword("__BLUR_SIZE_7");
+                    cmd.DisableShaderKeyword("__BLUR_SIZE_9");
                     break;
-                case FilterSize.Seve:
-                    Shader.EnableKeyword("__BLUR_SIZE_7");
+                case FilterSize.Seven:
+                    cmd.EnableShaderKeyword("__BLUR_SIZE_7");
+                    cmd.DisableShaderKeyword("__BLUR_SIZE_3");
+                    cmd.DisableShaderKeyword("__BLUR_SIZE_5");
+                    cmd.DisableShaderKeyword("__BLUR_SIZE_9");
                     break;
                 case FilterSize.Nine:
-                    Shader.EnableKeyword("__BLUR_SIZE_9");
+                    cmd.EnableShaderKeyword("__BLUR_SIZE_9");
+                    cmd.DisableShaderKeyword("__BLUR_SIZE_3");
+                    cmd.DisableShaderKeyword("__BLUR_SIZE_5");
+                    cmd.DisableShaderKeyword("__BLUR_SIZE_7");
                     break;
             }
+            context.ExecuteCommandBuffer(cmd);
+            cmd.Clear();
             Blit(cmd, ShorelineTex, TmpTex, material, 0); // shader pass 0
             Blit(cmd, TmpTex, ShorelineTex, material, 1); // shader pass 1
         }
