@@ -43,7 +43,7 @@ Shader "FlatKit/MyWater"
         [Space]
         _FoamAmount("[!_FOAMMODE_NONE]     Amount{Foam}", Range(0, 3)) = 0.25
         [Space]
-        _FoamScale("[!_FOAMMODE_NONE]     Scale{Foam}", Range(0, 3)) = 1
+        _FoamScale("[!_FOAMMODE_NONE]     Scale{Foam}", Float) = 1
         _FoamStretchX("[!_FOAMMODE_NONE]     Stretch X{Foam}", Range(0, 10)) = 1
         _FoamStretchY("[!_FOAMMODE_NONE]     Stretch Y{Foam}", Range(0, 10)) = 1
         [Space]
@@ -113,6 +113,7 @@ Shader "FlatKit/MyWater"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareDepthTexture.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             #include "Packages/com.unity.shadergraph/ShaderGraphLibrary/ShaderVariablesFunctions.hlsl"
+            #include "Assets/Shaders/include/EncodingHelper.hlsl"
 
             #pragma vertex vert
             #pragma fragment frag
@@ -142,7 +143,7 @@ Shader "FlatKit/MyWater"
             half _ShoreFoamDepth, _FoamAmount, _FoamScale, _FoamSharpness, _FoamStretchX, _FoamStretchY, _FoamSpeed,
                 _FoamDirection, _FoamNoiseAmount, _RefractionFrequency, _RefractionAmplitude, _RefractionSpeed,
                 _RefractionScale, _FresnelAmount, _FresnelSharpness, _SunReflection, _FoamFadeSpeed, _RefractionDirection,
-                _SurfaceFoamStartDepth, _SurfaceFoamEndDepth;
+                _SurfaceFoamStartDepth, _SurfaceFoamEndDepth, _FoamFilterStride, _FoamFilterSize;
 
             half4 _SpecularColor;
             half _SpecularStrength;
@@ -384,16 +385,95 @@ Shader "FlatKit/MyWater"
                 // Foam.
                 float foam_shore = saturate(abs(_ShoreFoamDepth / water_depth_original));
 
+                // test foam tex
+                //#if defined(_FOAMMODE_TEXTURE)
+                //    float2 noise_uv_foam;
+                //    float2 tmp_uv = screen_uv * 2 - 1;
+                //    noise_uv_foam.x = atan2(tmp_uv.x, tmp_uv.y) / TWO_PI + 0.5;
+                //    noise_uv_foam.y = length(tmp_uv) * _FoamScale + _Time.z * _FoamSpeed;
+                //    float noise_foam_base = SAMPLE_TEXTURE2D(_NoiseMap, sampler_NoiseMap, noise_uv_foam).r;
+                //    return half4(noise_foam_base, 0, 0, 1.0);
+                //#endif
 
                 // Foam around shore
+                const int _FoamFilterHalfSize = 1;
+                const int _FoamFilterSquareSize = 9;
+                const float _FoamFilterStride = 4.0;
+                float shoreline = tex2D(_ShorelineBuffer, screen_uv).r;
 
-                if (tex2D(_ShorelineBuffer, screen_uv).r > 0)
+
+                // Debug uv rotation
+                //float uv_angle = atan2(i.uv.y, i.uv.x);
+                //float cs = cos(uv_angle + _FoamDirection * PI);
+                //float sn = sin(uv_angle + _FoamDirection * PI);
+                //float2 rotated_uv = float2(i.uv.x * cs - i.uv.y * sn, i.uv.x * sn + i.uv.y * cs);
+                //float2 noise_uv_foam = rotated_uv * 100.0f + _Time.zz * _FoamSpeed;
+                //    float noise_foam_base;
+                //    #if defined(_FOAMMODE_TEXTURE)
+                //        float2 stretch_factor = float2(_FoamStretchX, _FoamStretchY);
+                //        noise_foam_base = SAMPLE_TEXTURE2D(_NoiseMap, sampler_NoiseMap,
+                //            noise_uv_foam * stretch_factor / (_FoamScale * 100.0)).r;
+                //    #endif
+
+                //    #if defined(_FOAMMODE_GRADIENT_NOISE)
+                //        float2 stretch_factor = float2(_FoamStretchX, _FoamStretchY);
+                //        noise_foam_base = GradientNoise(noise_uv_foam * stretch_factor, _FoamScale);
+                //    #endif
+                //        return half4(noise_foam_base, noise_foam_base, noise_foam_base, 1);
+
+                if (/*shoreline != 0 && */ water_depth_original > 0)
                 {
-                    if (water_depth_original > 0)
-                        foam_shore = 1.0;
+                    //float filtered = 0.0, step_size_x = _FoamFilterStride / _ScreenParams.x, step_size_y = _FoamFilterStride / _ScreenParams.y;
+                    //for (int dx = -_FoamFilterHalfSize; dx <= _FoamFilterHalfSize; ++dx)
+                    //{
+                    //    for (int dy = -_FoamFilterHalfSize; dy <= _FoamFilterHalfSize; ++dy)
+                    //    {
+                    //        if (tex2D(_ShorelineBuffer, screen_uv + float2(dx * step_size_x, dy * step_size_y)).r != 0)
+                    //            filtered += 1.0;
+                    //    }
+                    //}
+                    //filtered /= _FoamFilterSquareSize;
+                    //filtered *= filtered;
+
+                    //float shorelineAngle, shorelineDist;
+                    //unpack_two_floats(shoreline, shorelineAngle, shorelineDist);
+
+                    //float uv_angle = atan2(i.uv.y, i.uv.x);
+                    //float cs = cos(uv_angle + shorelineAngle);
+                    //float sn = sin(uv_angle + shorelineAngle);
+                    //float2 rotated_uv = float2(i.uv.x * cs - i.uv.y * sn, i.uv.x * sn + i.uv.y * cs);
+                    //float2 noise_uv_foam = rotated_uv * 100.0f + _Time.zz * _FoamSpeed;
+                    float2 noise_uv_foam = i.uv * 100.0f + _Time.zz * _FoamSpeed;
+
+
+                    //float2 noise_uv_foam;
+                    //noise_uv_foam.x = shorelineAngle / TWO_PI + 0.5;
+                    //float3 dir = float3(cos(shorelineAngle + _FoamDirection * PI), 0, sin(shorelineAngle + _FoamDirection * PI));
+                    //float3 WO = i.positionWS.xyz - dir * shorelineDist; // retrieve object's origin
+                    //float4 CO = TransformObjectToHClip(WO);
+                    //float2 UVO = CO.xy / CO.w;
+                    //noise_uv_foam.y = length(UVO); noise_uv_foam.y += _Time.z * _FoamSpeed;
+
+                    float noise_foam_base;
+                    #if defined(_FOAMMODE_TEXTURE)
+                        float2 stretch_factor = float2(_FoamStretchX, _FoamStretchY);
+                        noise_foam_base = SAMPLE_TEXTURE2D(_NoiseMap, sampler_NoiseMap,
+                            noise_uv_foam * stretch_factor / (_FoamScale * 100.0)).r;
+                    #endif
+
+                    #if defined(_FOAMMODE_GRADIENT_NOISE)
+                        float2 stretch_factor = float2(_FoamStretchX, _FoamStretchY);
+                        noise_foam_base = GradientNoise(noise_uv_foam * stretch_factor, _FoamScale);
+                    #endif
+
+                    float foam_blur = 1.0 - _FoamSharpness;
+                    float hard_foam_end = 0.1;
+                    float soft_foam_end = hard_foam_end + foam_blur * 0.3;
+                    foam_shore += smoothstep(0.5 - foam_blur * 0.5, 0.5 + foam_blur * 0.5, noise_foam_base) * shoreline;
+
                 }
 
-                c = lerp(c, _FoamColor.rgb, foam_shore * _FoamColor.a);
+                c = lerp(c, _FoamColor.rgb, saturate(foam_shore) * _FoamColor.a);
                 #endif
 
                 // Shadow.

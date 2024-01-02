@@ -28,9 +28,9 @@ public class ShorelinePass : ScriptableRenderPass
     {
         RenderTextureDescriptor descriptor = renderingData.cameraData.cameraTargetDescriptor;
         // descriptor.colorFormat = RenderTextureFormat.R8;
-        descriptor.colorFormat = RenderTextureFormat.RHalf;
+        descriptor.colorFormat = RenderTextureFormat.RFloat;
         descriptor.depthBufferBits = 0;
-        descriptor.msaaSamples = 1;
+        //descriptor.msaaSamples = 1;
 
         cmd.GetTemporaryRT(WaterRenderProperties.ShorelineBufferID, descriptor);
         ShorelineTex = new RenderTargetIdentifier(WaterRenderProperties.ShorelineBufferID);
@@ -55,8 +55,9 @@ public class ShorelinePass : ScriptableRenderPass
         CommandBuffer cmd = CommandBufferPool.Get();
         using (new ProfilingScope(cmd, new ProfilingSampler("Draw Shoreline Mask")))
         {
+            cmd.SetGlobalVector(WaterRenderProperties.ShorelineExpansionStartID, ExpansionStart);
+            cmd.SetGlobalVector(WaterRenderProperties.ShorelineExpansionEndID, ExpansionEnd);
             cmd.EnableShaderKeyword("__WRITE_SHORELINE_BUFFER");
-            cmd.SetGlobalVector(WaterRenderProperties.ShorelineExpansionID, ExpansionEnd);
             context.ExecuteCommandBuffer(cmd);
             cmd.Clear();
             context.DrawRenderers(renderingData.cullResults, ref drawingSettings, ref filteringSettings);
@@ -67,7 +68,6 @@ public class ShorelinePass : ScriptableRenderPass
         using (new ProfilingScope(cmd, new ProfilingSampler("Clear Shoreline Mask At Beginning")))
         {
             cmd.DisableShaderKeyword("__WRITE_SHORELINE_BUFFER");
-            cmd.SetGlobalVector(WaterRenderProperties.ShorelineExpansionID, ExpansionStart);
             context.ExecuteCommandBuffer(cmd);
             cmd.Clear();
             context.DrawRenderers(renderingData.cullResults, ref drawingSettings, ref filteringSettings);
