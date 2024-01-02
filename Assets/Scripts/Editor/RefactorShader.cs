@@ -129,14 +129,12 @@ public class TurnOnShadows : EditorWindow
 
         if (mat.shader == shaderAsset)
         {
-            if (mat.IsKeywordEnabled("_UNITYSHADOWMODE_NONE"))
-            {
-                Undo.RecordObject(mat, "Enable Shadow");
-                mat.SetInt("_UnityShadowMode", 2);
-                mat.DisableKeyword("_UNITYSHADOWMODE_NONE");
-                mat.EnableKeyword("_UNITYSHADOWMODE_COLOR");
-                EditorUtility.SetDirty(mat);
-            }
+            Undo.RecordObject(mat, "Enable Shadow");
+            mat.SetInt("_UnityShadowMode", 2);
+            mat.SetColor("_UnityShadowColor", Color.black);
+            mat.DisableKeyword("_UNITYSHADOWMODE_NONE");
+            mat.EnableKeyword("_UNITYSHADOWMODE_COLOR");
+            EditorUtility.SetDirty(mat);
         }
         else if (mat.shader == otterRampShaderAsset)
         {
