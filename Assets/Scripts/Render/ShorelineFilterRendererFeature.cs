@@ -19,7 +19,7 @@ public class ShorelineFilterPass : ScriptableRenderPass
     {
         this.renderPassEvent = renderPassEvent;
         //this.material = CoreUtils.CreateEngineMaterial("Hidden/Box Blur");
-        this.material = CoreUtils.CreateEngineMaterial("Unlit/BoxBlur");
+        this.material = CoreUtils.CreateEngineMaterial("Water/ShorelineBlur");
     }
     public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
     {

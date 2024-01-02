@@ -1,4 +1,4 @@
-Shader "FlatKit/MyWater"
+Shader "Water/MyWater"
 {
     Properties
     {
