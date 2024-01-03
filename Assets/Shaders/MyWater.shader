@@ -343,22 +343,24 @@ Shader "Water/MyWater"
                 //const float depth_fade_original = DepthFade(screen_uv, i);
                 const float water_depth_original = GetWaterDepth(screen_uv, i);
                 const float depth_fade_original = saturate((water_depth_original - _FadeDistance) / _WaterDepth);
-                float2 displaced_uv = screen_uv + noise01_refraction * _RefractionAmplitude /* * depth_fade_original*/ * 
+                float2 displaced_screen_uv = screen_uv + noise01_refraction * _RefractionAmplitude * depth_fade_original * 
                     float2(sin(_RefractionDirection * PI), cos(_RefractionDirection * PI));
-                //float depth_fade = DepthFade(displaced_uv, i);
-                float water_depth = GetWaterDepth(displaced_uv, i);
+                float2 displaced_uv = i.uv + noise01_refraction * _RefractionAmplitude * depth_fade_original *
+                    float2(sin(_RefractionDirection * PI), cos(_RefractionDirection * PI));
+                //float depth_fade = DepthFade(displaced_screen_uv, i);
+                float water_depth = GetWaterDepth(displaced_screen_uv, i);
                 float depth_fade = saturate((water_depth - _FadeDistance) / _WaterDepth);
 
 
-                if (water_depth <= 0.0f) // If above water surface.
+                if (water_depth <= 0.0f || abs(water_depth - water_depth_original) > 1) // If above water surface or error is too large
                 {
-                    displaced_uv = screen_uv;
-                    //depth_fade = DepthFade(displaced_uv, i);
+                    displaced_screen_uv = screen_uv;
+                    //depth_fade = DepthFade(displaced_screen_uv, i);
                     depth_fade = depth_fade_original;
                     water_depth = water_depth_original;
                 }
                 //depth_fade = lerp(depth_fade_original, depth_fade, _Alpha);
-                const half3 scene_color = SampleSceneColor(displaced_uv);
+                const half3 scene_color = SampleSceneColor(displaced_screen_uv);
                 half3 c = scene_color;
 
                 // Water depth.
@@ -383,9 +385,10 @@ Shader "Water/MyWater"
                 #endif
                 c = lerp(c, depth_color.rgb, depth_color.a * saturate(water_depth / _StartFade));
 
+                float foam_shore = smoothstep(0, 0.5, 0.5 - saturate(abs(water_depth_original - 0.5 * _ShoreFoamDepth) / _ShoreFoamDepth));
+                float foam_surface = 0.0;
                 #if !defined(_FOAMMODE_NONE)
                 // Foam.
-                float foam_shore = saturate(abs(_ShoreFoamDepth / (water_depth_original - 0.5 * _ShoreFoamDepth)));
 
                 // test foam tex
                 //#if defined(_FOAMMODE_TEXTURE)
@@ -401,7 +404,7 @@ Shader "Water/MyWater"
                 const int _FoamFilterHalfSize = 1;
                 const int _FoamFilterSquareSize = 9;
                 const float _FoamFilterStride = 4.0;
-                const uint shorelineData = asuint(tex2D(_ShorelineBuffer, screen_uv).r);
+                const uint shorelineData = asuint(tex2D(_ShorelineBuffer, displaced_screen_uv).r);
                 float shoreline = float(shorelineData >> 24) / 255.0;
 
                 // Debug uv rotation
@@ -469,7 +472,7 @@ Shader "Water/MyWater"
                         //    noise_foam_base = SAMPLE_TEXTURE2D(_NoiseMap, sampler_NoiseMap, noise_uv_foam).r;
                         //#elif defined(_FOAMSAMPLEMODE_STACK)
                             float t = smoothstep(0.0, 1, abs(frac(_Time.z * _FoamSpeed)));
-                            float2 noise_uv_foam = i.uv * 100.0f;
+                            float2 noise_uv_foam = displaced_uv * 100.0f;
                             noise_uv_foam *= stretch_factor / (_FoamScale * 100.0);
                             float base1 = SAMPLE_TEXTURE2D(_NoiseMap, sampler_NoiseMap, noise_uv_foam + int(_Time.z * _FoamSpeed) * 0.1).r;
                             float base2 = SAMPLE_TEXTURE2D(_NoiseMap, sampler_NoiseMap, noise_uv_foam + int(_Time.z * _FoamSpeed) * 0.1 + 0.1).r;
@@ -479,7 +482,7 @@ Shader "Water/MyWater"
                     #endif
 
                     #if defined(_FOAMMODE_GRADIENT_NOISE)
-                        float2 noise_uv_foam = i.uv * 100.0f + _Time.zz * _FoamSpeed;
+                        float2 noise_uv_foam = displaced_uv * 100.0f + _Time.zz * _FoamSpeed;
                         float2 stretch_factor = float2(_FoamStretchX, _FoamStretchY);
                         noise_foam_base = GradientNoise(noise_uv_foam * stretch_factor, _FoamScale);
                     #endif
@@ -487,11 +490,11 @@ Shader "Water/MyWater"
                     float foam_blur = 1.0 - _FoamSharpness;
                     float hard_foam_end = 0.1;
                     float soft_foam_end = hard_foam_end + foam_blur * 0.3;
-                    foam_shore += smoothstep(0.5 - foam_blur * 0.5, 0.5 + foam_blur * 0.5, noise_foam_base) * shoreline;
+                    foam_surface = smoothstep(0.5 - foam_blur * 0.5, 0.5 + foam_blur * 0.5, noise_foam_base) * shoreline;
 
                 }
 
-                c = lerp(c, _FoamColor.rgb, saturate(foam_shore) * _FoamColor.a);
+                c = lerp(c, _FoamColor.rgb, saturate(foam_shore + foam_surface) * _FoamColor.a);
                 #endif
 
                 // Shadow.
