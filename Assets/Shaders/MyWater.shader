@@ -468,11 +468,12 @@ Shader "Water/MyWater"
                         //    noise_uv_foam *= stretch_factor / (_FoamScale * 100.0);
                         //    noise_foam_base = SAMPLE_TEXTURE2D(_NoiseMap, sampler_NoiseMap, noise_uv_foam).r;
                         //#elif defined(_FOAMSAMPLEMODE_STACK)
+                            float t = smoothstep(0.0, 1, abs(frac(_Time.z * _FoamSpeed)));
                             float2 noise_uv_foam = i.uv * 100.0f;
                             noise_uv_foam *= stretch_factor / (_FoamScale * 100.0);
-                            float base1 = SAMPLE_TEXTURE2D(_NoiseMap, sampler_NoiseMap, noise_uv_foam).r;
-                            float base2 = SAMPLE_TEXTURE2D(_NoiseMap, sampler_NoiseMap, -noise_uv_foam).r;
-                            noise_foam_base = lerp(base1, base2, smoothstep(0.0, 0.5, abs(frac(_Time.z * _FoamSpeed) - 0.5)));
+                            float base1 = SAMPLE_TEXTURE2D(_NoiseMap, sampler_NoiseMap, noise_uv_foam + int(_Time.z * _FoamSpeed) * 0.1).r;
+                            float base2 = SAMPLE_TEXTURE2D(_NoiseMap, sampler_NoiseMap, noise_uv_foam + int(_Time.z * _FoamSpeed) * 0.1 + 0.1).r;
+                            noise_foam_base = lerp(base1, base2, t);
                             //noise_foam_base = lerp(base1, base2, abs(sin(_Time.z * _FoamSpeed)));
                         //#endif
                     #endif
