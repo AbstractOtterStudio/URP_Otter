@@ -385,7 +385,7 @@ Shader "Water/MyWater"
 
                 #if !defined(_FOAMMODE_NONE)
                 // Foam.
-                float foam_shore = saturate(abs(_ShoreFoamDepth / water_depth_original));
+                float foam_shore = saturate(abs(_ShoreFoamDepth / (water_depth_original - 0.5 * _ShoreFoamDepth)));
 
                 // test foam tex
                 //#if defined(_FOAMMODE_TEXTURE)
