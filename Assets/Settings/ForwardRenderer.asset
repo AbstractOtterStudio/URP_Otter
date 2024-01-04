@@ -1,5 +1,20 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-3723430983391594079
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 31b146ace69cd8b429babe2e0152dbb5, type: 3}
+  m_Name: ShorelineFilterRendererFeature
+  m_EditorClassIdentifier: 
+  m_Active: 1
+  InjectionPoint: 250
+  filterSize: 2
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -16,7 +31,8 @@ MonoBehaviour:
   - {fileID: 3577427722442133707}
   - {fileID: 213980489076143202}
   - {fileID: 3266438382835682973}
-  m_RendererFeatureMap: cb50cc3d8f93a53162743f001f36f8029d4e9f2167b8542d
+  - {fileID: -3723430983391594079}
+  m_RendererFeatureMap: cb50cc3d8f93a53162743f001f36f8029d4e9f2167b8542da1b942893fb753cc
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
   xrSystemData: {fileID: 11400000, guid: 60e1133243b97e347b653163a8c01b64, type: 2}
   shaders:
@@ -78,9 +94,9 @@ MonoBehaviour:
   Layer:
     serializedVersion: 2
     m_Bits: 128
-  InjectionPoint: 250
-  ExpansionStart: {x: 0.4, y: 0, z: 0.4}
-  ExpansionEnd: {x: 1, y: 0, z: 1}
+  InjectionPoint: 200
+  ExpansionStart: {x: 0.1, y: 0, z: 0.1}
+  ExpansionEnd: {x: 0.4, y: 0, z: 0.4}
   MaxDepth: 1
 --- !u!114 &3577427722442133707
 MonoBehaviour:

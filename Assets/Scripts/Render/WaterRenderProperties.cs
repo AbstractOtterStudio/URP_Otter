@@ -4,10 +4,14 @@ using UnityEngine;
 
 public class WaterRenderProperties
 {
+    public static Vector2 ShorelineDownsampling = new Vector2(2f, 2f);
+    public static Vector2 RefractionDownsampling = Vector2.one;
     public static string ShorelineMaxDepthName = "_ShorelineMaxDepth";
     public static int ShorelineMaxDepthID = Shader.PropertyToID(ShorelineMaxDepthName);
-    public static string ShorelineExpansionName = "_ShorelineExpansion";
-    public static int ShorelineExpansionID = Shader.PropertyToID(ShorelineExpansionName);
+    public static string ShorelineExpansionStartName = "_ShorelineExpansionStart";
+    public static int ShorelineExpansionStartID = Shader.PropertyToID(ShorelineExpansionStartName);
+    public static string ShorelineExpansionEndName = "_ShorelineExpansionEnd";
+    public static int ShorelineExpansionEndID = Shader.PropertyToID(ShorelineExpansionEndName);
     public static string ShorelineBufferName = "_ShorelineBuffer";
     public static int ShorelineBufferID = Shader.PropertyToID(ShorelineBufferName);
 
