@@ -45,7 +45,7 @@ public static class GlobalSetting
     public const float onceDirtyConsume = 1;
 
     //Movement
-    public const float playerInitSpeed = 3;
+    public const float playerInitSpeed = 5;
     public const float playerAddSpeedRatio = 1.5f;
     public const float playerDirtySpeedRatio = 0.05f;
     public const float playerDangerCleanSpeedRatio = 0.1f;
