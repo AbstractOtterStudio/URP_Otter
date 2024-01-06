@@ -5,6 +5,7 @@ Shader "Water/MyWater"
         [Header(Colors)][Space]
         [KeywordEnum(Linear, Gradient Texture)] _ColorMode ("     Source{Colors}", Float) = 0.0
         [KeywordEnum(Luma, Multiplicative)] _WaterBlendMode ("     Water Blend", Int) = 0
+        _Multiplicative("     Deep Color Multiplicative", Range(0, 1)) = 0
         _ColorShallow ("[_COLORMODE_LINEAR]     Shallow", Color) = (0.35, 0.6, 0.75, 0.8) // Color alpha controls opacity
         _ColorDeep ("[_COLORMODE_LINEAR]     Deep", Color) = (0.65, 0.9, 1.0, 1.0)
         [NoScaleOffset] _ColorGradient("[_COLORMODE_GRADIENT_TEXTURE]     Gradient", 2D) = "white" {}
@@ -132,7 +133,7 @@ Shader "Water/MyWater"
 
             half4 _ShadowColor;
 
-            float _FadeDistance, _WaterDepth, _StartFade;
+            float _FadeDistance, _WaterDepth, _StartFade, _Multiplicative;
             float _Alpha;
 
             half _LightContribution;
@@ -342,14 +343,14 @@ Shader "Water/MyWater"
                 const float2 screen_uv = i.screenPosition.xy / i.screenPosition.w;
                 //const float depth_fade_original = DepthFade(screen_uv, i);
                 const float water_depth_original = GetWaterDepth(screen_uv, i);
-                const float depth_fade_original = saturate((water_depth_original - _FadeDistance) / _WaterDepth);
+                const float depth_fade_original = saturate(water_depth_original / _FadeDistance);
                 float2 displaced_screen_uv = screen_uv + noise01_refraction * _RefractionAmplitude * depth_fade_original * 
                     float2(sin(_RefractionDirection * PI), cos(_RefractionDirection * PI));
                 float2 displaced_uv = i.uv + noise01_refraction * _RefractionAmplitude * depth_fade_original *
                     float2(sin(_RefractionDirection * PI), cos(_RefractionDirection * PI));
                 //float depth_fade = DepthFade(displaced_screen_uv, i);
                 float water_depth = GetWaterDepth(displaced_screen_uv, i);
-                float depth_fade = saturate((water_depth - _FadeDistance) / _WaterDepth);
+                float depth_fade = saturate(water_depth / _FadeDistance);
 
 
                 if (water_depth <= 0.0f || abs(water_depth - water_depth_original) > 1) // If above water surface or error is too large
@@ -366,6 +367,7 @@ Shader "Water/MyWater"
                 // Water depth.
                 half4 depth_color;
                 half4 color_shallow;
+                float deepMultiplicative = lerp(1, _Multiplicative, depth_fade);
                 #if defined(_COLORMODE_LINEAR)
                 depth_color = lerp(_ColorShallow, _ColorDeep, depth_fade);
                 color_shallow = _ColorShallow;
@@ -378,10 +380,10 @@ Shader "Water/MyWater"
                 #endif
 
                 #if defined(_WATERBLENDMODE_LUMA)
-                depth_color.rgb = hint(c, depth_color);
+                depth_color.rgb = lerp(depth_color, hint(c, depth_color), deepMultiplicative);
                 #endif
                 #if defined(_WATERBLENDMODE_MULTIPLICATIVE)
-                depth_color.rgb *= c;
+                depth_color.rgb = lerp(depth_color, depth_color.rgb * c, deepMultiplicative);
                 #endif
                 c = lerp(c, depth_color.rgb, depth_color.a * saturate(water_depth / _StartFade));
 
