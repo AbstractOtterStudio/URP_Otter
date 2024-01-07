@@ -367,7 +367,7 @@ Shader "Water/MyWater"
                 // Water depth.
                 half4 depth_color;
                 half4 color_shallow;
-                float deepMultiplicative = lerp(1, _Multiplicative, depth_fade);
+                float deepMultiplicative = lerp(0, _Multiplicative, depth_fade);
                 #if defined(_COLORMODE_LINEAR)
                 depth_color = lerp(_ColorShallow, _ColorDeep, depth_fade);
                 color_shallow = _ColorShallow;
@@ -380,11 +380,12 @@ Shader "Water/MyWater"
                 #endif
 
                 #if defined(_WATERBLENDMODE_LUMA)
-                depth_color.rgb = lerp(depth_color, hint(c, depth_color), deepMultiplicative);
+                depth_color.rgb = hint(c, depth_color);
                 #endif
                 #if defined(_WATERBLENDMODE_MULTIPLICATIVE)
-                depth_color.rgb = lerp(depth_color, depth_color.rgb * c, deepMultiplicative);
+                depth_color.rgb = depth_color.rgb * c;
                 #endif
+                depth_color = lerp(depth_color, color_shallow, deepMultiplicative);
                 c = lerp(c, depth_color.rgb, depth_color.a * saturate(water_depth / _StartFade));
 
                 float foam_shore = smoothstep(0, 0.5, 0.5 - saturate(abs(water_depth_original - 0.5 * _ShoreFoamDepth) / _ShoreFoamDepth));

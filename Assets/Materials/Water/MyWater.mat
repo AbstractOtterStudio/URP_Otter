@@ -15,7 +15,7 @@ Material:
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
-  m_CustomRenderQueue: 2997
+  m_CustomRenderQueue: 3000
   stringTagMap:
     RenderType: Transparent
   disabledShaderPasses: []
@@ -96,14 +96,14 @@ Material:
     - _ClearCoatSmoothness: 0
     - _ColorMode: 0
     - _CrestSharpness: 0.1
-    - _CrestSize: 0
+    - _CrestSize: 0.468
     - _Cull: 2
     - _Cutoff: 0.5
     - _DetailAlbedoMapScale: 1
     - _DetailNormalMapScale: 1
     - _DstBlend: 0
     - _EnvironmentReflections: 1
-    - _FadeDistance: 4
+    - _FadeDistance: 2
     - _FoamAmount: 0.28
     - _FoamDepth: 0.1
     - _FoamDirection: 0
@@ -124,16 +124,17 @@ Material:
     - _GlossyReflections: 0
     - _LightContribution: 0
     - _Metallic: 0
+    - _Multiplicative: 1
     - _OcclusionStrength: 1
     - _Opaque: 0
     - _Parallax: 0.005
-    - _QueueOffset: -3
+    - _QueueOffset: 0
     - _ReceiveShadows: 1
     - _RefractionAmplitude: 0.005
     - _RefractionDirection: 1
     - _RefractionFrequency: 35
     - _RefractionScale: 1
-    - _RefractionSpeed: 1
+    - _RefractionSpeed: 0.6
     - _ShadowStrength: 0
     - _ShoreFoamDepth: 0.5
     - _Smoothness: 0.5
@@ -157,11 +158,11 @@ Material:
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
-    - _ColorDeep: {r: 0, g: 0.26045132, b: 0.41509432, a: 1}
-    - _ColorShallow: {r: 0.6509804, g: 0.9758658, b: 1, a: 1}
-    - _CrestColor: {r: 1, g: 1, b: 1, a: 0.6431373}
+    - _ColorDeep: {r: 0.0047169924, g: 0.8892347, b: 1, a: 1}
+    - _ColorShallow: {r: 0.003921569, g: 0.8901961, b: 1, a: 1}
+    - _CrestColor: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
-    - _FoamColor: {r: 0.76886797, g: 1, b: 0.96985227, a: 0.5058824}
+    - _FoamColor: {r: 0.76886797, g: 1, b: 0.96985227, a: 0.6745098}
     - _ShadowColor: {r: 0.4528302, g: 0.4528302, b: 0.4528302, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
   m_BuildTextureStacks: []
