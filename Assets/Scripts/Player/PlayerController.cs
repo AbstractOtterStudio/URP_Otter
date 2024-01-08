@@ -13,14 +13,20 @@ using UnityEngine;
 [RequireComponent(typeof(PlayerProperty))]
 public class PlayerController : MonoBehaviour
 {
+    [Tooltip("按下互动键超过多少秒则判断为投掷")]
+    private float throwHoldThres = 0.4f;
+    
     [SerializeField]
+    private ParticleSystem knockParticle;
+
+    [DebugDisplay]
     private List<ItemProperties> canTakeList = new List<ItemProperties>();
     //private List<IPullable> canPullList = new List<IPullable>();
-    [SerializeField]
+    [DebugDisplay]
     private List<ItemProperties> canKnockList = new List<ItemProperties>();
-    [SerializeField]
+    [DebugDisplay]
     private List<Env_SeaWeed> seaWeedsList = new List<Env_SeaWeed>();
-    [SerializeField]
+
     public Material playerMaterial;
     private PlayerStateController stateController;
     private PlayerProperty playerProperty;
@@ -30,8 +36,32 @@ public class PlayerController : MonoBehaviour
     //When player level up, set true
     private bool m_isGrow;
     CompareItem compareItem;
+
+    // throw state variabls
+    private float m_throwHoldTimer = 0.0f;
+    private bool m_isThrowing = false;
+
+    [DebugDisplay]
+    public bool isThrowing
+    {
+        get => m_isThrowing;
+        set
+        {
+            if (!m_isThrowing && value)
+            {
+                stateController.ChangeAniState(PlayerInteractAniState.ThrowAiming);
+            }
+            else if (m_isThrowing && !value)
+            {
+                stateController.ChangeAniState(PlayerInteractAniState.Throw);
+                PlayerReleaseItem();
+            }
+
+            m_isThrowing = value;
+        }
+    }
+
     // List<Renderer> rendererList;
-    [SerializeField] private ParticleSystem knockParticle;
     void Start()
     {
         hand = GetComponent<PlayerHand>();
@@ -119,39 +149,67 @@ public class PlayerController : MonoBehaviour
     /// </summary>
     private void Interact() 
     {
+        if (hand.grabItemInHand != null)
+        {
+            if (Input.GetKey(GlobalSetting.InterectKey))
+            {
+                m_throwHoldTimer += Time.deltaTime;
+                if (m_throwHoldTimer > throwHoldThres)
+                {
+                    //地面状态：水面/水下
+                    //手部状态：手中有物品     
+                    //动作：投掷物品
+                    PlayerBeginThrowItem();
+                }
+            }
+            else if (Input.GetKeyUp(GlobalSetting.InterectKey))
+            {
+                if (m_throwHoldTimer <= throwHoldThres)
+                {
+                    //地面状态：水面/水下
+                    //手部状态：手中有物品     
+                    //动作：放开物品    
+                    PlayerReleaseItem();
+                }
+                else
+                {
+                    PlayerEndThrowItem();
+                }
+
+                m_throwHoldTimer = 0.0f;
+            }
+        }
+
+
         if (Input.GetKeyDown(GlobalSetting.InterectKey)) {
 
-            if (hand.grabItemInHand != null) {
-                //地面状态：水面/水下
-                //手部状态：手中有物品     
-                //动作：放开物品    
-                PlayerReleaseItem();
-            }
-            else if (stateController.playerCanClean 
-            && stateController.playerPlaceState == PlayerPlaceState.Float
-            && canTakeList.Count <= 0) 
-            {
-                if (GameManager.instance.GetDayState() == DayState.Night) {
+            if (hand.grabItemInHand == null) {
+                if (stateController.playerCanClean
+                    && stateController.playerPlaceState == PlayerPlaceState.Float
+                    && canTakeList.Count <= 0)
+                {
+                    if (GameManager.instance.GetDayState() == DayState.Night)
+                    {
                         //水面、环境可睡觉
                         //时间：夜晚
                         //手部状态：手中无物品
                         //动作：睡觉
                         PlayerSleep();
                         return;
-                    }    
+                    }
                     //地面状态：水面、环境可清洁
                     //手部状态：手中无物品
                     //动作：清洁                         
                     PlayerClean();
+                }
+                else
+                {
+                    //地面状态：水面/水下、可抓取物体
+                    //手部状态：手中无物品     
+                    //动作：抓取                
+                    PlayerGrabItemInHand();
+                }
             }
-            else 
-            {
-                //地面状态：水面/水下、可抓取物体
-                //手部状态：手中无物品     
-                //动作：抓取                
-                PlayerGrabItemInHand();
-            }
-
         }
     }
 
@@ -161,6 +219,11 @@ public class PlayerController : MonoBehaviour
     /// </summary>
     private void EatOrKnockInteract() 
     {
+        if (stateController.playerAniState == PlayerInteractAniState.Throw)
+        {
+            return;
+        }
+
         if (Input.GetKeyDown(GlobalSetting.EatOrKnockKey) && hand.grabItemInHand != null) {
             if (stateController.playerPlaceState == PlayerPlaceState.Float) {
                 if (hand.grabItemInHand.GetComponent<ItemProperties>().CanEat
@@ -255,6 +318,21 @@ public class PlayerController : MonoBehaviour
        item.Catch(hand.playerHandModel);
     }
 
+    private void PlayerBeginThrowItem()
+    {
+        if (isThrowing)
+        {
+            return;
+        }
+
+        isThrowing = true;
+    }
+
+    private void PlayerEndThrowItem()
+    {
+        Debug.Assert(isThrowing, $"{nameof(isThrowing)} is not true but this function is called");
+        isThrowing = false;
+    }
 
     private void PlayerReleaseItem() {
        stateController.ChangeAniState(PlayerInteractAniState.Release);

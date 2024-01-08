@@ -7,14 +7,16 @@ using UnityEngine;
 [RequireComponent(typeof(PlayerHand))]
 public class PlayerStateController : MonoBehaviour
 {
-    [SerializeField]
-    public PlayerPlaceState playerPlaceState; //角色所在地型狀態
-    [SerializeField]
-    public PlayerPlaceState playerTempPlaceState;// 临时角色所在地形状态 
-    [SerializeField]
-    public PlayerSpeedState playerSpeedState; //角色速度狀態
-    public PlayerFullState playerFullState; //角色饱腹状态  
-    public PlayerInteractAniState playerAniState; //角色动画状态
+    [DebugDisplay]
+    public PlayerPlaceState playerPlaceState { get; set; } = PlayerPlaceState.Float; //角色所在地型狀態
+    [DebugDisplay]
+    public PlayerPlaceState playerTempPlaceState { get; set; } = PlayerPlaceState.Float;// 临时角色所在地形状态 
+    [DebugDisplay]
+    public PlayerSpeedState playerSpeedState { get; set; } = PlayerSpeedState.Normal; //角色速度狀態
+    [DebugDisplay]
+    public PlayerFullState playerFullState { get; set; } = PlayerFullState.Strong; //角色饱腹状态
+    [DebugDisplay]
+    public PlayerInteractAniState playerAniState { get; set; } = PlayerInteractAniState.Idle; //角色动画状态
     public PlayerCleanState playerCleanState;
     private PlayerMovement playerMovement; //角色移動組件
     private PlayerProperty playerProperty; //角色屬性組件  
@@ -55,6 +57,7 @@ public class PlayerStateController : MonoBehaviour
             PlayerCleanStateChange();
             PlayerKnockStateChange();
             PlayerSleepStateChange();
+            PlayerThrowStateChange();
         }
     }
 
@@ -320,6 +323,20 @@ public class PlayerStateController : MonoBehaviour
         if (playerAniState != PlayerInteractAniState.Sleep) { return; }
         if (GameManager.instance.GetCurTime() >= 0
         && GameManager.instance.GetDayState() == DayState.Day)
+        {
+            AnimatorManager.instance.OffLockState();
+        }
+    }
+
+    private void PlayerThrowStateChange()
+    {
+        if (playerAniState != PlayerInteractAniState.ThrowAiming
+            && playerAniState != PlayerInteractAniState.Throw) 
+        {
+            return;
+        }
+
+        if (!Input.GetKeyDown(GlobalSetting.InterectKey))
         {
             AnimatorManager.instance.OffLockState();
         }

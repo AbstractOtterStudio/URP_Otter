@@ -102,6 +102,21 @@ public class AnimatorManager : MonoBehaviour
                 }
                 break;
 
+            case PlayerInteractAniState.ThrowAiming:
+                if (!stateController.playerStateLock)
+                {
+                    stateController.StateOnLock();
+                    playerAnimator.SetBool(ValueShortcut.anim_ThrowAiming, true);
+                }
+                break;
+            case PlayerInteractAniState.Throw:
+                if (!stateController.playerStateLock)
+                {
+                    stateController.StateOnLock();
+                    playerAnimator.SetBool(ValueShortcut.anim_ThrowAiming, false);
+                }
+                break;
+
             default:
                 break;
         }
