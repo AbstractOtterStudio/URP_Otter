@@ -53,6 +53,6 @@ public class FadeInOut : MonoBehaviour
 
     public void Awake()
     {
-        StartCoroutine(FadeIn());
+        //StartCoroutine(FadeIn());
     }
 }
