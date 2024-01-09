@@ -7,10 +7,10 @@ public class AnimatorManager : MonoBehaviour
     public static AnimatorManager instance { get; private set; }
 
     [SerializeField]
-    private Animator playerAnimator;
+    private Animator m_playerAnimator;
     [SerializeField]
     private PlayerStateController stateController;
-
+    public Animator playerAnimator { get => m_playerAnimator; set => m_playerAnimator = value; }
     private bool m_HasNPCSleep;
 
     void Start()
@@ -102,18 +102,11 @@ public class AnimatorManager : MonoBehaviour
                 }
                 break;
 
-            case PlayerInteractAniState.ThrowAiming:
-                if (!stateController.playerStateLock)
-                {
-                    stateController.StateOnLock();
-                    playerAnimator.SetBool(ValueShortcut.anim_ThrowAiming, true);
-                }
-                break;
             case PlayerInteractAniState.Throw:
                 if (!stateController.playerStateLock)
                 {
                     stateController.StateOnLock();
-                    playerAnimator.SetBool(ValueShortcut.anim_ThrowAiming, false);
+                    playerAnimator.SetTrigger(ValueShortcut.anim_Throw);
                 }
                 break;
 

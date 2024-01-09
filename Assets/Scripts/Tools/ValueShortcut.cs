@@ -105,7 +105,7 @@ public static class ValueShortcut
     public const string anim_Sleep_Couple = "Couple_Sleep";
     public const string anim_PlayerCome = "PlayerCome";
     public const string anim_HasNPCSleep = "HasNPCSleep";
-    public const string anim_ThrowAiming = "isThrowAiming";
+    public const string anim_Throw = "IsThrow";
     #endregion
 
     //Animation Name 捷徑

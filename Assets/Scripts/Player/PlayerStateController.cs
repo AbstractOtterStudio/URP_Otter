@@ -24,6 +24,7 @@ public class PlayerStateController : MonoBehaviour
     public AudioSource playerAudio { get; private set;} //角色AudioSource组件
     public bool playerCanClean; //角色是否可清潔
     public bool playerCanSleep;//角色是否可睡觉
+    [DebugDisplay]
     public bool playerStateLock;//角色状态锁，用于防止角色同一时间处于多个状态
     public bool playerAddSpeedLock {get; private set; }//角色加速锁，用于处理玩家在不同等级瀑布中的逻辑
     public bool onKnock {get; private set;}
@@ -57,7 +58,6 @@ public class PlayerStateController : MonoBehaviour
             PlayerCleanStateChange();
             PlayerKnockStateChange();
             PlayerSleepStateChange();
-            PlayerThrowStateChange();
         }
     }
 
@@ -323,20 +323,6 @@ public class PlayerStateController : MonoBehaviour
         if (playerAniState != PlayerInteractAniState.Sleep) { return; }
         if (GameManager.instance.GetCurTime() >= 0
         && GameManager.instance.GetDayState() == DayState.Day)
-        {
-            AnimatorManager.instance.OffLockState();
-        }
-    }
-
-    private void PlayerThrowStateChange()
-    {
-        if (playerAniState != PlayerInteractAniState.ThrowAiming
-            && playerAniState != PlayerInteractAniState.Throw) 
-        {
-            return;
-        }
-
-        if (!Input.GetKeyDown(GlobalSetting.InterectKey))
         {
             AnimatorManager.instance.OffLockState();
         }

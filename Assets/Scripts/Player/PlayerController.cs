@@ -11,6 +11,7 @@ using UnityEngine;
 [RequireComponent(typeof(PlayerStateController))]
 [RequireComponent(typeof(PlayerHand))]
 [RequireComponent(typeof(PlayerProperty))]
+[RequireComponent(typeof(AnimatorManager))]
 public class PlayerController : MonoBehaviour
 {
     [Tooltip("按下互动键超过多少秒则判断为投掷")]
@@ -31,6 +32,7 @@ public class PlayerController : MonoBehaviour
     private PlayerStateController stateController;
     private PlayerProperty playerProperty;
     private PlayerHand hand;
+    private AnimatorManager animatorMgr;
     //Use to set lerp value with player material
     private float m_materialFloat;
     //When player level up, set true
@@ -49,12 +51,15 @@ public class PlayerController : MonoBehaviour
         {
             if (!m_isThrowing && value)
             {
-                stateController.ChangeAniState(PlayerInteractAniState.ThrowAiming);
+                EnableThrowAim();
             }
             else if (m_isThrowing && !value)
             {
-                stateController.ChangeAniState(PlayerInteractAniState.Throw);
-                PlayerReleaseItem();
+                animatorMgr.OffLockState();
+                animatorMgr.playerAnimator.SetTrigger(ValueShortcut.anim_Throw);
+
+                DisableThrowAim();
+                PlayerThrowItem();
             }
 
             m_isThrowing = value;
@@ -66,8 +71,10 @@ public class PlayerController : MonoBehaviour
     {
         hand = GetComponent<PlayerHand>();
         //playerMaterial = transform.Find("backup").GetComponent<SkinnedMeshRenderer>().materials[0];
+
         stateController = GetComponent<PlayerStateController>();
         playerProperty = GetComponent<PlayerProperty>();
+        animatorMgr = GetComponent<AnimatorManager>();
         compareItem = new CompareItem(this.transform);
     }
 
@@ -202,7 +209,7 @@ public class PlayerController : MonoBehaviour
                     //动作：清洁                         
                     PlayerClean();
                 }
-                else
+                else if (!isThrowing)
                 {
                     //地面状态：水面/水下、可抓取物体
                     //手部状态：手中无物品     
@@ -245,6 +252,20 @@ public class PlayerController : MonoBehaviour
     #endregion
 
     #region Player Interaction Logic
+    private void EnableThrowAim()
+    {
+
+    }
+
+    private void DisableThrowAim()
+    {
+
+    }
+
+    private void PlayerThrowItem()
+    {
+
+    }
 
     /// <summary>
     /// Improve Experience Value
