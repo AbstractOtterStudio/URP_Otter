@@ -105,6 +105,7 @@ public static class ValueShortcut
     public const string anim_Sleep_Couple = "Couple_Sleep";
     public const string anim_PlayerCome = "PlayerCome";
     public const string anim_HasNPCSleep = "HasNPCSleep";
+    public const string anim_ThrowAiming = "isThrowAiming";
     #endregion
 
     //Animation Name 捷徑
@@ -127,6 +128,7 @@ public static class ValueShortcut
     public const string animName_OtterHungry = "OtterHungryAnim";
     public const string animName_OtterSleepToStrong = "OtterSleepToStrongAnim";
     public const string animName_Celebrate = "Celebrate";
+
     #endregion
 
     //Object Pool Name 捷徑

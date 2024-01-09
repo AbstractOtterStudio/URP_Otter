@@ -54,6 +54,8 @@ public enum PlayerInteractAniState
     Release,
     Clean,
     Sleep,
-    Celebrate
+    Celebrate,
+    ThrowAiming,
+    Throw
 }
 
