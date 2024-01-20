@@ -10,9 +10,9 @@ Material:
   m_Name: MyWater
   m_Shader: {fileID: 4800000, guid: 3966d837d6b84eb489f7b8d0271eebe3, type: 3}
   m_ShaderKeywords: FOAMTEXTURESAMPLEMODE_STACK _COLORMODE_LINEAR _FOAMMODE_NONE
-    _FOAMSAMPLEMODE_STACK _FOAMTEXTURESAMPLEMODE_MOVE _OPAQUE_OFF _SHORELINEFOAMMODE_TEXTURE
+    _FOAMSAMPLEMODE_MOVE _FOAMTEXTURESAMPLEMODE_MOVE _OPAQUE_OFF _SHORELINEFOAMMODE_TEXTURE
     _SHORELINEFOAMSAMPLEMODE_STACK _WATERBLENDMODE_MULTIPLICATIVE _WATERBLENDMODE_YUV
-    _WAVEMODE_ROUND
+    _WAVEMODE_GRID
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
@@ -112,7 +112,7 @@ Material:
     - _DetailNormalMapScale: 1
     - _DstBlend: 0
     - _EnvironmentReflections: 1
-    - _FadeDistance: 2
+    - _FadeDistance: 3.9
     - _FoamAmount: 0.37
     - _FoamDepth: 0.1
     - _FoamDirection: 0
@@ -121,7 +121,7 @@ Material:
     - _FoamFilterStride: 1
     - _FoamMode: 0
     - _FoamNoiseAmount: 0.597
-    - _FoamSampleMode: 1
+    - _FoamSampleMode: 0
     - _FoamScale: 0.2
     - _FoamSharpness: 0.248
     - _FoamSpeed: 0.5
@@ -144,7 +144,7 @@ Material:
     - _RefractionFrequency: 35
     - _RefractionScale: 1
     - _RefractionSpeed: 0.6
-    - _ShadowStrength: 0
+    - _ShadowStrength: 0.695
     - _ShoreFoamDepth: 1
     - _ShorelineFoamMode: 2
     - _ShorelineFoamSampleMode: 1
@@ -166,7 +166,7 @@ Material:
     - _WaveAmplitude: 0.25
     - _WaveDirection: 0
     - _WaveFrequency: 1
-    - _WaveMode: 1
+    - _WaveMode: 2
     - _WaveNoise: 0.25
     - _WaveSpeed: 1
     - _WorkflowMode: 1
@@ -174,12 +174,12 @@ Material:
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
-    - _ColorDeep: {r: 0.0047169924, g: 0.8892347, b: 1, a: 1}
-    - _ColorShallow: {r: 0.003921569, g: 0.8901961, b: 1, a: 1}
+    - _ColorDeep: {r: 0.15806332, g: 0.4299296, b: 0.6792453, a: 1}
+    - _ColorShallow: {r: 0.35656217, g: 0.89352703, b: 0.9528302, a: 1}
     - _CrestColor: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _FoamColor: {r: 0.76886797, g: 1, b: 0.96985227, a: 0.38431373}
-    - _ShadowColor: {r: 0.4528302, g: 0.4528302, b: 0.4528302, a: 1}
+    - _ShadowColor: {r: 0.46754476, g: 0.5533729, b: 0.754717, a: 1}
     - _ShorelineFoamColor: {r: 1, g: 1, b: 1, a: 0.6156863}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
   m_BuildTextureStacks: []
