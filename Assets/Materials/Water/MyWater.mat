@@ -9,7 +9,7 @@ Material:
   m_PrefabAsset: {fileID: 0}
   m_Name: MyWater
   m_Shader: {fileID: 4800000, guid: 3966d837d6b84eb489f7b8d0271eebe3, type: 3}
-  m_ShaderKeywords: FOAMTEXTURESAMPLEMODE_STACK _COLORMODE_LINEAR _FOAMMODE_NONE
+  m_ShaderKeywords: FOAMTEXTURESAMPLEMODE_STACK _COLORMODE_LINEAR _FOAMMODE_GRADIENT_NOISE
     _FOAMSAMPLEMODE_MOVE _FOAMTEXTURESAMPLEMODE_MOVE _OPAQUE_OFF _SHORELINEFOAMMODE_TEXTURE
     _SHORELINEFOAMSAMPLEMODE_STACK _WATERBLENDMODE_MULTIPLICATIVE _WATERBLENDMODE_YUV
     _WAVEMODE_GRID
@@ -119,10 +119,10 @@ Material:
     - _FoamFadeSpeed: 0.1
     - _FoamFilterSize: 3
     - _FoamFilterStride: 1
-    - _FoamMode: 0
+    - _FoamMode: 1
     - _FoamNoiseAmount: 0.597
     - _FoamSampleMode: 0
-    - _FoamScale: 0.2
+    - _FoamScale: 0.58
     - _FoamSharpness: 0.248
     - _FoamSpeed: 0.5
     - _FoamStretchX: 1
@@ -145,7 +145,7 @@ Material:
     - _RefractionScale: 1
     - _RefractionSpeed: 0.6
     - _ShadowStrength: 0.695
-    - _ShoreFoamDepth: 1
+    - _ShoreFoamDepth: 2
     - _ShorelineFoamMode: 2
     - _ShorelineFoamSampleMode: 1
     - _ShorelineFoamScale: 1
@@ -178,8 +178,8 @@ Material:
     - _ColorShallow: {r: 0.35656217, g: 0.89352703, b: 0.9528302, a: 1}
     - _CrestColor: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
-    - _FoamColor: {r: 0.76886797, g: 1, b: 0.96985227, a: 0.38431373}
-    - _ShadowColor: {r: 0.46754476, g: 0.5533729, b: 0.754717, a: 1}
+    - _FoamColor: {r: 0.64779866, g: 1, b: 0.9522439, a: 1}
+    - _ShadowColor: {r: 0.7794588, g: 0.7919042, b: 0.8207547, a: 1}
     - _ShorelineFoamColor: {r: 1, g: 1, b: 1, a: 0.6156863}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
   m_BuildTextureStacks: []

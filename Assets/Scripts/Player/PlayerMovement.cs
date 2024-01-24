@@ -146,8 +146,8 @@ public class PlayerMovement : MonoBehaviour
                 {
                     if (hit.collider.GetComponent<ItemProperties>())
                     {
-                        Debug.Log("Test Back !");
-                        this.transform.position += Vector3.back * Time.deltaTime;
+                        //Debug.Log("Test Back !");
+                        //this.transform.position += Vector3.back * Time.deltaTime;
                     }
                 }
                 else

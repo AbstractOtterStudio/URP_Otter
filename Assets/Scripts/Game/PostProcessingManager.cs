@@ -103,18 +103,18 @@ public class PostProcessingManager : SingletonBase<PostProcessingManager>
     bool isSeaAlphaChanging { get { return corou != null; } }
     IEnumerator SeaAlphaChanging(bool isDive)
     {
-        float currAlpha = seaMaterial.GetFloat("_Alpha");
+        float currAlpha = seaMaterial.GetFloat("_Multiplicative");
 
         if (isDive)
         {
-            while (currAlpha > 0.05f)
+            while (currAlpha > 0.25f)
             {
                 currAlpha -= Time.deltaTime / 2;
-                if (currAlpha <= 0.05f)
+                if (currAlpha <= 0.25f)
                 {
-                    currAlpha = 0;
+                    currAlpha = 0.2f;
                 }
-                seaMaterial.SetFloat("_Alpha", currAlpha);
+                seaMaterial.SetFloat("_Multiplicative", currAlpha);
                 yield return null;
             }
         }
@@ -127,7 +127,7 @@ public class PostProcessingManager : SingletonBase<PostProcessingManager>
                 {
                     currAlpha = 1;
                 }
-                seaMaterial.SetFloat("_Alpha", currAlpha);
+                seaMaterial.SetFloat("_Multiplicative", currAlpha);
                 yield return null;
             }
         }
