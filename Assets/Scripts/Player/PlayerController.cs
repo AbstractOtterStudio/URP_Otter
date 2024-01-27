@@ -15,8 +15,17 @@ using UnityEngine;
 public class PlayerController : MonoBehaviour
 {
     [Tooltip("按下互动键超过多少秒则判断为投掷")]
+    [SerializeField]
     private float throwHoldThres = 0.4f;
-    
+
+    [Tooltip("投掷力量增加速度(每秒)")]
+    [SerializeField]
+    private float throwStrengthIncSpeed = 1.0f;
+
+    [Tooltip("最大投掷力量")]
+    [SerializeField]
+    private float maxThrowStrength = 10.0f;
+
     [SerializeField]
     private ParticleSystem knockParticle;
 
@@ -27,8 +36,13 @@ public class PlayerController : MonoBehaviour
     private List<ItemProperties> canKnockList = new List<ItemProperties>();
     [DebugDisplay]
     private List<Env_SeaWeed> seaWeedsList = new List<Env_SeaWeed>();
+    
+    [SerializeField]
+    private Material playerMaterial;
 
-    public Material playerMaterial;
+    [SerializeField]
+    private TrajectoryLine trajectoryLine;
+
     private PlayerStateController stateController;
     private PlayerProperty playerProperty;
     private PlayerHand hand;
@@ -41,29 +55,38 @@ public class PlayerController : MonoBehaviour
 
     // throw state variabls
     private float m_throwHoldTimer = 0.0f;
+
+    [DebugDisplay]
     private bool m_isThrowing = false;
 
     [DebugDisplay]
-    public bool isThrowing
+    private bool m_isThrowAiming = false;
+
+    [DebugDisplay]
+    private float m_throwStrength = 0;
+
+    void SetIsThrowing(bool throwing)
     {
-        get => m_isThrowing;
-        set
+        if (!m_isThrowing && throwing)
         {
-            if (!m_isThrowing && value)
-            {
-                EnableThrowAim();
-            }
-            else if (m_isThrowing && !value)
-            {
-                animatorMgr.OffLockState();
-                animatorMgr.playerAnimator.SetTrigger(ValueShortcut.anim_Throw);
-
-                DisableThrowAim();
-                PlayerThrowItem();
-            }
-
-            m_isThrowing = value;
+            SetIsThrowAiming(true);
         }
+        else if (m_isThrowing && !throwing)
+        {
+            animatorMgr.OffLockState();
+            animatorMgr.playerAnimator.SetTrigger(ValueShortcut.anim_Throw);
+
+            SetIsThrowAiming(false);
+            PlayerThrowItem();
+        }
+
+        m_isThrowing = throwing;
+    }
+
+    void SetIsThrowAiming(bool throwAiming)
+    {
+        m_isThrowAiming = throwAiming;
+        m_throwStrength = 0.0f;
     }
 
     // List<Renderer> rendererList;
@@ -80,6 +103,8 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
+        trajectoryLine.MakeTrajectory(transform.position, transform.forward, maxThrowStrength, 1.0f);
+
         if (GameManager.instance.GetGameAction())
         {
             Interact();
@@ -158,6 +183,14 @@ public class PlayerController : MonoBehaviour
     {
         if (hand.grabItemInHand != null)
         {
+            if (m_isThrowAiming)
+            {
+                m_throwStrength = Mathf.Min(
+                    m_throwStrength + throwStrengthIncSpeed * Time.deltaTime,
+                    maxThrowStrength
+                );
+            }
+
             if (Input.GetKey(GlobalSetting.InterectKey))
             {
                 m_throwHoldTimer += Time.deltaTime;
@@ -166,24 +199,24 @@ public class PlayerController : MonoBehaviour
                     //地面状态：水面/水下
                     //手部状态：手中有物品     
                     //动作：投掷物品
-                    PlayerBeginThrowItem();
+                    SetIsThrowing(true);
+
+                    m_throwHoldTimer = 0.0f;
                 }
             }
             else if (Input.GetKeyUp(GlobalSetting.InterectKey))
             {
-                if (m_throwHoldTimer <= throwHoldThres)
+                if (m_isThrowing)
+                {
+                    SetIsThrowing(false);
+                }
+                else
                 {
                     //地面状态：水面/水下
                     //手部状态：手中有物品     
                     //动作：放开物品    
                     PlayerReleaseItem();
                 }
-                else
-                {
-                    PlayerEndThrowItem();
-                }
-
-                m_throwHoldTimer = 0.0f;
             }
         }
 
@@ -209,7 +242,7 @@ public class PlayerController : MonoBehaviour
                     //动作：清洁                         
                     PlayerClean();
                 }
-                else if (!isThrowing)
+                else if (!m_isThrowing)
                 {
                     //地面状态：水面/水下、可抓取物体
                     //手部状态：手中无物品     
@@ -252,16 +285,6 @@ public class PlayerController : MonoBehaviour
     #endregion
 
     #region Player Interaction Logic
-    private void EnableThrowAim()
-    {
-
-    }
-
-    private void DisableThrowAim()
-    {
-
-    }
-
     private void PlayerThrowItem()
     {
 
@@ -341,18 +364,18 @@ public class PlayerController : MonoBehaviour
 
     private void PlayerBeginThrowItem()
     {
-        if (isThrowing)
+        if (m_isThrowing)
         {
             return;
         }
 
-        isThrowing = true;
+        SetIsThrowing(true);
     }
 
     private void PlayerEndThrowItem()
     {
-        Debug.Assert(isThrowing, $"{nameof(isThrowing)} is not true but this function is called");
-        isThrowing = false;
+        Debug.Assert(m_isThrowing, $"{nameof(m_isThrowing)} is not true but this function is called");
+        SetIsThrowing(false);
     }
 
     private void PlayerReleaseItem() {

@@ -10,7 +10,6 @@ public class CommonEditor : Editor
 {
     private bool foldout = true;
 
-
     private void DoField(string name, System.Type type, object obj)
     {
         if (obj is Object unityObject)
@@ -52,30 +51,33 @@ public class CommonEditor : Editor
         DrawDefaultInspector();
 
         EditorGUILayout.Separator();
-        EditorGUILayout.BeginFoldoutHeaderGroup(foldout, new GUIContent("Debugging Display"));
-
-        // Draw each field with the DebugDisplayAttribute
-        foreach (FieldInfo field in targetObject.GetType().GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance))
+        foldout = EditorGUILayout.BeginFoldoutHeaderGroup(foldout, new GUIContent("Debugging Display"));
+        if (foldout)
         {
-            DebugDisplayAttribute attr = field.GetCustomAttribute<DebugDisplayAttribute>();
-            if (attr != null)
+            // Draw each field with the DebugDisplayAttribute
+            foreach (FieldInfo field in targetObject.GetType().GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance))
             {
-                EditorGUI.BeginDisabledGroup(!attr.editable);
-                DoField(field.Name, field.GetType(), field.GetValue(targetObject));
-                EditorGUI.EndDisabledGroup();
+                DebugDisplayAttribute attr = field.GetCustomAttribute<DebugDisplayAttribute>();
+                if (attr != null)
+                {
+                    EditorGUI.BeginDisabledGroup(!attr.editable);
+                    DoField(field.Name, field.GetType(), field.GetValue(targetObject));
+                    EditorGUI.EndDisabledGroup();
+                }
             }
-        }
 
-        // Draw each property with the DebugDisplayAttribute
-        foreach (PropertyInfo prop in targetObject.GetType().GetProperties(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance))
-        {
-            DebugDisplayAttribute attr = prop.GetCustomAttribute<DebugDisplayAttribute>();
-            if (attr != null)
+            // Draw each property with the DebugDisplayAttribute
+            foreach (PropertyInfo prop in targetObject.GetType().GetProperties(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance))
             {
-                EditorGUI.BeginDisabledGroup(!attr.editable);
-                DoField(prop.Name, prop.GetType(), prop.GetValue(targetObject));
-                EditorGUI.EndDisabledGroup();
+                DebugDisplayAttribute attr = prop.GetCustomAttribute<DebugDisplayAttribute>();
+                if (attr != null)
+                {
+                    EditorGUI.BeginDisabledGroup(!attr.editable);
+                    DoField(prop.Name, prop.GetType(), prop.GetValue(targetObject));
+                    EditorGUI.EndDisabledGroup();
+                }
             }
+
         }
 
         EditorGUILayout.EndFoldoutHeaderGroup();
