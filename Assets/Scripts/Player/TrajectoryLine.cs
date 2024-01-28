@@ -19,7 +19,6 @@ public class TrajectoryLine : MonoBehaviour
     {
         lineRenderer.startWidth = 0.1f;
         lineRenderer.endWidth = 0.1f;
-        lineRenderer.material = new Material(Shader.Find("Particles/Standard Unlit"));
         lineRenderer.startColor = new Color(lineColor.r, lineColor.g, lineColor.b, 0.5f);
         lineRenderer.endColor = new Color(lineColor.r, lineColor.g, lineColor.b, 0.5f);
     }
