@@ -28,11 +28,10 @@ MonoBehaviour:
   m_Name: ForwardRenderer
   m_EditorClassIdentifier: 
   m_RendererFeatures:
-  - {fileID: 3577427722442133707}
   - {fileID: 213980489076143202}
   - {fileID: 3266438382835682973}
   - {fileID: -3723430983391594079}
-  m_RendererFeatureMap: cb50cc3d8f93a53162743f001f36f8029d4e9f2167b8542da1b942893fb753cc
+  m_RendererFeatureMap: 62743f001f36f8029d4e9f2167b8542da1b942893fb753cc
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
   xrSystemData: {fileID: 11400000, guid: 60e1133243b97e347b653163a8c01b64, type: 2}
   shaders:
@@ -98,22 +97,3 @@ MonoBehaviour:
   ExpansionStart: {x: 0.1, y: 0, z: 0.1}
   ExpansionEnd: {x: 0.4, y: 0, z: 0.4}
   MaxDepth: 1
---- !u!114 &3577427722442133707
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1a444e43fbfa00a4887b2322bd1fcef2, type: 3}
-  m_Name: NewOutLineFeature
-  m_EditorClassIdentifier: 
-  m_Active: 0
-  setting:
-    rt: {fileID: 0}
-    renderPassEvent: 550
-    purMat: {fileID: 2100000, guid: c20ccf5ed6462574b924052aa3342906, type: 2}
-    edgeMat: {fileID: 2100000, guid: e84b3661c2b7d3748a9704402d23c63e, type: 2}
-    renderListTarget: 0
