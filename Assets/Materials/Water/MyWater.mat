@@ -9,7 +9,7 @@ Material:
   m_PrefabAsset: {fileID: 0}
   m_Name: MyWater
   m_Shader: {fileID: 4800000, guid: 3966d837d6b84eb489f7b8d0271eebe3, type: 3}
-  m_ShaderKeywords: FOAMTEXTURESAMPLEMODE_STACK _COLORMODE_LINEAR _FOAMMODE_TEXTURE
+  m_ShaderKeywords: FOAMTEXTURESAMPLEMODE_STACK _COLORMODE_LINEAR _FOAMMODE_GRADIENT_NOISE
     _FOAMSAMPLEMODE_MOVE _FOAMTEXTURESAMPLEMODE_MOVE _OPAQUE_OFF _SHORELINEFOAMMODE_TEXTURE
     _SHORELINEFOAMSAMPLEMODE_STACK _WATERBLENDMODE_MULTIPLICATIVE _WATERBLENDMODE_YUV
     _WAVEMODE_GRID
@@ -119,7 +119,7 @@ Material:
     - _FoamFadeSpeed: 0.1
     - _FoamFilterSize: 3
     - _FoamFilterStride: 1
-    - _FoamMode: 2
+    - _FoamMode: 1
     - _FoamNoiseAmount: 0.639
     - _FoamSampleMode: 0
     - _FoamScale: 0.2
