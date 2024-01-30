@@ -9,7 +9,7 @@ Material:
   m_PrefabAsset: {fileID: 0}
   m_Name: MyWater
   m_Shader: {fileID: 4800000, guid: 3966d837d6b84eb489f7b8d0271eebe3, type: 3}
-  m_ShaderKeywords: FOAMTEXTURESAMPLEMODE_STACK _COLORMODE_LINEAR _FOAMMODE_GRADIENT_NOISE
+  m_ShaderKeywords: FOAMTEXTURESAMPLEMODE_STACK _COLORMODE_LINEAR _FOAMMODE_TEXTURE
     _FOAMSAMPLEMODE_MOVE _FOAMTEXTURESAMPLEMODE_MOVE _OPAQUE_OFF _SHORELINEFOAMMODE_TEXTURE
     _SHORELINEFOAMSAMPLEMODE_STACK _WATERBLENDMODE_MULTIPLICATIVE _WATERBLENDMODE_YUV
     _WAVEMODE_GRID
@@ -52,7 +52,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _FoamNoiseMap:
-        m_Texture: {fileID: 2800000, guid: 15f4dcc04cfab405486b7f5b1efb7e22, type: 3}
+        m_Texture: {fileID: 2800000, guid: 442fa9b8b804d49178941d8d578e08c1, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
@@ -76,7 +76,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _ShorelineNoiseMap:
-        m_Texture: {fileID: 2800000, guid: f1ce6103acbb1524cb469b82570c1a9f, type: 3}
+        m_Texture: {fileID: 2800000, guid: 55d49b0721ce7466684a6b26ed68adba, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _SpecGlossMap:
@@ -97,7 +97,7 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Floats:
     - FoamTextureSampleMode: 1
-    - _Alpha: 1
+    - _Alpha: 0.914
     - _AlphaClip: 0
     - _Blend: 0
     - _BumpScale: 1
@@ -105,25 +105,25 @@ Material:
     - _ClearCoatSmoothness: 0
     - _ColorMode: 0
     - _CrestSharpness: 0.1
-    - _CrestSize: 0.468
+    - _CrestSize: 0.657
     - _Cull: 2
     - _Cutoff: 0.5
     - _DetailAlbedoMapScale: 1
     - _DetailNormalMapScale: 1
     - _DstBlend: 0
     - _EnvironmentReflections: 1
-    - _FadeDistance: 3.9
+    - _FadeDistance: 3
     - _FoamAmount: 0.37
     - _FoamDepth: 0.1
-    - _FoamDirection: 0
+    - _FoamDirection: -0
     - _FoamFadeSpeed: 0.1
     - _FoamFilterSize: 3
     - _FoamFilterStride: 1
-    - _FoamMode: 1
-    - _FoamNoiseAmount: 0.597
+    - _FoamMode: 2
+    - _FoamNoiseAmount: 0.639
     - _FoamSampleMode: 0
-    - _FoamScale: 0.58
-    - _FoamSharpness: 0.248
+    - _FoamScale: 0.2
+    - _FoamSharpness: 0.021
     - _FoamSpeed: 0.5
     - _FoamStretchX: 1
     - _FoamStretchY: 1
@@ -144,12 +144,12 @@ Material:
     - _RefractionFrequency: 35
     - _RefractionScale: 1
     - _RefractionSpeed: 0.6
-    - _ShadowStrength: 0.695
+    - _ShadowStrength: 0.287
     - _ShoreFoamDepth: 2
     - _ShorelineFoamMode: 2
     - _ShorelineFoamSampleMode: 1
-    - _ShorelineFoamScale: 1
-    - _ShorelineFoamSharpness: 0.5
+    - _ShorelineFoamScale: 0.05
+    - _ShorelineFoamSharpness: 1
     - _ShorelineFoamSpeed: 0.6
     - _ShorelineFoamStretchX: 1
     - _ShorelineFoamStretchY: 1
@@ -157,12 +157,12 @@ Material:
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SrcBlend: 1
-    - _StartFade: 0.5
+    - _StartFade: 0.1
     - _Surface: 0
     - _SurfaceFoamDepth: 0.5
     - _WaterBlendMode: 1
     - _WaterClearness: 0
-    - _WaterDepth: 10
+    - _WaterDepth: 2
     - _WaveAmplitude: 0.25
     - _WaveDirection: 0
     - _WaveFrequency: 1
@@ -174,13 +174,13 @@ Material:
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
-    - _ColorDeep: {r: 0.15806332, g: 0.4299296, b: 0.6792453, a: 1}
-    - _ColorShallow: {r: 0.35656217, g: 0.89352703, b: 0.9528302, a: 1}
+    - _ColorDeep: {r: 0.23113209, g: 0.60118186, b: 1, a: 1}
+    - _ColorShallow: {r: 0.35686275, g: 0.88833576, b: 0.9529412, a: 1}
     - _CrestColor: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
-    - _FoamColor: {r: 0.64779866, g: 1, b: 0.9522439, a: 1}
-    - _ShadowColor: {r: 0.7794588, g: 0.7919042, b: 0.8207547, a: 1}
-    - _ShorelineFoamColor: {r: 1, g: 1, b: 1, a: 0.6156863}
+    - _FoamColor: {r: 1, g: 1, b: 1, a: 0.56078434}
+    - _ShadowColor: {r: 0.40503737, g: 0.59987164, b: 0.7735849, a: 1}
+    - _ShorelineFoamColor: {r: 0.9292453, g: 0.9975601, b: 1, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
   m_BuildTextureStacks: []
 --- !u!114 &5953658986278066006
