@@ -92,6 +92,9 @@ public class PlayerController : MonoBehaviour
         m_throwStrength = 0.0f;
     }
 
+    Vector3 GetThrowStart() => transform.position + transform.up * throwOffset;
+    Vector3 GetThrowFwd() => -transform.forward + transform.up;
+
     // List<Renderer> rendererList;
     void Start()
     {
@@ -106,11 +109,6 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
-        trajectoryLine.MakeTrajectory(
-            transform.position + transform.up * throwOffset, 
-            -transform.forward + transform.up,
-            maxThrowStrength, 1.0f);
-
         if (GameManager.instance.GetGameAction())
         {
             Interact();
@@ -191,9 +189,16 @@ public class PlayerController : MonoBehaviour
         {
             if (m_isThrowAiming)
             {
+                // accumulate throw strength
                 m_throwStrength = Mathf.Min(
                     m_throwStrength + throwStrengthIncSpeed * Time.deltaTime,
                     maxThrowStrength
+                );
+
+                trajectoryLine.MakeTrajectory(
+                    GetThrowStart(),
+                    GetThrowFwd(),
+                    m_throwStrength, 1.0f
                 );
             }
 
@@ -214,6 +219,7 @@ public class PlayerController : MonoBehaviour
             {
                 if (m_isThrowing)
                 {
+                    trajectoryLine.FuckOff();
                     SetIsThrowing(false);
                 }
                 else
@@ -381,7 +387,22 @@ public class PlayerController : MonoBehaviour
     private void PlayerEndThrowItem()
     {
         Debug.Assert(m_isThrowing, $"{nameof(m_isThrowing)} is not true but this function is called");
+        Debug.Assert(hand.grabItemInHand != null, $"{nameof(PlayerEndThrowItem)} is called but no item is on hand");
         SetIsThrowing(false);
+
+        hand.grabItemInHand.Release();
+        hand.ReleaseGrabItem();
+
+        IEnumerator ItemThrowRoutine()
+        {
+            var item = hand.grabItemInHand;
+            var initialVel = GetThrowFwd() * trajectoryLine.Strength;
+
+            // TODO
+            yield return new WaitForFixedUpdate();
+        }
+
+        StartCoroutine(ItemThrowRoutine());
     }
 
     private void PlayerReleaseItem() {
