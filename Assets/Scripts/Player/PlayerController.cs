@@ -27,6 +27,9 @@ public class PlayerController : MonoBehaviour
     private float maxThrowStrength = 10.0f;
 
     [SerializeField]
+    private float throwOffset = 1.2f;
+
+    [SerializeField]
     private ParticleSystem knockParticle;
 
     [DebugDisplay]
@@ -103,7 +106,10 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
-        trajectoryLine.MakeTrajectory(transform.position, transform.forward, maxThrowStrength, 1.0f);
+        trajectoryLine.MakeTrajectory(
+            transform.position + transform.up * throwOffset, 
+            -transform.forward + transform.up,
+            maxThrowStrength, 1.0f);
 
         if (GameManager.instance.GetGameAction())
         {
