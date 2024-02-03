@@ -7260,10 +7260,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   throwHoldThres: 0.4
-  throwStrengthIncSpeed: 1
-  maxThrowStrength: 10
-  knockParticle: {fileID: 0}
-  playerMaterial: {fileID: 0}
+  throwStrengthIncSpeed: 3
+  maxThrowStrength: 8
+  nothrowLayers:
+    serializedVersion: 2
+    m_Bits: 486
+  throwOffset: 0.4
+  knockParticle: {fileID: 2695696747568652442}
+  playerMaterial: {fileID: 2100000, guid: dac8c90744cc4d348b0c669e84aa40ba, type: 2}
   trajectoryLine: {fileID: 5372595146574998450}
 --- !u!1 &3546193260082111051
 GameObject:
@@ -10553,6 +10557,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: a9f55717e828fc2458f5ac823776e942, type: 3}
+--- !u!198 &2695696747568652442 stripped
+ParticleSystem:
+  m_CorrespondingSourceObject: {fileID: 1871079902166288530, guid: a9f55717e828fc2458f5ac823776e942, type: 3}
+  m_PrefabInstance: {fileID: 4368034968232781832}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &2062407740735526894 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 2306199529741975526, guid: a9f55717e828fc2458f5ac823776e942, type: 3}

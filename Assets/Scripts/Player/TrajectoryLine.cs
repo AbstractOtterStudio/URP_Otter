@@ -6,29 +6,20 @@ public class TrajectoryLine : MonoBehaviour
 {
     private LineRenderer lineRenderer;
     
-    [SerializeField]
-    private Color lineColor;
-
     float _timestep { get; set; }
 
     public float Strength { get; private set; }
     public float FlightTime { get; private set; }
     public Vector3 StartPos { get; private set; }
+    public Vector3 EndPos => StartPos + FlightTime * InitVel + Physics.gravity * 0.5f * FlightTime * FlightTime;
     public Vector3 InitVel { get; private set; }
     public bool HasTrajectory { get; private set; }
 
     void Start()
     {
         lineRenderer = GetComponent<LineRenderer>();
-        SetupLineRenderer();
-    }
-
-    void SetupLineRenderer()
-    {
         lineRenderer.startWidth = 0.1f;
         lineRenderer.endWidth = 0.1f;
-        lineRenderer.startColor = new Color(lineColor.r, lineColor.g, lineColor.b, 0.5f);
-        lineRenderer.endColor = new Color(lineColor.r, lineColor.g, lineColor.b, 0.5f);
     }
 
     public void MakeTrajectory(Vector3 startPos, Vector3 fwd, float strength, float mass)
@@ -56,6 +47,12 @@ public class TrajectoryLine : MonoBehaviour
     {
         HasTrajectory = false;
         lineRenderer.positionCount = 0;
+    }
+
+    public void SetColor(Color color)
+    {
+        lineRenderer.startColor = new Color(color.r, color.g, color.b, 0.5f);
+        lineRenderer.endColor = new Color(color.r, color.g, color.b, 0.5f);
     }
 
     public IEnumerable<Vector3> TrajectoryPoints()

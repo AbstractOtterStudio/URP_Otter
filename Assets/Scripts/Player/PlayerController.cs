@@ -26,6 +26,10 @@ public class PlayerController : MonoBehaviour
     [SerializeField]
     private float maxThrowStrength = 10.0f;
 
+    [Tooltip("这些layer[不]可以作为投掷目的地")]
+    [SerializeField]
+    private LayerMask nothrowLayers;
+
     [SerializeField]
     private float throwOffset = 1.2f;
 
@@ -71,7 +75,20 @@ public class PlayerController : MonoBehaviour
     [DebugDisplay]
     private ItemProperties m_lastThrownItem = null;
 
-    bool CanThrow() => !m_isThrowing;
+    bool CanThrow()
+    {
+        var colliders = Physics.OverlapSphere(trajectoryLine.EndPos, 0.5f);
+        foreach (var collider in colliders)
+        {
+            if (ReferenceEquals(collider.gameObject, hand.grabItemInHand.gameObject))
+                continue;
+
+            if (((1 << collider.gameObject.layer) & nothrowLayers.value) != 0)
+                return false;
+        }
+
+        return true;
+    }
 
     void SetIsThrowing(bool throwing)
     {
@@ -85,7 +102,6 @@ public class PlayerController : MonoBehaviour
             animatorMgr.playerAnimator.SetTrigger(ValueShortcut.anim_Throw);
 
             SetIsThrowAiming(false);
-            PlayerThrowItem();
         }
 
         m_isThrowing = throwing;
@@ -110,6 +126,8 @@ public class PlayerController : MonoBehaviour
         playerProperty = GetComponent<PlayerProperty>();
         animatorMgr = GetComponent<AnimatorManager>();
         compareItem = new CompareItem(this.transform);
+
+        trajectoryLine.SetColor(Color.white);
     }
 
     void Update()
@@ -205,12 +223,23 @@ public class PlayerController : MonoBehaviour
                     GetThrowFwd(),
                     m_throwStrength, 1.0f
                 );
+
+                Debug.DrawLine(trajectoryLine.EndPos, trajectoryLine.EndPos + Vector3.one * 0.4f);
+
+                if (CanThrow())
+                {
+                    trajectoryLine.SetColor(Color.white);
+                }
+                else
+                {
+                    trajectoryLine.SetColor(Color.red);
+                }
             }
 
             if (Input.GetKey(GlobalSetting.InterectKey))
             {
                 m_throwHoldTimer += Time.deltaTime;
-                if (m_throwHoldTimer > throwHoldThres && CanThrow())
+                if (m_throwHoldTimer > throwHoldThres && !m_isThrowing)
                 {
                     //地面状态：水面/水下
                     //手部状态：手中有物品     
@@ -411,6 +440,14 @@ public class PlayerController : MonoBehaviour
             pos = item.transform.position;
             pos.y = initY;
             item.transform.position = pos;
+        }
+
+
+        if (!CanThrow())
+        {
+            SetIsThrowing(false);
+            trajectoryLine.FuckOff();
+            return;
         }
 
         StartCoroutine(ItemThrowRoutine(
