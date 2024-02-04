@@ -26,6 +26,13 @@ public class PlayerController : MonoBehaviour
     [SerializeField]
     private float maxThrowStrength = 10.0f;
 
+    [Tooltip("这些layer[不]可以作为投掷目的地")]
+    [SerializeField]
+    private LayerMask nothrowLayers;
+
+    [SerializeField]
+    private float throwOffset = 1.2f;
+
     [SerializeField]
     private ParticleSystem knockParticle;
 
@@ -65,6 +72,24 @@ public class PlayerController : MonoBehaviour
     [DebugDisplay]
     private float m_throwStrength = 0;
 
+    [DebugDisplay]
+    private ItemProperties m_lastThrownItem = null;
+
+    bool CanThrow()
+    {
+        var colliders = Physics.OverlapSphere(trajectoryLine.EndPos, 0.5f);
+        foreach (var collider in colliders)
+        {
+            if (ReferenceEquals(collider.gameObject, hand.grabItemInHand.gameObject))
+                continue;
+
+            if (((1 << collider.gameObject.layer) & nothrowLayers.value) != 0)
+                return false;
+        }
+
+        return true;
+    }
+
     void SetIsThrowing(bool throwing)
     {
         if (!m_isThrowing && throwing)
@@ -77,7 +102,6 @@ public class PlayerController : MonoBehaviour
             animatorMgr.playerAnimator.SetTrigger(ValueShortcut.anim_Throw);
 
             SetIsThrowAiming(false);
-            PlayerThrowItem();
         }
 
         m_isThrowing = throwing;
@@ -89,6 +113,9 @@ public class PlayerController : MonoBehaviour
         m_throwStrength = 0.0f;
     }
 
+    Vector3 GetThrowStart() => transform.position + transform.up * throwOffset;
+    Vector3 GetThrowFwd() => -transform.forward + transform.up;
+
     // List<Renderer> rendererList;
     void Start()
     {
@@ -99,12 +126,12 @@ public class PlayerController : MonoBehaviour
         playerProperty = GetComponent<PlayerProperty>();
         animatorMgr = GetComponent<AnimatorManager>();
         compareItem = new CompareItem(this.transform);
+
+        trajectoryLine.SetColor(Color.white);
     }
 
     void Update()
     {
-        trajectoryLine.MakeTrajectory(transform.position, transform.forward, maxThrowStrength, 1.0f);
-
         if (GameManager.instance.GetGameAction())
         {
             Interact();
@@ -185,21 +212,39 @@ public class PlayerController : MonoBehaviour
         {
             if (m_isThrowAiming)
             {
+                // accumulate throw strength
                 m_throwStrength = Mathf.Min(
                     m_throwStrength + throwStrengthIncSpeed * Time.deltaTime,
                     maxThrowStrength
                 );
+
+                trajectoryLine.MakeTrajectory(
+                    GetThrowStart(),
+                    GetThrowFwd(),
+                    m_throwStrength, 1.0f
+                );
+
+                Debug.DrawLine(trajectoryLine.EndPos, trajectoryLine.EndPos + Vector3.one * 0.4f);
+
+                if (CanThrow())
+                {
+                    trajectoryLine.SetColor(Color.white);
+                }
+                else
+                {
+                    trajectoryLine.SetColor(Color.red);
+                }
             }
 
             if (Input.GetKey(GlobalSetting.InterectKey))
             {
                 m_throwHoldTimer += Time.deltaTime;
-                if (m_throwHoldTimer > throwHoldThres)
+                if (m_throwHoldTimer > throwHoldThres && !m_isThrowing)
                 {
                     //地面状态：水面/水下
                     //手部状态：手中有物品     
                     //动作：投掷物品
-                    SetIsThrowing(true);
+                    PlayerBeginThrowItem();
 
                     m_throwHoldTimer = 0.0f;
                 }
@@ -208,7 +253,7 @@ public class PlayerController : MonoBehaviour
             {
                 if (m_isThrowing)
                 {
-                    SetIsThrowing(false);
+                    PlayerEndThrowItem();
                 }
                 else
                 {
@@ -246,7 +291,7 @@ public class PlayerController : MonoBehaviour
                 {
                     //地面状态：水面/水下、可抓取物体
                     //手部状态：手中无物品     
-                    //动作：抓取                
+                    //动作：抓取  
                     PlayerGrabItemInHand();
                 }
             }
@@ -364,18 +409,58 @@ public class PlayerController : MonoBehaviour
 
     private void PlayerBeginThrowItem()
     {
-        if (m_isThrowing)
-        {
-            return;
-        }
-
+        m_lastThrownItem = hand.grabItemInHand;
         SetIsThrowing(true);
     }
 
     private void PlayerEndThrowItem()
     {
         Debug.Assert(m_isThrowing, $"{nameof(m_isThrowing)} is not true but this function is called");
+        Debug.Assert(hand.grabItemInHand != null, $"{nameof(PlayerEndThrowItem)} is called but no item is on hand");
+        Debug.Assert(trajectoryLine.HasTrajectory, $"{nameof(PlayerEndThrowItem)} is called but no trajectory is set");
+
+
+        IEnumerator ItemThrowRoutine(GameObject item, float flightTime, Vector3 startPos, Vector3 initVel)
+        {
+            var initY = item.transform.position.y;
+            float t = 0.0f;
+
+            Vector3 pos;
+            while (t < flightTime)
+            {
+                pos = startPos + t * initVel;
+                pos.y = startPos.y + initVel.y * t + Physics.gravity.y * 0.5f * t * t;
+                item.transform.position = pos;
+
+                yield return new WaitForFixedUpdate();
+                t += Time.fixedDeltaTime;
+            }
+
+            // make sure item lands on the same plane
+            pos = item.transform.position;
+            pos.y = initY;
+            item.transform.position = pos;
+        }
+
+
+        if (!CanThrow())
+        {
+            SetIsThrowing(false);
+            trajectoryLine.FuckOff();
+            return;
+        }
+
+        StartCoroutine(ItemThrowRoutine(
+            hand.grabItemInHand.gameObject,
+            trajectoryLine.FlightTime,
+            trajectoryLine.StartPos,
+            trajectoryLine.InitVel)
+        );
+
         SetIsThrowing(false);
+        hand.grabItemInHand.Release();
+        hand.ReleaseGrabItem();
+        trajectoryLine.FuckOff();
     }
 
     private void PlayerReleaseItem() {
