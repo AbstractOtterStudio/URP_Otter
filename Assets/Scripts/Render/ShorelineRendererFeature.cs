@@ -9,8 +9,8 @@ using UnityEngine.Rendering;
 /// </summary>
 public class ShorelinePass : ScriptableRenderPass
 {
-    public Vector3 ExpansionStart = new Vector3(0.3f, 0, 0.3f);
-    public Vector3 ExpansionEnd = new Vector3(0.5f, 0, 0.5f);
+    //public Vector3 ExpansionStart = new Vector3(0.3f, 0, 0.3f);
+    //public Vector3 ExpansionEnd = new Vector3(0.5f, 0, 0.5f);
     public float MaxDepth = 0.2f;
     LayerMask layerMask;
     FilteringSettings filteringSettings;
@@ -57,9 +57,9 @@ public class ShorelinePass : ScriptableRenderPass
         CommandBuffer cmd = CommandBufferPool.Get();
         using (new ProfilingScope(cmd, new ProfilingSampler("Draw Shoreline Mask")))
         {
-            cmd.SetGlobalVector(WaterRenderProperties.ShorelineExpansionStartID, ExpansionStart);
-            cmd.SetGlobalVector(WaterRenderProperties.ShorelineExpansionEndID, ExpansionEnd);
-            cmd.EnableShaderKeyword("__WRITE_SHORELINE_BUFFER");
+            //cmd.SetGlobalVector(WaterRenderProperties.ShorelineExpansionStartID, ExpansionStart);
+            //cmd.SetGlobalVector(WaterRenderProperties.ShorelineExpansionEndID, ExpansionEnd);
+            //cmd.EnableShaderKeyword("__WRITE_SHORELINE_BUFFER");
             context.ExecuteCommandBuffer(cmd);
             cmd.Clear();
             context.DrawRenderers(renderingData.cullResults, ref drawingSettings, ref filteringSettings);
@@ -67,17 +67,17 @@ public class ShorelinePass : ScriptableRenderPass
         context.ExecuteCommandBuffer(cmd);
         cmd.Clear();
 
-        using (new ProfilingScope(cmd, new ProfilingSampler("Clear Shoreline Mask At Beginning")))
-        {
-            cmd.DisableShaderKeyword("__WRITE_SHORELINE_BUFFER");
-            context.ExecuteCommandBuffer(cmd);
-            cmd.Clear();
-            context.DrawRenderers(renderingData.cullResults, ref drawingSettings, ref filteringSettings);
-            cmd.SetGlobalTexture(WaterRenderProperties.ShorelineBufferID, ShorelineTex);
-            cmd.SetGlobalFloat(WaterRenderProperties.ShorelineMaxDepthID, MaxDepth);
-        }
-        context.ExecuteCommandBuffer(cmd);
-        CommandBufferPool.Release(cmd);
+        //using (new ProfilingScope(cmd, new ProfilingSampler("Clear Shoreline Mask At Beginning")))
+        //{
+        //    cmd.DisableShaderKeyword("__WRITE_SHORELINE_BUFFER");
+        //    context.ExecuteCommandBuffer(cmd);
+        //    cmd.Clear();
+        //    context.DrawRenderers(renderingData.cullResults, ref drawingSettings, ref filteringSettings);
+        //    cmd.SetGlobalTexture(WaterRenderProperties.ShorelineBufferID, ShorelineTex);
+        //    cmd.SetGlobalFloat(WaterRenderProperties.ShorelineMaxDepthID, MaxDepth);
+        //}
+        //context.ExecuteCommandBuffer(cmd);
+        //CommandBufferPool.Release(cmd);
     }
 
     public void Dispose()
@@ -90,8 +90,8 @@ public class ShorelineRendererFeature : ScriptableRendererFeature
 {
     public LayerMask Layer;
     public RenderPassEvent InjectionPoint = RenderPassEvent.BeforeRenderingPrepasses;
-    public Vector3 ExpansionStart = new Vector3(0.3f, 0, 0.3f);
-    public Vector3 ExpansionEnd = new Vector3(0.5f, 0, 0.5f);
+    //public Vector3 ExpansionStart = new Vector3(0.3f, 0, 0.3f);
+    //public Vector3 ExpansionEnd = new Vector3(0.5f, 0, 0.5f);
     public float MaxDepth = 0.2f;
 
     ShorelinePass renderPass = null;
@@ -112,8 +112,8 @@ public class ShorelineRendererFeature : ScriptableRendererFeature
     public override void Create()
     {
         renderPass = new ShorelinePass(InjectionPoint, Layer);
-        renderPass.ExpansionStart = ExpansionStart;
-        renderPass.ExpansionEnd = ExpansionEnd;
+        //renderPass.ExpansionStart = ExpansionStart;
+        //renderPass.ExpansionEnd = ExpansionEnd;
         renderPass.MaxDepth = MaxDepth;
     }
     protected override void Dispose(bool disposing)

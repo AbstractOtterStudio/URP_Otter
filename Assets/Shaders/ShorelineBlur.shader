@@ -49,6 +49,8 @@ Shader "Water/ShorelineBlur"
 		float4 _MainTex_TexelSize;
 		float4 _MainTex_ST;
 
+		float _filter_dilation;
+
 		Varyings vert(Attributes IN)
 		{
 			Varyings OUT;
@@ -67,18 +69,19 @@ Shader "Water/ShorelineBlur"
 			{
 				float2 res = _MainTex_TexelSize.xy;
 				float sum = 0;
-				uint data_out = 0;
 				for (float y = -_BlurHalfSize; y <= _BlurHalfSize; y++)
 				{
-					float2 offset = float2(0, y * res.y);
-					uint data = asuint(SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, IN.uv + offset).r);
-					if (y == 0) data_out = data;
-					float weight = float(data >> 24) / 255.0;
+					float2 offset = float2(0, y * _filter_dilation * res.y);
+					//uint data = asuint(SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, IN.uv + offset).r);
+					//if (y == 0) data_out = data;
+					//float weight = float(data >> 24) / 255.0;
+					float weight = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, IN.uv + offset).r;
 					sum += weight * _BlurWeight[y + _BlurHalfSize];
 				}
-				data_out &= 0x00ffffffu;
-				data_out |= uint(saturate(sum) * 255) << 24;
-				return asfloat(data_out);
+				//data_out &= 0x00ffffffu;
+				//data_out |= uint(saturate(sum) * 255) << 24;
+				//return asfloat(data_out);
+				return saturate(sum);
 			}
 			ENDHLSL
 		}
@@ -93,18 +96,60 @@ Shader "Water/ShorelineBlur"
 				float2 res = _MainTex_TexelSize.xy;
 				float sum = 0;
 				uint data_out = 0;
+				for (float x = -_BlurHalfSize; x <= _BlurHalfSize; x++)
+				{
+					float2 offset = float2(x * _filter_dilation * res.x, 0);
+					//uint data = asuint(SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, IN.uv + offset).r);
+					//if (x == 0) data_out = data;
+					//float weight = float(data >> 24) / 255.0;
+					float weight = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, IN.uv + offset).r;
+					sum += weight * _BlurWeight[x + _BlurHalfSize];
+				}
+				//data_out &= 0x00ffffffu;
+				//data_out |= uint(saturate(sum) * 255) << 24;
+				//return asfloat(data_out);
+				return saturate(sum);
+			}
+			ENDHLSL
+		}
+		Pass
+		{
+			Name "VERTICAL NO BLUR"
+
+			HLSLPROGRAM
+			float frag(Varyings IN) : SV_TARGET
+			{
+				float2 res = _MainTex_TexelSize.xy;
+				float sum = 0;
+				uint data_out = 0;
+				for (float y = -_BlurHalfSize; y <= _BlurHalfSize; y++)
+				{
+					float2 offset = float2(0, y * _filter_dilation * res.y);
+					float weight = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, IN.uv + offset).r;
+					sum += weight;
+				}
+				return step(0.0001, sum);
+			}
+			ENDHLSL
+		}
+		Pass
+		{
+			Name "HORIZONTAL NO BLUR"
+
+			HLSLPROGRAM
+			float frag(Varyings IN) : SV_TARGET
+			{
+				float2 res = _MainTex_TexelSize.xy;
+				float sum = 0;
+				uint data_out = 0;
 
 				for (float x = -_BlurHalfSize; x <= _BlurHalfSize; x++)
 				{
-					float2 offset = float2(x * res.x, 0);
-					uint data = asuint(SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, IN.uv + offset).r);
-					if (x == 0) data_out = data;
-					float weight = float(data >> 24) / 255.0;
-					sum += weight * _BlurWeight[x + _BlurHalfSize];
+					float2 offset = float2(x * _filter_dilation * res.x, 0);
+					float weight = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, IN.uv + offset).r;
+					sum += weight;
 				}
-				data_out &= 0x00ffffffu;
-				data_out |= uint(saturate(sum) * 255) << 24;
-				return asfloat(data_out);
+				return step(0.0001, sum);
 			}
 			ENDHLSL
 		}

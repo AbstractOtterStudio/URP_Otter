@@ -10,6 +10,8 @@ using UnityEngine.Rendering;
 public class ShorelineFilterPass : ScriptableRenderPass
 {
     public enum FilterSize { Three, Five, Seven, Nine };
+    public int dilation1 = 2;
+    public int dilation2 = 3;
     Material material = null;
     int tmpTexId = Shader.PropertyToID("_ShorelineFilterTempBuffer");
     RenderTargetIdentifier ShorelineTex;
@@ -71,10 +73,20 @@ public class ShorelineFilterPass : ScriptableRenderPass
     public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
     {
         CommandBuffer cmd = CommandBufferPool.Get();
-        using (new ProfilingScope(cmd, new ProfilingSampler("Filt Shoreline Mask")))
+        using (new ProfilingScope(cmd, new ProfilingSampler("Filter Shoreline Mask")))
         {
-            Blit(cmd, ShorelineTex, TmpTex, material, 0); // shader pass 0
-            Blit(cmd, TmpTex, ShorelineTex, material, 1); // shader pass 1
+            cmd.SetGlobalFloat(Shader.PropertyToID("_filter_dilation"), dilation1);
+            Blit(cmd, ShorelineTex, TmpTex, material, 2);
+            Blit(cmd, TmpTex, ShorelineTex, material, 3);
+            Blit(cmd, ShorelineTex, TmpTex, material, 2);
+            Blit(cmd, TmpTex, ShorelineTex, material, 3);
+            context.ExecuteCommandBuffer(cmd);
+            cmd.Clear();
+            cmd.SetGlobalFloat(Shader.PropertyToID("_filter_dilation"), dilation2);
+            Blit(cmd, ShorelineTex, TmpTex, material, 0);
+            Blit(cmd, TmpTex, ShorelineTex, material, 1);
+            Blit(cmd, ShorelineTex, TmpTex, material, 0);
+            Blit(cmd, TmpTex, ShorelineTex, material, 1);
         }
         context.ExecuteCommandBuffer(cmd);
         CommandBufferPool.Release(cmd);
@@ -90,6 +102,8 @@ public class ShorelineFilterRendererFeature : ScriptableRendererFeature
 {
     public RenderPassEvent InjectionPoint = RenderPassEvent.BeforeRenderingOpaques;
     public ShorelineFilterPass.FilterSize filterSize = ShorelineFilterPass.FilterSize.Five;
+    public int dilation1 = 2;
+    public int dilation2 = 3;
 
     ShorelineFilterPass renderPass = null;
     public override void AddRenderPasses(ScriptableRenderer renderer,
@@ -102,6 +116,8 @@ public class ShorelineFilterRendererFeature : ScriptableRendererFeature
     public override void Create()
     {
         renderPass = new ShorelineFilterPass(InjectionPoint, filterSize);
+        renderPass.dilation1 = dilation1;
+        renderPass.dilation2 = dilation2;
     }
     protected override void Dispose(bool disposing)
     {
