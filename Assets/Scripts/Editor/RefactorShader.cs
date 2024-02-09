@@ -5,7 +5,7 @@ using UnityEngine;
 using FlatKit;
 using System.Linq;
 using System.IO;
-using GluonGui.WorkspaceWindow.Views.WorkspaceExplorer;
+//using GluonGui.WorkspaceWindow.Views.WorkspaceExplorer;
 using UnityEngine.Rendering;
 using NUnit.Framework.Internal;
 
