@@ -479,32 +479,42 @@ Shader "Water/MyWater"
                     //noise_uv_foam.y = length(UVO.xy); noise_uv_foam.y += _Time.z * _ShorelineFoamSpeed;
 
                     float noise_foam_base = 0.0;
-                    #if defined(_SHORELINEFOAMMODE_TEXTURE)
+                    //#if defined(_SHORELINEFOAMMODE_TEXTURE) // ½»´í
+                    //    float2 stretch_factor = float2(_ShorelineFoamStretchX, _ShorelineFoamStretchY);
+
+                    //    //float2 noise_uv_foam = i.uv * 100.0f + _Time.zz * _ShorelineFoamSpeed;
+                    //    //noise_uv_foam *= stretch_factor / (_ShorelineFoamScale * 100.0);
+                    //    //noise_foam_base = SAMPLE_TEXTURE2D(_ShorelineNoiseMap, sampler_ShorelineNoiseMap, noise_uv_foam).r;
+                    //    float t = smoothstep(0.0, 1, abs(frac(_Time.z * _ShorelineFoamSpeed)));
+                    //    float2 noise_uv_foam = displaced_uv * 100.0f;
+                    //    noise_uv_foam *= stretch_factor / (_ShorelineFoamScale * 100.0);
+                    //    float base1 = SAMPLE_TEXTURE2D(_ShorelineNoiseMap, sampler_ShorelineNoiseMap, noise_uv_foam + int(_Time.z * _ShorelineFoamSpeed) * 0.1).r;
+                    //    float base2 = SAMPLE_TEXTURE2D(_ShorelineNoiseMap, sampler_ShorelineNoiseMap, noise_uv_foam + int(_Time.z * _ShorelineFoamSpeed) * 0.1 + 0.1).r;
+                    //    noise_foam_base = lerp(base1, base2, t);
+                    //    noise_foam_base = lerp(noise_foam_base, 1, pow(shoreline, _ShorelineFoamSharpness));
+                    //#endif
+                    #if defined(_SHORELINEFOAMMODE_TEXTURE) // ÒÆ¶¯
                         float2 stretch_factor = float2(_ShorelineFoamStretchX, _ShorelineFoamStretchY);
 
-                        //float2 noise_uv_foam = i.uv * 100.0f + _Time.zz * _ShorelineFoamSpeed;
-                        //noise_uv_foam *= stretch_factor / (_ShorelineFoamScale * 100.0);
-                        //noise_foam_base = SAMPLE_TEXTURE2D(_ShorelineNoiseMap, sampler_ShorelineNoiseMap, noise_uv_foam).r;
-                        float t = smoothstep(0.0, 1, abs(frac(_Time.z * _ShorelineFoamSpeed)));
-                        float2 noise_uv_foam = displaced_uv * 100.0f;
+                        float2 noise_uv_foam = i.uv * 100.0f + _Time.zz * _ShorelineFoamSpeed;
                         noise_uv_foam *= stretch_factor / (_ShorelineFoamScale * 100.0);
-                        float base1 = SAMPLE_TEXTURE2D(_ShorelineNoiseMap, sampler_ShorelineNoiseMap, noise_uv_foam + int(_Time.z * _ShorelineFoamSpeed) * 0.1).r;
-                        float base2 = SAMPLE_TEXTURE2D(_ShorelineNoiseMap, sampler_ShorelineNoiseMap, noise_uv_foam + int(_Time.z * _ShorelineFoamSpeed) * 0.1 + 0.1).r;
-                        noise_foam_base = lerp(base1, base2, t);
+                        noise_foam_base = SAMPLE_TEXTURE2D(_ShorelineNoiseMap, sampler_ShorelineNoiseMap, noise_uv_foam).r;
+                        noise_uv_foam *= stretch_factor / (_ShorelineFoamScale * 100.0);
                         noise_foam_base = lerp(noise_foam_base, 1, pow(shoreline, _ShorelineFoamSharpness));
+                        foam_shore2 = step(1.0 - shoreline, noise_foam_base);
                     #endif
 
                     #if defined(_SHORELINEFOAMMODE_GRADIENT_NOISE)
                         float2 noise_uv_foam = displaced_uv * 100.0f + _Time.zz * _ShorelineFoamSpeed;
                         float2 stretch_factor = float2(_ShorelineFoamStretchX, _ShorelineFoamStretchY);
                         noise_foam_base = GradientNoise(noise_uv_foam * stretch_factor, _ShorelineFoamScale);
+                        foam_shore2 = step(1.0 - shoreline, noise_foam_base);
                     #endif
 
                     //float foam_blur = 1.0 - _ShorelineFoamSharpness;
                     //float hard_foam_end = 0.1;
                     //float soft_foam_end = hard_foam_end + foam_blur * 0.3;
                     //foam_shore2 = smoothstep(0.5 - foam_blur * 0.5, 0.5 + foam_blur * 0.5, noise_foam_base) * shoreline;
-                    foam_shore2 = noise_foam_base * shoreline;
 
                 }
 

@@ -60,6 +60,7 @@ public class ShorelinePass : ScriptableRenderPass
             //cmd.SetGlobalVector(WaterRenderProperties.ShorelineExpansionStartID, ExpansionStart);
             //cmd.SetGlobalVector(WaterRenderProperties.ShorelineExpansionEndID, ExpansionEnd);
             //cmd.EnableShaderKeyword("__WRITE_SHORELINE_BUFFER");
+            cmd.SetGlobalFloat(WaterRenderProperties.ShorelineMaxDepthID, MaxDepth);
             context.ExecuteCommandBuffer(cmd);
             cmd.Clear();
             context.DrawRenderers(renderingData.cullResults, ref drawingSettings, ref filteringSettings);
