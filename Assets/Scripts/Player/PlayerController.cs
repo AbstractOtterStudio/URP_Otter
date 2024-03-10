@@ -54,6 +54,8 @@ public class PlayerController : MonoBehaviour
     private PlayerProperty playerProperty;
     private PlayerHand hand;
     private AnimatorManager animatorMgr;
+    private PlayerMovement playerMovement;
+
     //Use to set lerp value with player material
     private float m_materialFloat;
     //When player level up, set true
@@ -94,13 +96,16 @@ public class PlayerController : MonoBehaviour
     {
         if (!m_isThrowing && throwing)
         {
+            animatorMgr.OffLockState();
+            animatorMgr.playerAnimator.SetTrigger(ValueShortcut.anim_ThrowAim);
+            playerMovement.playerSpeedChangeHandle.Invoke(PlayerSpeedState.Slow);
             SetIsThrowAiming(true);
         }
         else if (m_isThrowing && !throwing)
         {
             animatorMgr.OffLockState();
             animatorMgr.playerAnimator.SetTrigger(ValueShortcut.anim_Throw);
-
+            playerMovement.playerSpeedChangeHandle.Invoke(PlayerSpeedState.Normal);
             SetIsThrowAiming(false);
         }
 
@@ -125,6 +130,8 @@ public class PlayerController : MonoBehaviour
         stateController = GetComponent<PlayerStateController>();
         playerProperty = GetComponent<PlayerProperty>();
         animatorMgr = GetComponent<AnimatorManager>();
+        playerMovement = GetComponent<PlayerMovement>();
+
         compareItem = new CompareItem(this.transform);
 
         trajectoryLine.SetColor(Color.white);

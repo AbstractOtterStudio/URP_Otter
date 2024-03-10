@@ -19,6 +19,7 @@ public enum PlayerSpeedState
 {
     Normal,
     Fast,
+    Slow,
     Stop
 }
 

@@ -15,7 +15,7 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField]
     private float addSpeedRatio = GlobalSetting.playerAddSpeedRatio;
     [SerializeField]
-    private float slowSpeedRatio = 0.75f;
+    private float slowSpeedRatio = 0.3f;
     [SerializeField]
     private float swimTimelyRatio = 2.5f;
     [SerializeField]
@@ -32,7 +32,7 @@ public class PlayerMovement : MonoBehaviour
     private Vector3 m_preVelocity;
     private PlayerStateController m_stateController;
     public delegate void PlayerSpeedChangeHandle(PlayerSpeedState speedState);
-    public PlayerSpeedChangeHandle playerSpeedChangeHandle;
+    public PlayerSpeedChangeHandle playerSpeedChangeHandle { get; set; }
     public bool isMoveStop;
 
 
@@ -97,6 +97,9 @@ public class PlayerMovement : MonoBehaviour
                 break;
             case PlayerSpeedState.Stop:
                 //m_playerCurSpeed = 0;
+                break;
+            case PlayerSpeedState.Slow:
+                m_playerCurSpeed = playerOriSpeed * slowSpeedRatio;
                 break;
             case PlayerSpeedState.Normal:
                 m_playerCurSpeed = playerOriSpeed;
