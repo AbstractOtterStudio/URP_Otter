@@ -1,8 +1,7 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Rendering.Universal;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 
 /// <summary>
 /// Render all meshes of a certain layer mask to a custom depth buffer
@@ -90,7 +89,7 @@ public class ShorelinePass : ScriptableRenderPass
 public class ShorelineRendererFeature : ScriptableRendererFeature
 {
     public LayerMask Layer;
-    public RenderPassEvent InjectionPoint = RenderPassEvent.BeforeRenderingPrepasses;
+    public RenderPassEvent InjectionPoint = RenderPassEvent.BeforeRenderingPrePasses;
     //public Vector3 ExpansionStart = new Vector3(0.3f, 0, 0.3f);
     //public Vector3 ExpansionEnd = new Vector3(0.5f, 0, 0.5f);
     public float MaxDepth = 0.2f;

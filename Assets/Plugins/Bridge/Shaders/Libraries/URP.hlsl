@@ -19,8 +19,8 @@
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareOpaqueTexture.hlsl"
 #endif
 
-SAMPLER(sampler_LinearClamp);
-SAMPLER(sampler_LinearRepeat);
+// SAMPLER(sampler_LinearClamp);
+// SAMPLER(sampler_LinearRepeat);
 #define Clamp sampler_LinearClamp
 #define Repeat sampler_LinearRepeat
 

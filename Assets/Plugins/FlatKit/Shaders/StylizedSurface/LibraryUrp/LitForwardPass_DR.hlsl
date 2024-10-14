@@ -55,6 +55,7 @@ struct Varyings
 void InitializeInputData(Varyings input, half3 normalTS, out InputData inputData)
 {
     inputData.positionWS = input.posWS;
+    inputData.tangentToWorld = half3x3(input.tangent.xyz, input.bitangent.xyz, input.normal.xyz);
 
 #ifdef _NORMALMAP
     half3 viewDirWS = half3(input.normal.w, input.tangent.w, input.bitangent.w);
@@ -83,6 +84,7 @@ void InitializeInputData(Varyings input, half3 normalTS, out InputData inputData
     inputData.bakedGI = SAMPLE_GI(input.lightmapUV, input.vertexSH, inputData.normalWS);
 
 #if VERSION_GREATER_EQUAL(10, 0)
+    inputData.positionCS = input.positionCS;
     inputData.normalizedScreenSpaceUV = GetNormalizedScreenSpaceUV(input.positionCS);
     inputData.shadowMask = SAMPLE_SHADOWMASK(input.lightmapUV);
 #endif

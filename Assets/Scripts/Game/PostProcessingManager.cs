@@ -10,7 +10,7 @@ public class PostProcessingManager : SingletonBase<PostProcessingManager>
     [SerializeField] Material seaMaterial; //Change Sea Alpha
     //Outline
     public PlayerController playerController;
-    [SerializeField] ForwardRendererData renderData;
+    [SerializeField] UniversalRendererData renderData;
     //DayNight
     Volume volume;
     LiftGammaGain liftGammaGain;

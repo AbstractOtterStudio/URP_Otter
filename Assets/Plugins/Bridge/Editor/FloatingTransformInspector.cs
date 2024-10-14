@@ -10,7 +10,7 @@ using UnityEditor;
 #if UNITY_2021_2
 using PrefabStageUtility = UnityEditor.SceneManagement.PrefabStageUtility;
 #else
-using PrefabStageUtility = UnityEditor.Experimental.SceneManagement.PrefabStageUtility;
+using PrefabStageUtility = UnityEditor.SceneManagement.PrefabStageUtility;
 #endif
 
 namespace StylizedWater2
