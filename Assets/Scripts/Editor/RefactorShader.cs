@@ -1,13 +1,6 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEditor;
+﻿using UnityEditor;
 using UnityEngine;
-using FlatKit;
-using System.Linq;
 using System.IO;
-//using GluonGui.WorkspaceWindow.Views.WorkspaceExplorer;
-using UnityEngine.Rendering;
-using NUnit.Framework.Internal;
 
 public class TurnOnShadows : EditorWindow
 {
