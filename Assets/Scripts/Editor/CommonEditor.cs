@@ -1,9 +1,7 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using System.Reflection;
-using static UnityEngine.Rendering.DebugUI;
 
 [CustomEditor(typeof(MonoBehaviour), true)]
 public class CommonEditor : Editor
