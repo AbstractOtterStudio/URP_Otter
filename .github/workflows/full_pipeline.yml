@@ -1,0 +1,174 @@
+name: Build-Test-Release
+
+on: [push, pull_request]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  buildForAllSupportedPlatforms:
+    name: Build for ${{ matrix.targetPlatform }}
+    runs-on: self-hosted
+    strategy:
+      fail-fast: false
+      matrix:
+        targetPlatform:
+          # - StandaloneOSX # Build a macOS standalone (Intel 64-bit).
+          # - StandaloneWindows # Build a Windows standalone.
+          - StandaloneWindows64 # Build a Windows 64-bit standalone.
+          # - StandaloneLinux64 # Build a Linux 64-bit standalone.
+          # - iOS # Build an iOS player.
+          # - Android # Build an Android .apk standalone app.
+          # - WebGL # WebGL.
+    outputs:
+      game-version: ${{ steps.set-game-version.outputs.GAME_VERSION }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: true
+      - name: Restore Cached Library
+        uses: actions/cache@v3
+        with:
+          path: Library
+          key: Library-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+      - name: Build
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          versioning: None
+          targetPlatform: ${{ matrix.targetPlatform }}
+          allowDirtyBuild: true
+          runAsHostUser: true
+          buildName: Otter-Game-Dev-${{ github.sha }}
+      - name: Set Game Version
+        id: set-game-version
+        run: |
+          gameVersion=$(cat ProjectSettings/ProjectSettings.asset | grep bundleVersion | cut -d ' ' -f 4 | xargs)
+          echo "Game Version: $gameVersion"
+          if [[ -z "$gameVersion" || ! "$gameVersion" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Error: Game version is empty or malformed."
+            exit 1
+          fi
+          echo $gameVersion > build/${{ matrix.targetPlatform }}/game_version.txt
+          echo "GAME_VERSION=$gameVersion" >> $GITHUB_OUTPUT
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Build-${{ matrix.targetPlatform }}
+          path: build/${{ matrix.targetPlatform }}
+
+  testAllModes:
+    needs: buildForAllSupportedPlatforms
+    name: Test in ${{ matrix.testMode }}
+    runs-on: self-hosted
+    strategy:
+      fail-fast: false
+      matrix:
+        projectPath:
+          - .
+        testMode:
+          # - playmode
+          - editmode
+          # - standalone
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Restore Cached Library
+        uses: actions/cache@v3
+        with:
+          path: ${{ matrix.projectPath }}/Library
+          key: Library-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+      - name: Run Tests
+        uses: game-ci/unity-test-runner@v4
+        id: tests
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          runAsHostUser: true
+          projectPath: ${{ matrix.projectPath }}
+          testMode: ${{ matrix.testMode }}
+          artifactsPath: ${{ matrix.testMode }}-artifacts
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          checkName: ${{ matrix.testMode }} Test Results
+          coverageOptions: 'generateAdditionalMetrics;generateHtmlReport;generateBadgeReport;assemblyFilters:+Game.Otter'
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Test results for ${{ matrix.testMode }}
+          path: ${{ steps.tests.outputs.artifactsPath }}
+      - name: Upload Coverage Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Coverage results for ${{ matrix.testMode }}
+          path: ${{ steps.tests.outputs.coveragePath }}
+
+  uploadToRelease:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [buildForAllSupportedPlatforms, testAllModes]
+    runs-on: self-hosted
+    strategy:
+      fail-fast: false
+      matrix:
+        targetPlatform:
+          - StandaloneWindows64 # Build a Windows 64-bit standalone.
+    steps:
+      - name: Check if Game Version is Set
+        run: |
+          if [[ -z "${{ needs.buildForAllSupportedPlatforms.outputs.game-version }}" ]]; then
+            echo "Error: Game version is not set."
+            exit 1
+          fi
+          echo "GAME_VERSION=${{ needs.buildForAllSupportedPlatforms.outputs.game-version }}" >> $GITHUB_ENV
+      - name: Delete Existing Release
+        uses: liudonghua123/delete-release-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          release_name: Internal Development Build v${{ env.GAME_VERSION }}
+          suppress_errors: true
+      - name: Zip Build Artifact
+        if: success()
+        run: |
+          cd build
+          zip -r Build-${{ matrix.targetPlatform }}.zip ${{ matrix.targetPlatform }}
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        if: success()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ env.GAME_VERSION }}
+          release_name: Internal Development Build v${{ env.GAME_VERSION }}
+          body: |
+            Development build for ${{ matrix.targetPlatform }}, game version ${{ env.GAME_VERSION }}.
+            Branch: ${{ github.ref }}
+            Commit SHA: ${{ github.sha }}
+          draft: false
+          prerelease: false
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: Build-${{ matrix.targetPlatform }}
+          path: build/${{ matrix.targetPlatform }}
+      - name: Upload to GitHub Release
+        uses: actions/upload-release-asset@v1
+        if: success()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: build/Build-${{ matrix.targetPlatform }}.zip
+          asset_name: Build-v${{ env.GAME_VERSION }}-${{ matrix.targetPlatform }}.zip
+          asset_content_type: application/zip
