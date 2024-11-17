@@ -1,366 +1,206 @@
-using System.Linq.Expressions;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
+using System;
 
-/// <summary>
-/// Record Player Properties and Change Properties Value
-/// </summary>
 public class PlayerProperty : MonoBehaviour
-{    
-    //健康值
-    //Full
-    [Header("Full Value")]
-    [SerializeField] private float maxHealthValue = GlobalSetting.playerInitFull;
-    [SerializeField] public float currentHealthValue;
-    [SerializeField] public float hungryHealthValue = GlobalSetting.playerHungryFull;
-    [SerializeField] public float agonyHealthValue = GlobalSetting.playerAgonyFull;
-    [SerializeField] public float sleepHealthValue = 0;
-    [SerializeField] public float onceHealthValue = GlobalSetting.timelyFullConsume;
+{
+    public PlayerStatus Status { get; private set; }
 
-    //体力值
-    [Space(10)]
-    [Header("Power Value")]
-    [SerializeField] private float maxPowerValue = GlobalSetting.playerInitPower;
-    // [SerializeField] private float maxCountValue;
-    // [SerializeField] public float currentCounterValue;
-    [SerializeField] public float currentPowerValue;
-    [SerializeField] public float weakPowerValue;
-    [SerializeField] public float timelyPowerValue = GlobalSetting.timelyPowerConsume;
-    // [SerializeField] private int initCounterNum;
-    // [SerializeField] private int currentCounterNum;
-    // Dictionary<int,bool> powerCountState = new Dictionary<int, bool>();
-    
-    //清潔值
-    [Space(10)]
-    [Header("Clean Value")]
-    [SerializeField] private float maxCleanValue = GlobalSetting.playerInitClean;
-    [SerializeField] public float currentCleanValue;
-    [SerializeField] public float dirtyCleanValue = GlobalSetting.dirtyClean;
-    [SerializeField] public float dirtyTwiceCleanValue = GlobalSetting.dirtyTwiceClean;
-    [SerializeField] public float dangerCleanValue = GlobalSetting.dangerClean;
-    [SerializeField] public float cleanOnceValue;
-    [SerializeField] public float eatOnceCleanValue = GlobalSetting.onceDirtyConsume;
-    //[SerializeField] private float 
+    public event Action OnStatusChanged;
 
-    //氧氣值
-    [Space(10)]
-    [Header("Oxygen Value")]
-    [SerializeField] private float maxOxygenValue = GlobalSetting.playerInitOxy;
-    [SerializeField] public float currentOxygenValue;
-    [SerializeField] public float weakOxygenValue;
-    [SerializeField] public float timelyOxygenValue = GlobalSetting.timelyOxyConsume;
-  
-    //不同健康、清洁状态对应的速度速率
-    [Space(10)]
-    [Header("Different State Responding Speed Ratio")]
-    [SerializeField] [Range(0.01f,1)] public float dirtyCleanSpeedRatio = GlobalSetting.playerDirtySpeedRatio;
-    [SerializeField] [Range(0.01f,1)] public float dangerCleanSpeedRatio = GlobalSetting.playerDangerCleanSpeedRatio;
-    [SerializeField] [Range(0.01f,1)] public float agonyHealthSpeedRatio = GlobalSetting.playerAgonyFullSpeedRatio;
     private PlayerStateController stateController;
 
-    //Exprience
-    Dictionary<int,float> maxExperienceValue = new Dictionary<int, float>
+    [Header("Health Settings")]
+    [SerializeField] private float initialMaxHealth = GlobalSetting.playerInitFull;
+    [SerializeField] private float healthDecayRate = GlobalSetting.timelyFullConsume;
+    [SerializeField] private float hungerThreshold = GlobalSetting.playerHungryFull;
+    [SerializeField] private float agonyThreshold = GlobalSetting.playerAgonyFull;
+
+    [Header("Power Settings")]
+    [SerializeField] private float initialMaxPower = GlobalSetting.playerInitPower;
+    [SerializeField] private float powerDecayRate = GlobalSetting.timelyPowerConsume;
+    [SerializeField] private float powerRecoveryMultiplier = 2f;
+
+    [Header("Cleanliness Settings")]
+    [SerializeField] private float initialMaxCleanliness = GlobalSetting.playerInitClean;
+    [SerializeField] private float cleanAmount = GlobalSetting.playerInitClean;
+    [SerializeField] private float eatDirtyAmount = GlobalSetting.onceDirtyConsume;
+    [SerializeField] private float dirtyThreshold = GlobalSetting.dirtyClean;
+    [SerializeField] private float veryDirtyThreshold = GlobalSetting.dirtyTwiceClean;
+    [SerializeField] private float dangerThreshold = GlobalSetting.dangerClean;
+
+    [Header("Oxygen Settings")]
+    [SerializeField] private float initialMaxOxygen = GlobalSetting.playerInitOxy;
+    [SerializeField] private float oxygenDecayRate = GlobalSetting.timelyOxyConsume;
+    [SerializeField] private float oxygenRecoveryMultiplier = 2f;
+
+    [Header("Speed Ratios")]
+    [Range(0.01f, 1f)]
+    [SerializeField] private float dirtySpeedRatio = GlobalSetting.playerDirtySpeedRatio;
+    [Range(0.01f, 1f)]
+    [SerializeField] private float dangerSpeedRatio = GlobalSetting.playerDangerCleanSpeedRatio;
+    [Range(0.01f, 1f)]
+    [SerializeField] private float agonySpeedRatio = GlobalSetting.playerAgonyFullSpeedRatio;
+
+    [Header("Experience Settings")]
+    [SerializeField] private float[] experienceThresholds = { 100f, 200f, 300f, 400f };
+
+    private void Start()
     {
-        {0, 100},
-        {1, 200},
-        {2,300},
-        {3,400}
-    };
-    [SerializeField] public float currentExperienceValue ;
-    [SerializeField] public int currentLevel ;
+        Status = new PlayerStatus
+        {
+            MaxHealth = initialMaxHealth,
+            Health = initialMaxHealth,
+            MaxPower = initialMaxPower,
+            Power = initialMaxPower,
+            MaxCleanliness = initialMaxCleanliness,
+            Cleanliness = initialMaxCleanliness,
+            MaxOxygen = initialMaxOxygen,
+            Oxygen = initialMaxOxygen,
+            Level = 0,
+            Experience = 0f,
+            HungerThreshold = hungerThreshold,
+            AgonyThreshold = agonyThreshold,
+            DirtyThreshold = dirtyThreshold,
+            VeryDirtyThreshold = veryDirtyThreshold,
+            DangerThreshold = dangerThreshold,
+            AgonySpeedRatio = agonySpeedRatio,
+            DirtySpeedRatio = dirtySpeedRatio,
+            DangerSpeedRatio = dangerSpeedRatio
+        };
 
-    // Dictionary<int, (float health, float clean, float oxygen, float exp)> LevelMap = new Dictionary<int, (float health, float clean, float oxygen, float exp)>
-    // {
-    //     {1, (100, )}
-    // };
-
-
-
-    void Start()
-    {
-        currentLevel = 0;
-        currentHealthValue = maxHealthValue;
-        currentCleanValue = maxCleanValue;
-        cleanOnceValue = maxCleanValue;
-        currentOxygenValue = maxOxygenValue;
-        currentPowerValue = maxPowerValue;
-        currentExperienceValue = maxExperienceValue[currentLevel];
         stateController = GetComponent<PlayerStateController>();
-
-        // if (initCounterNum == 0) 
-        // {
-        //     Debug.Log("Forget to init Counter Number !");
-        //     initCounterNum = 1;
-        // }
-
-        // //Init counter state
-        // for (int i = 1; i <= initCounterNum; i++)
-        // {
-        //     powerCountState.Add(i,true);
-        // }
-        // currentCounterNum = initCounterNum;
-        // currentCounterValue = maxCountValue;
     }
 
-    void Update()
+    private void Update()
     {
         if (GameManager.instance.GetGameAction())
         {
-            if (stateController.playerAniState != PlayerInteractAniState.Sleep)
+            if (stateController.PlayerAniState != PlayerInteractAniState.Sleep)
             {
-                ChangeHealthValue(false, onceHealthValue * Time.deltaTime);
+                ModifyHealth(-healthDecayRate * Time.deltaTime);
             }
-            DetectOxyChange();
-            DetectPowerChange();
-        }
-        //ChangeMaxPowerAndOxy();
-        //DetectCounterChange();
-    }
 
-    /// <summary>
-    /// Update Player Oxygen Value Timely
-    /// </summary>
-    private void DetectOxyChange() 
-    {
-        if (stateController.playerPlaceState == PlayerPlaceState.Dive) {
-            if (currentOxygenValue <= 0) {
-                return;
-            }
-            ChangeOxygenValue(false, timelyOxygenValue * Time.deltaTime);
-        }
-        else {
-            if (currentOxygenValue >= maxOxygenValue) { 
-                if (currentPowerValue >= maxPowerValue) {
-                    EventCenter.Broadcast(GameEvents.HideOxygenAndPower);
-                }
-                return;
-            }
-            ChangeOxygenValue(true, 2 * timelyOxygenValue * Time.deltaTime);
+            UpdateOxygen();
+            UpdatePower();
+            CheckExperience();
         }
     }
 
-    /// <summary>
-    /// Update PLayer Power Value Timely
-    /// </summary>
-    private void DetectPowerChange() 
+    #region 状态更新方法
+
+    private void UpdateOxygen()
     {
-        if (stateController.playerSpeedState == PlayerSpeedState.Fast && currentPowerValue > 0 && stateController.playerPlaceState != PlayerPlaceState.Dive) {
-            //If player's level can move cross the waterfall, dont decrease player's power value
-            if (!stateController.playerAddSpeedLock && stateController.playerPlaceState == PlayerPlaceState.WaterFall) { return; }
-            
-            ChangePowerValue(false, timelyPowerValue * Time.deltaTime);
-            if (currentPowerValue <= maxPowerValue / 10 && stateController.playerPlaceState == PlayerPlaceState.WaterFall)
+        if (stateController.PlayerPlaceState == PlayerPlaceState.Dive)
+        {
+            if (Status.Oxygen > 0)
+            {
+                ModifyOxygen(-oxygenDecayRate * Time.deltaTime);
+            }
+        }
+        else
+        {
+            if (Status.Oxygen < Status.MaxOxygen)
+            {
+                ModifyOxygen(oxygenDecayRate * oxygenRecoveryMultiplier * Time.deltaTime);
+            }
+        }
+    }
+
+    private void UpdatePower()
+    {
+        if (stateController.PlayerSpeedState == PlayerSpeedState.Fast && Status.Power > 0 && stateController.PlayerPlaceState != PlayerPlaceState.Dive)
+        {
+            if (!stateController.IsAddSpeedLocked && stateController.PlayerPlaceState == PlayerPlaceState.WaterFall)
+            {
+                return;
+            }
+
+            ModifyPower(-powerDecayRate * Time.deltaTime);
+
+            if (Status.Power <= Status.MaxPower / 10 && stateController.PlayerPlaceState == PlayerPlaceState.WaterFall)
             {
                 EventCenter.Broadcast(GameEvents.BecomeSleepy);
             }
         }
-        else {
-            if (currentPowerValue >= maxPowerValue) {
-                if (currentOxygenValue > maxOxygenValue) {
-                    EventCenter.Broadcast(GameEvents.HideOxygenAndPower);
-                }
-                return;
-            }
-            //When Player is not in Waterfall and dont input AddSpeed Keycode, Return Power Value
-            if (!Input.GetKey(GlobalSetting.AddSpeedKey) && stateController.playerSpeedState != PlayerSpeedState.Fast 
-            && !stateController.playerAddSpeedLock && stateController.playerPlaceState != PlayerPlaceState.Dive) 
-            {
-                ChangePowerValue(true, 2 * timelyPowerValue * Time.deltaTime);
-            }
-        }
-    }
-
-    // private void DetectCounterChange()
-    // {
-    //     if (!IfCountOut() && (stateController.playerSpeedState == PlayerSpeedState.Fast || stateController.playerPlaceState == PlayerPlaceState.Dive)) 
-    //     {
-    //         ChangeCounterValue(false, timelyPowerValue * Time.deltaTime);
-    //     }
-    //     else {
-    //         if (powerCountState[powerCountState.Count] && currentCounterValue >= maxCountValue) {
-    //             return;
-    //         }
-            
-    //         if (stateController.playerPlaceState == PlayerPlaceState.Dive && IfCountOut())
-    //         {
-    //             return;
-    //         }
-    //         //When Player is not in Waterfall and dont input AddSpeed Keycode, Return Power Value
-    //         if (!Input.GetKey(GlobalSetting.AddSpeedKey) && stateController.playerSpeedState != PlayerSpeedState.Fast 
-    //         && !stateController.playerAddSpeedLock) 
-    //         {
-    //             ChangeCounterValue(true, timelyPowerValue * Time.deltaTime);
-    //         }
-    //     }
-    // }
-
-    public void ChangeMaxPowerAndOxy() 
-    {
-        if (stateController.playerFullState != PlayerFullState.Strong) {
-            maxOxygenValue = weakOxygenValue;
-            maxPowerValue = weakPowerValue;
-            if (currentPowerValue > maxPowerValue) { currentPowerValue = maxPowerValue; }
-            if (currentOxygenValue > maxOxygenValue) { currentOxygenValue = maxOxygenValue; }
-        }
-    }
-
-    public void ChangePowerValue(bool isAdd, float changeNum) 
-    {
-        if (isAdd) {
-            currentPowerValue += changeNum;  
-            if (currentPowerValue > maxPowerValue) {currentPowerValue = maxPowerValue;}          
-        }
-        else {
-            currentPowerValue -= changeNum;
-            if (currentPowerValue < 0) {currentPowerValue = 0;}
-        }
-        //EventCenter.Broadcast(GameEvents.UpdatePower, currentPowerValue / maxPowerValue);
-    }
-
-    public void ChangeHealthValue(bool isAdd, float changeNum) 
-    {
-        if (isAdd) {
-            currentHealthValue += changeNum;  
-            if (currentHealthValue > maxHealthValue) {currentHealthValue = maxHealthValue;}          
-        }
-        else {
-            currentHealthValue -= changeNum;
-            if (currentHealthValue < 0) {currentHealthValue = 0;}
-        }
-        //EventCenter.Broadcast(GameEvents.UpdateHealth, currentHealthValue / maxHealthValue);
-    }
-
-    public void ChangeCleanValue(bool isAdd, float changeNum) 
-    {
-        if (isAdd) {
-            currentCleanValue += changeNum;
-            if (currentCleanValue > maxCleanValue) {currentCleanValue = maxCleanValue;}
-        }
-        else {
-            currentCleanValue -= changeNum;
-            if (currentCleanValue < 0) { currentCleanValue = 0;}
-        }
-        //EventCenter.Broadcast(GameEvents.UpdateClean, currentCleanValue / maxCleanValue);
-    }
-
-    public void ChangeOxygenValue(bool isAdd, float changeNum) 
-    {
-        if (isAdd) {
-            currentOxygenValue += changeNum;
-            if (currentOxygenValue > maxOxygenValue) {currentOxygenValue = maxOxygenValue;}
-        }
-        else {
-            currentOxygenValue -= changeNum;
-            if (currentOxygenValue < 0) {currentOxygenValue = 0;}
-        }
-        //EventCenter.Broadcast(GameEvents.UpdateOxygen, currentOxygenValue / maxOxygenValue);
-    }
-
-    public void ChangeMaxOxygenValue(float changeNum) 
-    {
-        maxOxygenValue += changeNum;
-        currentOxygenValue = maxOxygenValue;
-        //EventCenter.Broadcast(GameEvents.UpdateOxygen, currentOxygenValue / maxOxygenValue);
-    }
-
-    public void ChangeExperienceValue(bool isAdd, float changeNum) 
-    {
-        if (isAdd) {
-            currentExperienceValue += changeNum;
-            if (currentExperienceValue > maxExperienceValue[currentLevel]) {currentExperienceValue = maxExperienceValue[currentLevel];}
-        }
-        else {
-            currentExperienceValue -= changeNum;
-            if (currentExperienceValue < 0) {currentExperienceValue = 0;}
-        }
-
-        if (currentExperienceValue >= maxExperienceValue[currentLevel]) {
-            currentExperienceValue = maxExperienceValue[currentLevel] - currentExperienceValue;
-            currentLevel ++;
-        }
-    }
-
-    public void ChangeLevelValue(bool isAdd, int changeNum)
-    {
-        if (isAdd)
+        else
         {
-            maxPowerValue += changeNum * GlobalSetting.playerUpLevelPower;
-            // maxOxygenValue += changeNum * GlobalSetting.playerUpLevelOxy;
-            currentPowerValue = maxPowerValue;
-            currentOxygenValue = maxOxygenValue;
-            if (maxPowerValue == GlobalSetting.playerInitPower + GlobalSetting.playerUpLevelPower){
-                currentLevel ++;
-            }
-            else if (maxPowerValue == GlobalSetting.playerInitPower + 3 * GlobalSetting.playerUpLevelPower)
+            if (Status.Power < Status.MaxPower)
             {
-                currentLevel ++;
+                if (!Input.GetKey(GlobalSetting.AddSpeedKey) && stateController.PlayerSpeedState != PlayerSpeedState.Fast
+                    && !stateController.IsAddSpeedLocked && stateController.PlayerPlaceState != PlayerPlaceState.Dive)
+                {
+                    ModifyPower(powerDecayRate * powerRecoveryMultiplier * Time.deltaTime);
+                }
             }
-            else if (maxPowerValue == GlobalSetting.playerInitPower + 5 * GlobalSetting.playerUpLevelPower)
-            {
-                currentLevel ++;
-            }
-        }
-        else{
-            if (currentLevel <=0 ) { return; }
-            currentLevel -= changeNum;
         }
     }
 
-    // public void ChangeCounterValue(bool isAdd, float changeNum) 
-    // {
-    //     if (isAdd) {
-    //         currentCounterValue += changeNum;  
-    //         if (currentCounterValue > maxCountValue) {currentCounterValue = maxCountValue;}          
-    //     }
-    //     else {
-    //         currentCounterValue -= changeNum;
-    //         if (currentCounterValue < 0) 
-    //         {
-    //             currentCounterValue = maxCountValue;
-    //             powerCountState[currentCounterNum] = false;
-    //             currentCounterNum --;
-    //         }
-    //     }
-    // }
+    private void CheckExperience()
+    {
+        if (Status.Level < experienceThresholds.Length && Status.Experience >= experienceThresholds[Status.Level])
+        {
+            Status.Experience -= experienceThresholds[Status.Level];
+            LevelUp();
+            OnStatusChanged?.Invoke();
+        }
+    }
 
-    /// <summary>
-    /// Judge if player's Counts has gone
-    /// </summary>
-    /// <returns></returns>
-    // public bool IfCountOut()
-    // {
-    //     return !powerCountState[1];
-    // }
+    #endregion
 
-    /// <summary>
-    /// ReActive Player Empty Counter to full
-    /// </summary>
-    /// <param name="activeNum"></param>
-    // public void ReActiveCounter(int activeNum)
-    // {
-    //     for (int i = 0; i < activeNum; i++)
-    //     {
-    //         if (currentCounterNum < powerCountState.Count)
-    //         {
-    //             powerCountState[currentCounterNum + 1] = true;
-    //             currentCounterNum ++;
-    //         }
-    //         else{
-    //             return;
-    //         }
-    //     }
-    // }
+    #region 属性修改方法
 
-    /// <summary>
-    /// Add Player Empty Counter
-    /// </summary>
-    /// <param name="addNum"></param>
-    // public void AddCounterNum(int addNum)
-    // {
-    //     for (int i = 0; i < addNum; i++)
-    //     {
-    //         powerCountState.Add(powerCountState.Count + 1, false);
-    //     }
-    // }
+    public void ModifyHealth(float amount)
+    {
+        Status.Health = Mathf.Clamp(Status.Health + amount, 0, Status.MaxHealth);
+        OnStatusChanged?.Invoke();
+    }
+
+    public void ModifyPower(float amount)
+    {
+        Status.Power = Mathf.Clamp(Status.Power + amount, 0, Status.MaxPower);
+        OnStatusChanged?.Invoke();
+    }
+
+    public void ModifyCleanliness(float amount)
+    {
+        Status.Cleanliness = Mathf.Clamp(Status.Cleanliness + amount, 0, Status.MaxCleanliness);
+        OnStatusChanged?.Invoke();
+    }
+
+    public void ModifyOxygen(float amount)
+    {
+        Status.Oxygen = Mathf.Clamp(Status.Oxygen + amount, 0, Status.MaxOxygen);
+        OnStatusChanged?.Invoke();
+    }
+
+    public void ModifyExperience(float amount)
+    {
+        Status.Experience += amount;
+        OnStatusChanged?.Invoke();
+        CheckExperience();
+    }
+
+    public void ModifyMaxOxygen(float amount)
+    {
+        Status.MaxOxygen += amount;
+        Status.Oxygen = Status.MaxOxygen;
+        OnStatusChanged?.Invoke();
+    }
+
+    #endregion
+
+    #region 等级相关方法
+
+    private void LevelUp()
+    {
+        Status.Level++;
+        Status.MaxPower += GlobalSetting.playerUpLevelPower;
+        // Status.MaxOxygen += GlobalSetting.playerUpLevelOxy; // 如果适用
+        Status.Power = Status.MaxPower;
+        Status.Oxygen = Status.MaxOxygen;
+        // 触发升级事件或逻辑
+    }
+
+    #endregion
 }
+
