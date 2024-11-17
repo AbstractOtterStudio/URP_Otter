@@ -1,0 +1,169 @@
+name: Build-Test-Release
+
+on: [push, pull_request]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  buildForAllSupportedPlatforms:
+    name: Build for ${{ matrix.targetPlatform }}
+    runs-on: self-hosted
+    strategy:
+      fail-fast: false
+      matrix:
+        targetPlatform:
+          # - StandaloneOSX # Build a macOS standalone (Intel 64-bit).
+          # - StandaloneWindows # Build a Windows standalone.
+          - StandaloneWindows64 # Build a Windows 64-bit standalone.
+          # - StandaloneLinux64 # Build a Linux 64-bit standalone.
+          # - iOS # Build an iOS player.
+          # - Android # Build an Android .apk standalone app.
+          # - WebGL # WebGL.
+    outputs:
+      game-version: ${{ steps.set-game-version.outputs.GAME_VERSION }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: true
+      - name: Restore or Create Cached Library
+        uses: actions/cache@v4
+        with:
+          path: Library
+          key: Library-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+      - name: Build
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          versioning: None
+          targetPlatform: ${{ matrix.targetPlatform }}
+          allowDirtyBuild: true
+          runAsHostUser: true
+          buildName: Otter-Game-Dev-${{ github.sha }}
+      - name: Set Game Version
+        id: set-game-version
+        run: |
+          gameVersion=$(cat ProjectSettings/ProjectSettings.asset | grep bundleVersion | cut -d ' ' -f 4 | xargs)
+          echo "Game Version: $gameVersion"
+          if [[ -z "$gameVersion" || ! "$gameVersion" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Error: Game version is empty or malformed."
+            exit 1
+          fi
+          echo $gameVersion > build/${{ matrix.targetPlatform }}/game_version.txt
+          echo "GAME_VERSION=$gameVersion" >> $GITHUB_OUTPUT
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Build-${{ matrix.targetPlatform }}
+          path: build/${{ matrix.targetPlatform }}
+
+  testAllModes:
+    needs: buildForAllSupportedPlatforms
+    name: Test in ${{ matrix.testMode }}
+    runs-on: self-hosted
+    strategy:
+      fail-fast: false
+      matrix:
+        projectPath:
+          - .
+        testMode:
+          # - playmode
+          - editmode
+          # - standalone
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Restore or Create Cached Library
+        uses: actions/cache@v4
+        with:
+          path: ${{ matrix.projectPath }}/Library
+          key: Library-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+      - name: Run Tests
+        uses: game-ci/unity-test-runner@v4
+        id: tests
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          runAsHostUser: true
+          projectPath: ${{ matrix.projectPath }}
+          testMode: ${{ matrix.testMode }}
+          artifactsPath: ${{ matrix.testMode }}-artifacts
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          checkName: ${{ matrix.testMode }} Test Results
+          coverageOptions: 'generateAdditionalMetrics;generateHtmlReport;generateBadgeReport;assemblyFilters:+Game.Otter'
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Test results for ${{ matrix.testMode }}
+          path: ${{ steps.tests.outputs.artifactsPath }}
+      - name: Upload Coverage Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Coverage results for ${{ matrix.testMode }}
+          path: ${{ steps.tests.outputs.coveragePath }}
+
+  uploadToRelease:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [buildForAllSupportedPlatforms, testAllModes]
+    runs-on: self-hosted
+    steps:
+      - name: Check if Game Version is Set
+        run: |
+          if [[ -z "${{ needs.buildForAllSupportedPlatforms.outputs.game-version }}" ]]; then
+            echo "Error: Game version is not set."
+            exit 1
+          fi
+          echo "GAME_VERSION=${{ needs.buildForAllSupportedPlatforms.outputs.game-version }}" >> $GITHUB_ENV
+      - name: Install hub
+        uses: geertvdc/setup-hub@master
+        env:
+          ACTIONS_ALLOW_UNSECURE_COMMANDS: true
+      - uses: actions/checkout@v4
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v4
+        if: success()
+        with:
+          pattern: Build-*
+          merge-multiple: false
+          path: build
+      - name: Create and Upload to GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: v${{ env.GAME_VERSION }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          set -x
+
+          cd build || exit 1
+          assets=()
+          for dir in Build-*; do
+            if [ -d "$dir" ]; then
+              zip_file="${dir}.zip"
+              zip -r "$zip_file" "$dir" > /dev/null || exit 1
+              assets+=("-a" "$zip_file")
+              echo "Zipped $dir to $zip_file"
+            fi
+          done
+
+          if [[ ${#assets[@]} -eq 0 ]]; then
+            echo "::error::No build artifact found."
+            exit 1
+          fi
+
+          if hub release delete "$TAG"; then
+            git push --delete origin "$TAG"            
+            echo "Deleted existing release $TAG"
+          fi
+
+          hub release create "${assets[@]}" -m "Internal Development Build $TAG" -m "## Development build $TAG" -m "COMMIT: $COMMIT_SHA" "$TAG"
