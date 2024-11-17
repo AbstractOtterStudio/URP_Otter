@@ -117,11 +117,6 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     needs: [buildForAllSupportedPlatforms, testAllModes]
     runs-on: self-hosted
-    strategy:
-      fail-fast: false
-      matrix:
-        targetPlatform:
-          - StandaloneWindows64 # Build a Windows 64-bit standalone.
     steps:
       - name: Check if Game Version is Set
         run: |
@@ -130,45 +125,45 @@ jobs:
             exit 1
           fi
           echo "GAME_VERSION=${{ needs.buildForAllSupportedPlatforms.outputs.game-version }}" >> $GITHUB_ENV
-      - name: Delete Existing Release
-        uses: liudonghua123/delete-release-action@v1
+      - name: Install hub
+        uses: geertvdc/setup-hub@master
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          release_name: Internal Development Build v${{ env.GAME_VERSION }}
-          suppress_errors: true
-      - name: Zip Build Artifact
-        if: success()
-        run: |
-          cd build
-          zip -r Build-${{ matrix.targetPlatform }}.zip ${{ matrix.targetPlatform }}
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        if: success()
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: v${{ env.GAME_VERSION }}
-          release_name: Internal Development Build v${{ env.GAME_VERSION }}
-          body: |
-            Development build for ${{ matrix.targetPlatform }}, game version ${{ env.GAME_VERSION }}.
-            Branch: ${{ github.ref }}
-            Commit SHA: ${{ github.sha }}
-          draft: false
-          prerelease: false
+          ACTIONS_ALLOW_UNSECURE_COMMANDS: true
+      - uses: actions/checkout@v4
       - name: Download Build Artifact
         uses: actions/download-artifact@v4
-        with:
-          name: Build-${{ matrix.targetPlatform }}
-          path: build/${{ matrix.targetPlatform }}
-      - name: Upload to GitHub Release
-        uses: actions/upload-release-asset@v1
         if: success()
+        with:
+          pattern: Build-*
+          merge-multiple: false
+          path: build
+      - name: Create and Upload to GitHub Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: build/Build-${{ matrix.targetPlatform }}.zip
-          asset_name: Build-v${{ env.GAME_VERSION }}-${{ matrix.targetPlatform }}.zip
-          asset_content_type: application/zip
+          TAG: v${{ env.GAME_VERSION }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          set -x
+
+          cd build || exit 1
+          assets=()
+          for dir in Build-*; do
+            if [ -d "$dir" ]; then
+              zip_file="${dir}.zip"
+              zip -r "$zip_file" "$dir" > /dev/null || exit 1
+              assets+=("-a" "$zip_file")
+              echo "Zipped $dir to $zip_file"
+            fi
+          done
+
+          if [[ ${#assets[@]} -eq 0 ]]; then
+            echo "::error::No build artifact found."
+            exit 1
+          fi
+
+          if hub release delete "$TAG"; then
+            git push --delete origin "$TAG"            
+            echo "Deleted existing release $TAG"
+          fi
+
+          hub release create "${assets[@]}" -m "Internal Development Build $TAG" -m "## Development build $TAG" -m "COMMIT: $COMMIT_SHA" "$TAG"
