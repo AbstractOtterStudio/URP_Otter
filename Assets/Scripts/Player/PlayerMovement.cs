@@ -176,8 +176,6 @@ public class PlayerMovement : MonoBehaviour
 
     private void OnCollisionEnter(Collision collision)
     {
-        if (collision.gameObject.GetComponent<TerrainEffectBase>()) return;
-
         Vector3 normal = collision.contacts[0].normal;
         Vector3 reboundDirection = Vector3.ProjectOnPlane(rb.velocity, normal).normalized;
         rb.velocity = reboundDirection * collisionReboundSpeed;

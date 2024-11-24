@@ -1,6 +1,27 @@
 using UnityEngine;
 using System.Collections.Generic;
 
+public class DistanceComparer : IComparer<ItemProperties>
+{
+    private Vector3 referencePoint;
+
+    public DistanceComparer(Vector3 referencePoint)
+    {
+        this.referencePoint = referencePoint;
+    }
+
+    public int Compare(ItemProperties x, ItemProperties y)
+    {
+        if (x == null || y == null)
+            throw new System.ArgumentNullException("Transform cannot be null");
+
+        float distanceX = Vector3.Distance(x.transform.position, referencePoint);
+        float distanceY = Vector3.Distance(y.transform.position, referencePoint);
+
+        return distanceX.CompareTo(distanceY);
+    }
+}
+
 [RequireComponent(typeof(PlayerStateController))]
 [RequireComponent(typeof(PlayerHand))]
 [RequireComponent(typeof(PlayerProperty))]
@@ -49,14 +70,16 @@ public class PlayerController : MonoBehaviour
 
     private float materialBlendValue;
     private bool isGrowing;
-    private ItemComparer itemComparer;
+    private DistanceComparer itemComparer;
+
+    [DebugDisplay]
+    private ItemProperties lastThrownItem = null;
 
     // 投掷状态变量
     private float throwHoldTimer = 0.0f;
     private bool isThrowing = false;
     private bool isThrowAiming = false;
     private float throwStrength = 0;
-    private ItemProperties lastThrownItem = null;
 
     private void Start()
     {
@@ -67,7 +90,7 @@ public class PlayerController : MonoBehaviour
         playerMovement = GetComponent<PlayerMovement>();
         inputHandler = GetComponent<PlayerInputHandler>();
 
-        itemComparer = new ItemComparer(this.transform);
+        itemComparer = new DistanceComparer(this.transform.position);
 
         trajectoryLine.SetColor(Color.white);
     }
@@ -96,18 +119,12 @@ public class PlayerController : MonoBehaviour
             if (item.CanKnock && stateController.PlayerPlaceState == PlayerPlaceState.Float)
             {
                 AddToListIfNotExists(knockableItems, item);
-                if (hand.GrabItemInHand != null && !hand.GrabItemInHand.IsBroken &&
+                if (hand.grabItemInHand != null && !hand.grabItemInHand.IsBroken &&
                     stateController.PlayerPlaceState == PlayerPlaceState.Float)
                 {
                     EventCenter.Broadcast(GameEvents.ShowButtonHint, ButtonHintType.Button_X);
                 }
             }
-        }
-
-        var seaWeed = other.GetComponent<Env_SeaWeed>();
-        if (seaWeed != null && stateController.PlayerPlaceState == PlayerPlaceState.Float)
-        {
-            AddToListIfNotExists(seaWeeds, seaWeed);
         }
     }
 
@@ -131,7 +148,7 @@ public class PlayerController : MonoBehaviour
 
     private void HandleInteractions()
     {
-        if (hand.GrabItemInHand != null)
+        if (hand.grabItemInHand != null)
         {
             HandleItemInHandInteractions();
         }
@@ -198,11 +215,11 @@ public class PlayerController : MonoBehaviour
         if (stateController.PlayerAniState == PlayerInteractAniState.Throw)
             return;
 
-        if (inputHandler.IsEatingOrKnocking && hand.GrabItemInHand != null)
+        if (inputHandler.IsEatingOrKnocking && hand.grabItemInHand != null)
         {
             if (stateController.PlayerPlaceState == PlayerPlaceState.Float)
             {
-                var item = hand.GrabItemInHand.GetComponent<ItemProperties>();
+                var item = hand.grabItemInHand.GetComponent<ItemProperties>();
                 if (item.CanEat && item.IsBroken)
                 {
                     PlayEatAnimation();
@@ -250,7 +267,7 @@ public class PlayerController : MonoBehaviour
 
     private void BeginThrowingItem()
     {
-        lastThrownItem = hand.GrabItemInHand;
+        lastThrownItem = hand.grabItemInHand;
         SetIsThrowing(true);
     }
 
@@ -259,24 +276,24 @@ public class PlayerController : MonoBehaviour
         if (!CanThrow())
         {
             SetIsThrowing(false);
-            trajectoryLine.ClearTrajectory();
+            trajectoryLine.FuckOff();
             return;
         }
 
         // 开始投掷协程（此处省略具体实现）
 
         SetIsThrowing(false);
-        hand.GrabItemInHand.Release();
+        hand.grabItemInHand.Release();
         hand.ReleaseGrabItem();
-        trajectoryLine.ClearTrajectory();
+        trajectoryLine.FuckOff();
     }
 
     private void ReleaseItem()
     {
         stateController.ChangeAniState(PlayerInteractAniState.Release);
-        if (hand.GrabItemInHand == null) return;
-        availableItems.Add(hand.GrabItemInHand);
-        hand.GrabItemInHand.Release();
+        if (hand.grabItemInHand == null) return;
+        availableItems.Add(hand.grabItemInHand);
+        hand.grabItemInHand.Release();
         hand.ReleaseGrabItem();
     }
 
@@ -296,7 +313,7 @@ public class PlayerController : MonoBehaviour
         {
             knockableItems.Remove(item);
         }
-        item.Catch(hand.PlayerHandModel);
+        item.Catch(hand.playerHandModel);
     }
 
     private void Knock()
@@ -306,7 +323,7 @@ public class PlayerController : MonoBehaviour
         Vector3 direction = -(knockableItems[0].transform.position - transform.position).normalized;
         transform.rotation = Quaternion.LookRotation(direction);
 
-        hand.GrabItemInHand.KnockWith(knockableItems[0]);
+        hand.grabItemInHand.KnockWith(knockableItems[0]);
         if (knockableItems[0].IsBroken)
         {
             knockableItems.RemoveAt(0);
@@ -321,17 +338,17 @@ public class PlayerController : MonoBehaviour
 
     private void EatFood()
     {
-        var foodAdd = hand.GrabItemInHand.Eat();
+        (float oxygen, float health) foodAdd = hand.grabItemInHand.Eat();
 
-        if (hand.GrabItemInHand.GetComponent<Item_Urchin>())
+        if (hand.grabItemInHand.GetComponent<Item_Urchin>())
         {
             AnimatorManager.instance.PlayerCelebrate();
         }
-        hand.GrabItemInHand.transform.parent = null;
-        hand.GrabItemInHand = null;
+        hand.grabItemInHand.transform.parent = null;
+        hand.grabItemInHand = null;
         playerProperty.ModifyHealth(foodAdd.health);
-        playerProperty.ModifyMaxOxygen(foodAdd.Oxygen);
-        playerProperty.ModifyCleanliness(-playerProperty.Status.eatDirtyAmount / 2);
+        playerProperty.ModifyMaxOxygen(foodAdd.oxygen);
+        //playerProperty.ModifyCleanliness(-playerProperty.Status.eatDirtyAmount / 2);
         EventCenter.Broadcast(GameEvents.BecomeGrowth);
     }
 
@@ -344,7 +361,7 @@ public class PlayerController : MonoBehaviour
         var colliders = Physics.OverlapSphere(trajectoryLine.EndPos, 0.5f);
         foreach (var collider in colliders)
         {
-            if (ReferenceEquals(collider.gameObject, hand.GrabItemInHand.gameObject))
+            if (ReferenceEquals(collider.gameObject, hand.grabItemInHand.gameObject))
                 continue;
 
             if (((1 << collider.gameObject.layer) & nonThrowableLayers.value) != 0)
@@ -383,7 +400,7 @@ public class PlayerController : MonoBehaviour
     private Vector3 GetThrowStartPosition() => transform.position + transform.up * throwOffset;
     private Vector3 GetThrowDirection() => -transform.forward + transform.up;
 
-    private void AddToListIfNotExists<T>(List<T> list, T item)
+    private void AddToListIfNotExists(List<ItemProperties> list, ItemProperties item)
     {
         if (!list.Contains(item))
         {
@@ -437,7 +454,6 @@ public class PlayerController : MonoBehaviour
         if (stateController.IsStateLocked) return;
         stateController.ChangeAniState(PlayerInteractAniState.Sleep);
         int previousLevel = playerProperty.Status.Level;
-        playerProperty.ModifyExperience(experienceThresholds[playerProperty.Status.Level]); // 假设睡眠直接增加足够经验升级
 
         if (playerProperty.Status.Level > previousLevel)
         {

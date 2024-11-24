@@ -1,5 +1,5 @@
 
-public class Env_WaterSurface : TerrainEffectBase
+public class Env_WaterSurface : TerrainBase
 {
 
 }

@@ -111,12 +111,12 @@ public class PlayerStateController : MonoBehaviour
 
             if (PlayerSpeedState != PlayerSpeedState.Fast &&
                 (PlayerPlaceState == PlayerPlaceState.Dive || inputHandler.IsAddingSpeed) &&
-                playerHand.GrabItemInHand == null)
+                playerHand.grabItemInHand == null)
             {
                 ChangeSpeedState(PlayerSpeedState.Fast);
             }
             else if (PlayerSpeedState != PlayerSpeedState.Normal &&
-                (!inputHandler.IsAddingSpeed && PlayerPlaceState != PlayerPlaceState.Dive || playerHand.GrabItemInHand != null))
+                (!inputHandler.IsAddingSpeed && PlayerPlaceState != PlayerPlaceState.Dive || playerHand.grabItemInHand != null))
             {
                 ChangeSpeedState(PlayerSpeedState.Normal);
             }
@@ -322,11 +322,7 @@ public class PlayerStateController : MonoBehaviour
             if (terrain.GetComponent<Env_WaterFall>())
             {
                 ChangePlaceState(PlayerPlaceState.WaterFall);
-                var waterfallLevel = terrain.GetComponent<TerrainEffectBase>().waterfallLevel;
-                if (playerProperty.Status.Level < waterfallLevel)
-                {
-                    IsAddSpeedLocked = true;
-                }
+                //TODO: Waterfall logic
             }
 
             CanClean = terrain.canClean;

@@ -2,17 +2,28 @@
 %TAG !u! tag:unity3d.com,2011:
 --- !u!21 &2100000
 Material:
-  serializedVersion: 6
+  serializedVersion: 8
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: MyWater
   m_Shader: {fileID: 4800000, guid: 3966d837d6b84eb489f7b8d0271eebe3, type: 3}
-  m_ShaderKeywords: FOAMTEXTURESAMPLEMODE_STACK _COLORMODE_LINEAR _FOAMMODE_GRADIENT_NOISE
-    _FOAMSAMPLEMODE_MOVE _FOAMTEXTURESAMPLEMODE_MOVE _OPAQUE_OFF _SHORELINEFOAMMODE_TEXTURE
-    _SHORELINEFOAMSAMPLEMODE_STACK _WATERBLENDMODE_MULTIPLICATIVE _WATERBLENDMODE_YUV
-    _WAVEMODE_GRID
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords:
+  - _COLORMODE_LINEAR
+  - _FOAMMODE_GRADIENT_NOISE
+  - _SHORELINEFOAMMODE_TEXTURE
+  - _WATERBLENDMODE_MULTIPLICATIVE
+  - _WAVEMODE_GRID
+  m_InvalidKeywords:
+  - FOAMTEXTURESAMPLEMODE_STACK
+  - _FOAMSAMPLEMODE_MOVE
+  - _FOAMTEXTURESAMPLEMODE_MOVE
+  - _OPAQUE_OFF
+  - _SHORELINEFOAMSAMPLEMODE_STACK
+  - _WATERBLENDMODE_YUV
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
@@ -20,6 +31,7 @@ Material:
   stringTagMap:
     RenderType: Transparent
   disabledShaderPasses: []
+  m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
@@ -95,6 +107,7 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    m_Ints: []
     m_Floats:
     - FoamTextureSampleMode: 1
     - _Alpha: 1
@@ -133,7 +146,7 @@ Material:
     - _GlossyReflections: 0
     - _LightContribution: 0
     - _Metallic: 0
-    - _Multiplicative: 1
+    - _Multiplicative: 0.2
     - _OcclusionStrength: 1
     - _Opaque: 0
     - _Parallax: 0.005

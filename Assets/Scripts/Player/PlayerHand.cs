@@ -42,13 +42,6 @@ public class PlayerHand : MonoBehaviour
             grabItemInHand.transform.SetParent(playerHandModel.transform);        
             grabItemInHand.transform.localPosition = Vector3.zero;            
         }
-        else
-        {
-            item.transform.SetParent(playerFanShellPos.transform);
-            item.transform.localPosition = Vector3.zero;
-            GetComponent<PlayerStateController>().GetPassGame();
-        }
-        //this.transform.LookAt(item.transform);
     }
 
     public void ReleaseGrabItem() {
