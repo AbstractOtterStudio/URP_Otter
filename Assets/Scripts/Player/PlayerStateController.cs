@@ -357,12 +357,12 @@ public class PlayerStateController : MonoBehaviour
 
     #region 状态锁定
 
-    public void LockState()
+    public void StateOnLock()
     {
         IsStateLocked = true;
     }
 
-    public void UnlockState()
+    public void StateOffLock()
     {
         IsStateLocked = false;
     }

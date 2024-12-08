@@ -45,21 +45,21 @@ public class AnimatorManager : MonoBehaviour
 
             case PlayerInteractAniState.Eat:
                 if (!stateController.IsStateLocked) {
-                    stateController.LockState();
+                    stateController.StateOnLock();
                     playerAnimator.SetTrigger(ValueShortcut.anim_Eat);
                 }
                 break;
 
             case PlayerInteractAniState.Knock:
                 if (!stateController.IsStateLocked) {
-                    stateController.LockState();
+                    stateController.StateOnLock();
                     playerAnimator.SetTrigger(ValueShortcut.anim_Knock);
                 }               
                 break;
             
             case PlayerInteractAniState.Grab:
                 if (!stateController.IsStateLocked) {
-                    stateController.LockState();
+                    stateController.StateOnLock();
                     playerAnimator.SetTrigger(ValueShortcut.anim_Grab);
                 }            
                 break;
@@ -72,7 +72,7 @@ public class AnimatorManager : MonoBehaviour
             case PlayerInteractAniState.Clean:
                 if (!stateController.IsStateLocked) 
                 {
-                    stateController.LockState();
+                    stateController.StateOnLock();
                     playerAnimator.SetInteger(ValueShortcut.anim_RandomInt,Random.Range(0,3));
                     playerAnimator.SetTrigger(ValueShortcut.anim_Clean);
                 }
@@ -80,7 +80,7 @@ public class AnimatorManager : MonoBehaviour
 
             case PlayerInteractAniState.Sleep:
                 if (!stateController.IsStateLocked) {
-                    stateController.LockState();
+                    stateController.StateOnLock();
                     if (m_HasNPCSleep)
                     {
                         playerAnimator.SetBool(ValueShortcut.anim_HasNPCSleep,true);
@@ -97,7 +97,7 @@ public class AnimatorManager : MonoBehaviour
 
             case PlayerInteractAniState.Celebrate:
                 if (!stateController.IsStateLocked) {
-                    stateController.LockState();
+                    stateController.StateOnLock();
                     playerAnimator.SetTrigger(ValueShortcut.animName_Celebrate);
                 }
                 break;
@@ -105,7 +105,7 @@ public class AnimatorManager : MonoBehaviour
             case PlayerInteractAniState.Throw:
                 if (!stateController.IsStateLocked)
                 {
-                    stateController.LockState();
+                    stateController.StateOnLock();
                     playerAnimator.SetTrigger(ValueShortcut.anim_Throw);
                 }
                 break;
@@ -144,7 +144,7 @@ public class AnimatorManager : MonoBehaviour
         switch (stateController.PlayerPlaceState) {
             case PlayerPlaceState.Dive :
                     if (!stateController.IsStateLocked) {
-                        stateController.LockState();
+                        stateController.StateOnLock();
                         playerAnimator.SetTrigger(ValueShortcut.anim_Dive);
                         playerAnimator.SetBool(ValueShortcut.anim_UnderWater,true);
                     }
@@ -153,7 +153,7 @@ public class AnimatorManager : MonoBehaviour
             
             case PlayerPlaceState.Float :
                 if (!stateController.IsStateLocked) {
-                    stateController.LockState();
+                    stateController.StateOnLock();
                     playerAnimator.SetTrigger(ValueShortcut.anim_Float);
                     playerAnimator.SetBool(ValueShortcut.anim_UnderWater,false);
                 }
@@ -187,7 +187,7 @@ public class AnimatorManager : MonoBehaviour
 
     public void OffLockState() 
     {
-        stateController.UnlockState();
+        stateController.StateOffLock();
         stateController.ChangeAniState(PlayerInteractAniState.Idle);
     }
 
