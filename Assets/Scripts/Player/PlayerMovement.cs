@@ -10,6 +10,8 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField]
     private float acceleration = 0.8f;
     [SerializeField]
+    private float directionSpeed = 0.65f;
+    [SerializeField]
     private float rotationSpeed = 3f;
 
     [Header("Speed Ratios")]
@@ -30,7 +32,8 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField]
     private float collisionReboundSpeed = 3f;
 
-    private float currentSpeed;
+     [Header("Debug")]
+    [SerializeField] private float currentSpeed;
     private float targetDiveDepth;
     private float targetFloatDepth;
     private Rigidbody rb;
@@ -82,7 +85,6 @@ public class PlayerMovement : MonoBehaviour
 
         Vector3 desiredVelocity = GetDesiredVelocity();
         rb.velocity = Vector3.Lerp(rb.velocity, desiredVelocity, acceleration * Time.deltaTime);
-
         if (movementInput != Vector3.zero)
         {
             RotatePlayer(desiredVelocity);
@@ -94,15 +96,17 @@ public class PlayerMovement : MonoBehaviour
     private Vector3 GetDesiredVelocity()
     {
         Camera mainCamera = Camera.main;
-        Vector3 screenToWorld = mainCamera.WorldToScreenPoint(transform.position);
-        Vector3 screenXOffset = mainCamera.ScreenToWorldPoint(new Vector3(screenToWorld.x + 1, screenToWorld.y, screenToWorld.z));
-        Vector3 screenYOffset = mainCamera.ScreenToWorldPoint(new Vector3(screenToWorld.x, screenToWorld.y + 1, screenToWorld.z));
 
-        Vector3 direction = ((screenXOffset - transform.position) * movementInput.x + (screenYOffset - transform.position) * movementInput.z).normalized;
-        direction = new Vector3(direction.x, 0, direction.z);
+        Vector3 right = mainCamera.transform.right;
+        Vector3 forward = Vector3.Cross(right, Vector3.up);
+        
+        Vector3 direction = (right * movementInput.x + forward * movementInput.z).normalized;
+
+        direction = new Vector3(direction.x, 0, direction.z).normalized * directionSpeed;
 
         return direction * currentSpeed;
     }
+
 
     private void RotatePlayer(Vector3 desiredVelocity)
     {
