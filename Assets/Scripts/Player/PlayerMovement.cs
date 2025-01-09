@@ -16,7 +16,7 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private float minTurningSpeed = 3f;  
     [SerializeField] private float maxTurningSpeed = 6f;  
     [SerializeField] private float brakeAngle = 90f;        // 超过此夹角则进入刹车区
-    [SerializeField] private float brakeSpeed = 10f;        // 刹车减速度
+    [SerializeField] private float brakeSpeed = 1.0f;        // 刹车减速度
 
     [Header("==== Dive & Float Settings ====")]
     [SerializeField] private float diveDepth = 1.5f;
@@ -98,14 +98,22 @@ public class PlayerMovement : MonoBehaviour
 
         if (movementInput != Vector3.zero && desiredDirection.sqrMagnitude > 0.01f)
         {
-            // 如果大于 brakeAngle，则执行刹车逻辑
-            if (deltaAngle > brakeAngle)
+
+            if (currentSpeed < 0.5f && deltaAngle > 120f)
             {
-                BrakeAndTurn(desiredDirection);
+                TurnFirstThenMove(desiredDirection);
             }
-            else
+            else 
             {
-                NormalTurnAndAccelerate(desiredDirection);
+                // 如果大于 brakeAngle，则执行刹车逻辑
+                if (deltaAngle > brakeAngle)
+                {
+                    BrakeAndTurn(desiredDirection);
+                }
+                else
+                {
+                    NormalTurnAndAccelerate(desiredDirection);
+                }
             }
         }
         else
@@ -184,10 +192,9 @@ public class PlayerMovement : MonoBehaviour
         currentSpeed = Mathf.MoveTowards(currentSpeed, 0f, brakeSpeed * Time.deltaTime);
 
         // 如果已经几乎停止，再开始朝新的方向加速
-        if (currentSpeed < 0.1f)
+        if (currentSpeed < 0.5f)
         {
-            // 这里可以直接转向，或做一个插值
-            TurnInstantly(desiredDirection);
+           TurnSmoothly(desiredDirection, maxTurningSpeed * 2);
 
             // 再按照普通加速度往 maxSpeed 加
             currentSpeed = Mathf.MoveTowards(currentSpeed, maxSpeed, acceleration * Time.deltaTime);
@@ -219,6 +226,27 @@ public class PlayerMovement : MonoBehaviour
         if (desiredDirection.sqrMagnitude > 0.01f)
         {
             transform.rotation = Quaternion.LookRotation(-desiredDirection, Vector3.up);
+        }
+    }
+
+    /// <summary>
+    /// 当速度很小且需要大角度掉头时，先转向，再移动
+    /// </summary>
+    private void TurnFirstThenMove(Vector3 desiredDirection)
+    {
+        // 1) 让速度保持在一个非常小的值（甚至可以直接设置为 0）
+        currentSpeed = Mathf.MoveTowards(currentSpeed, 0f, brakeSpeed * Time.deltaTime);
+
+        // 2) 用一个稍大的转向速度做平滑转向
+        float fastTurnSpeed = maxTurningSpeed * 2f;
+        TurnSmoothly(desiredDirection, fastTurnSpeed);
+
+        // 3) 判断什么时候“转得差不多”了，可以开始加速
+        float angleAfterTurn = Vector3.Angle(transform.forward, desiredDirection);
+        if (angleAfterTurn < 15f)
+        {
+            // 开始加速
+            currentSpeed = Mathf.MoveTowards(currentSpeed, maxSpeed, acceleration * Time.deltaTime);
         }
     }
 
@@ -270,14 +298,14 @@ public class PlayerMovement : MonoBehaviour
         {
             case PlayerSpeedState.Fast:
                 // 快速倍数
-                currentSpeed = maxSpeed * fastMultiplier;
+                currentSpeed = currentSpeed * fastMultiplier;
                 break;
             case PlayerSpeedState.Slow:
-                currentSpeed = maxSpeed * slowMultiplier;
+                currentSpeed = currentSpeed * slowMultiplier;
                 break;
             case PlayerSpeedState.Normal:
             default:
-                currentSpeed = maxSpeed;
+                currentSpeed = Mathf.Min(currentSpeed, maxSpeed);
                 break;
         }
     }
