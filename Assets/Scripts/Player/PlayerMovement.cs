@@ -238,7 +238,7 @@ public class PlayerMovement : MonoBehaviour
         currentSpeed = Mathf.MoveTowards(currentSpeed, 0f, brakeSpeed * Time.deltaTime);
 
         // 2) 用一个稍大的转向速度做平滑转向
-        float fastTurnSpeed = maxTurningSpeed * 2f;
+        float fastTurnSpeed = maxTurningSpeed * 5f;
         TurnSmoothly(desiredDirection, fastTurnSpeed);
 
         // 3) 判断什么时候“转得差不多”了，可以开始加速
