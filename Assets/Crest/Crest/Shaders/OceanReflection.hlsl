@@ -31,14 +31,9 @@ void PlanarReflection(in const half4 i_screenPos, in const half3 i_n_pixel, in c
 }
 #endif // _PLANARREFLECTIONS_ON
 
-float CalculateFresnelReflectionCoefficient(float cosTheta)
+float CalculateFresnelCustom(float cosTheta)
 {
-	// Fresnel calculated using Schlick's approximation
-	// See: http://www.cs.virginia.edu/~jdl/bib/appearance/analytic%20models/schlick94b.pdf
-	// reflectance at facing angle
-	float R_0 = (_RefractiveIndexOfAir - _RefractiveIndexOfWater) / (_RefractiveIndexOfAir + _RefractiveIndexOfWater); R_0 *= R_0;
-	const float R_theta = R_0 + (1.0 - R_0) * pow(max(0.,1.0 - cosTheta), _FresnelPower);
-	return R_theta;
+	return tex2D(_CustomFresnelRamp, float2(cosTheta, 0.5)).x;
 }
 
 void ApplyReflectionSky
@@ -116,7 +111,7 @@ void ApplyReflectionSky
 
 
 	// Fresnel
-	float R_theta = CalculateFresnelReflectionCoefficient(max(dot(i_n_pixel, i_view), 0.0));
+	float R_theta = CalculateFresnelCustom(max(dot(i_n_pixel, i_view), 0.0));
 	io_col = lerp(io_col, skyColour, R_theta * _Specular * i_weight);
 }
 
@@ -143,7 +138,7 @@ void ApplyReflectionUnderwater
 		// have to calculate the incident angle of incoming light to water
 		// surface based on how it would be refracted so as to hit the camera
 		const float cosIncomingAngle = cos(asin(clamp( (_RefractiveIndexOfWater * sin(acos(cosOutgoingAngle))) / _RefractiveIndexOfAir, -1.0, 1.0) ));
-		const float reflectionCoefficient = CalculateFresnelReflectionCoefficient(cosIncomingAngle) * i_weight;
+		const float reflectionCoefficient = CalculateFresnelCustom(cosIncomingAngle) * i_weight;
 		io_col *= (1.0 - reflectionCoefficient);
 		io_col = max(io_col, 0.0);
 	}
@@ -152,7 +147,7 @@ void ApplyReflectionUnderwater
 	{
 		// angle of incident is angle of reflection
 		const float cosIncomingAngle = cosOutgoingAngle;
-		const float reflectionCoefficient = CalculateFresnelReflectionCoefficient(cosIncomingAngle) * i_weight;
+		const float reflectionCoefficient = CalculateFresnelCustom(cosIncomingAngle) * i_weight;
 		io_col += (underwaterColor * reflectionCoefficient);
 	}
 }

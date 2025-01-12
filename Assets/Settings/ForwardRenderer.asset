@@ -55,21 +55,3 @@ MonoBehaviour:
   m_CopyDepthMode: 0
   m_AccurateGbufferNormals: 0
   m_IntermediateTextureMode: 1
---- !u!114 &3424723735671802452
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 31b146ace69cd8b429babe2e0152dbb5, type: 3}
-  m_Name: WaterFoamFilterRendererFeature
-  m_EditorClassIdentifier: 
-  m_Active: 1
-  settings:
-    layerMask:
-      m_Bits: 128
-    depthTextureName: _FilteredDepthTexture
-    sceneDepthMaterial: {fileID: 2100000, guid: 1f37baf57d829a94cb0b7926eb034709, type: 2}

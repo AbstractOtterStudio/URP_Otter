@@ -74,6 +74,7 @@ Shader "Crest/Ocean URP"
 		_LightIntensityMultiplier("Light Intensity Multiplier", Range(0.0, 10.0)) = 1.0
 		// Controls harshness of Fresnel behaviour
 		_FresnelPower("Fresnel Power", Range(1.0, 20.0)) = 5.0
+		_CustomFresnelRamp("_CustomFresnelRamp", 2D) = "white" {}
 		// Index of refraction of air. Can be increased to almost 1.333 to increase visibility up through water surface.
 		_RefractiveIndexOfAir("Refractive Index of Air", Range(1.0, 2.0)) = 1.0
 		// Index of refraction of water. Typically left at 1.333.

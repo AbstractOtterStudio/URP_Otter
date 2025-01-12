@@ -116,6 +116,7 @@ half3 _SubSurfaceShallowColShadow;
 half _Specular;
 half _ReflectionBlur; // Roughness
 half _FresnelPower;
+sampler2D _CustomFresnelRamp;
 float _RefractiveIndexOfAir;
 float _RefractiveIndexOfWater;
 half _LightIntensityMultiplier; // _DirectionalLightBoost
