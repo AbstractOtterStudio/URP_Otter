@@ -3,32 +3,47 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+/*
+ * Current.cs
+ * 
+ * Purpose: Simulates a water current that affects physics objects within its trigger zone.
+ * The current applies a directional force to any Rigidbody with specific tags 
+ * (Player, Holdable) that enters its BoxCollider trigger area.
+ * 
+ * Features:
+ * - Configurable force magnitude and direction (in degrees)
+ * - Visual debugging with Gizmos
+ * - Simple force application
+ * 
+ * Usage:
+ * 1. Attach to a GameObject with a BoxCollider (set to trigger)
+ * 2. Set the desired force magnitude and direction in degrees
+ * 3. Objects entering the trigger will be affected by the current
+ */
+
 public class Current : MonoBehaviour
 {
     BoxCollider BC;
-    [SerializeField]
-    float degrees = 0;
+    [SerializeField] float degrees = 0;
     Vector3 dir;
-    [SerializeField]
-    float forceMag = 1;
+    [SerializeField] float forceMag = 5f;
     public bool showGizmos = true;
 
-
-    // Start is called before the first frame update
     void Start()
     {
         BC = transform.GetComponent<BoxCollider>();
         dir = new Vector3(Mathf.Cos(degrees * Mathf.Deg2Rad), 0, Mathf.Sin(degrees * Mathf.Deg2Rad));
-        //print(BC);
     }
 
     private void OnTriggerStay(Collider other)
     {
-        if ((other.tag == "Player") || (other.tag == "Holdable") || (other.tag == "Floating"))
+        if (other.CompareTag("Player") || other.CompareTag("Holdable"))
         {
-            Rigidbody rb = other.transform.GetComponent<Rigidbody>();
-            rb.AddForce(dir * forceMag, ForceMode.VelocityChange);
-            print(rb);
+            Rigidbody rb = other.GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+                rb.AddForce(dir * forceMag, ForceMode.VelocityChange);
+            }
         }
     }
 
@@ -36,9 +51,8 @@ public class Current : MonoBehaviour
     {
         if (!showGizmos) return;
         
-        // Cache the collider reference
         Collider collider = GetComponent<Collider>();
-        if (collider == null) return;  // Safety check
+        if (collider == null) return;
         
         Gizmos.color = Color.red;
         Bounds bounds = collider.bounds;

@@ -7334,15 +7334,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f7881f19c6ae0e847b170bc2c6914a16, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxSpeed: 5
+  maxSpeed: 8
   acceleration: 10
   fastMultiplier: 1.5
   slowMultiplier: 0.5
   diveSpeedMultiplier: 0.8
   minTurningSpeed: 3
   maxTurningSpeed: 6
-  brakeAngle: 90
-  brakeSpeed: 1
+  brakeAngle: 150
+  brakeSpeed: 90
   diveDepth: 1.5
   verticalSpeed: 3
   collisionReboundSpeed: 3

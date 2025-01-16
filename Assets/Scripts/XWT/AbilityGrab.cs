@@ -2,7 +2,23 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-
+/*
+ * AbilityGrab.cs
+ * 
+ * Purpose: Implements a grabbing mechanic that allows the player to pick up
+ * and release objects tagged as "Holdable" within range.
+ * 
+ * Features:
+ * - Detects and tracks nearby grabbable objects
+ * - Picks up the nearest object when activated
+ * - Manages object physics states during grab/release
+ * - Integrates with floating mechanics
+ * 
+ * Usage:
+ * 1. Attach to player GameObject
+ * 2. Assign a grab point Transform
+ * 3. Ensure grabbable objects are tagged "Holdable"
+ */
 public class AbilityGrab : MonoBehaviour
 {
     [SerializeField]
@@ -37,7 +53,7 @@ public class AbilityGrab : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Holdable"))
+        if (other.CompareTag("Holdable") || other is IGrabbable)
         {
             objectsInRange.Add(other);
         }
@@ -52,7 +68,6 @@ public class AbilityGrab : MonoBehaviour
     {
         if (objectsInRange.Count > 0)
         {
-            
             float nearestDist = float.MaxValue;
             
             foreach(Collider col in objectsInRange)
@@ -69,11 +84,15 @@ public class AbilityGrab : MonoBehaviour
             {
                 Debug.Log($"Grabbing nearest object: {nearest.gameObject.name}");
                 nearest.GetComponent<Rigidbody>().isKinematic = true;
-                nearest.GetComponent<BoxCollider>().enabled = false;
+                nearest.GetComponent<Collider>().enabled = false;
                 nearest.GetComponent<KeepFloating>().isFloating = false;
                 nearest.transform.position = grabPoint.position;
                 nearest.transform.parent = grabPoint;
                 isGrabbing = true;
+                if (nearest.TryGetComponent<IGrabbable>(out IGrabbable grabbable))
+                {
+                    grabbable.OnGrab();
+                }
             }
         }
     }
@@ -83,8 +102,13 @@ public class AbilityGrab : MonoBehaviour
         if (nearest != null)
         {
             nearest.GetComponent<Rigidbody>().isKinematic = false;
-            nearest.GetComponent<BoxCollider>().enabled = true;
+            nearest.GetComponent<Collider>().enabled = true;
             nearest.GetComponent<KeepFloating>().isFloating = true;
+
+            if (nearest.TryGetComponent<IGrabbable>(out IGrabbable grabbable))
+            {
+                grabbable.OnRelease();
+            }
             nearest.transform.parent = null;
             nearest = null;
             isGrabbing = false;
