@@ -59,3 +59,33 @@ public enum PlayerInteractAniState
     Throw,
 }
 
+public class PlayerStatus
+{
+    public float Health { get; set; }
+    public float MaxHealth { get; set; }
+
+    public float Power { get; set; }
+    public float MaxPower { get; set; }
+
+    public float Cleanliness { get; set; }
+    public float MaxCleanliness { get; set; }
+
+    public float Oxygen { get; set; }
+    public float MaxOxygen { get; set; }
+
+    public int Level { get; set; }
+    public float Experience { get; set; }
+
+    // 添加需要的阈值和速率属性
+    public float HungerThreshold { get; set; }
+    public float AgonyThreshold { get; set; }
+    public float DirtyThreshold { get; set; }
+    public float VeryDirtyThreshold { get; set; }
+    public float DangerThreshold { get; set; }
+
+    public float AgonySpeedRatio { get; set; }
+    public float DirtySpeedRatio { get; set; }
+    public float DangerSpeedRatio { get; set; }
+}
+
+

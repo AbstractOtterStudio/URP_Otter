@@ -7053,6 +7053,7 @@ GameObject:
   - component: {fileID: 4451689675927843719}
   - component: {fileID: 4451689675927843716}
   - component: {fileID: 4451689675927843717}
+  - component: {fileID: 8545512959073987419}
   m_Layer: 6
   m_Name: Player
   m_TagString: Player
@@ -7079,6 +7080,7 @@ Transform:
   - {fileID: 8308170557638214203}
   - {fileID: 5591389956810703864}
   - {fileID: 7151360455326743241}
+  - {fileID: 7596901010560851600}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 180, z: 0}
 --- !u!54 &4451689675927843714
@@ -7282,32 +7284,30 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2fc4891c010e2264eb1d1cce8049cfd0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxHealthValue: 100
-  currentHealthValue: 0
-  hungryHealthValue: 60
-  agonyHealthValue: 0
-  sleepHealthValue: 0
-  onceHealthValue: 0.5
-  maxPowerValue: 120
-  currentPowerValue: 0
-  weakPowerValue: 0
-  timelyPowerValue: 30
-  maxCleanValue: 3
-  currentCleanValue: 0
-  dirtyCleanValue: 2
-  dirtyTwiceCleanValue: 1
-  dangerCleanValue: 0
-  cleanOnceValue: 0
-  eatOnceCleanValue: 1
-  maxOxygenValue: 5.5
-  currentOxygenValue: 0
-  weakOxygenValue: 0
-  timelyOxygenValue: 1
-  dirtyCleanSpeedRatio: 0.05
-  dangerCleanSpeedRatio: 0.1
-  agonyHealthSpeedRatio: 0.3
-  currentExperienceValue: 0
-  currentLevel: 0
+  initialMaxHealth: 100
+  healthDecayRate: 1
+  hungerThreshold: 60
+  agonyThreshold: 0
+  initialMaxPower: 120
+  powerDecayRate: 30
+  powerRecoveryMultiplier: 2
+  initialMaxCleanliness: 3
+  cleanAmount: 3
+  eatDirtyAmount: 1
+  dirtyThreshold: 2
+  veryDirtyThreshold: 1
+  dangerThreshold: 0
+  initialMaxOxygen: 5.5
+  oxygenDecayRate: 1
+  oxygenRecoveryMultiplier: 2
+  dirtySpeedRatio: 0.05
+  dangerSpeedRatio: 0.1
+  agonySpeedRatio: 0.3
+  experienceThresholds:
+  - 100
+  - 200
+  - 300
+  - 400
 --- !u!114 &4451689675927843718
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7335,16 +7335,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f7881f19c6ae0e847b170bc2c6914a16, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  playerOriSpeed: 3
-  addSpeedRatio: 1.5
-  slowSpeedRatio: 0.75
-  swimTimelyRatio: 2.5
-  playerdiveDepth: 1
-  playerdiveSpeed: 2
-  colliderRebackSpeed: 5
-  isMoveStop: 0
-  rotSpeed: 3
-  accelerationSpeed: 0.8
+  maxSpeed: 8
+  acceleration: 10
+  fastMultiplier: 1.5
+  slowMultiplier: 0.5
+  diveSpeedMultiplier: 0.8
+  minTurningSpeed: 3
+  maxTurningSpeed: 6
+  brakeAngle: 150
+  brakeSpeed: 90
+  diveDepth: 1.5
+  verticalSpeed: 3
+  collisionReboundSpeed: 3
+  currentSpeed: 0
 --- !u!114 &4451689675927843716
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7357,11 +7360,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8b26001744554514cb3b476fa0ca270e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  playerCleanState: 0
-  playerCanClean: 0
-  playerCanSleep: 0
-  playerStateLock: 0
-  canPassGame: 0
   playerFloatParticle: {fileID: 4987694229547912579}
   playerMaterial: {fileID: 0}
 --- !u!114 &4451689675927843717
@@ -7376,16 +7374,28 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 95455337ed4788948aaddcb2a6202f74, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  throwHoldThres: 0.4
-  throwStrengthIncSpeed: 3
+  throwHoldThreshold: 0.4
+  throwStrengthIncrement: 1
   maxThrowStrength: 8
-  nothrowLayers:
+  nonThrowableLayers:
     serializedVersion: 2
-    m_Bits: 486
+    m_Bits: 0
   throwOffset: 0.4
   knockParticle: {fileID: 2695696747568652442}
   playerMaterial: {fileID: 2100000, guid: dac8c90744cc4d348b0c669e84aa40ba, type: 2}
   trajectoryLine: {fileID: 5372595146574998450}
+--- !u!114 &8545512959073987419
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3532790222733364957}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c01d12e006d335b47b0eb6135fe8288f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &3546193260082111051
 GameObject:
   m_ObjectHideFlags: 0
@@ -8732,6 +8742,37 @@ Transform:
   - {fileID: 3970928989762259030}
   m_Father: {fileID: 6401044159020397461}
   m_LocalEulerAnglesHint: {x: 7.394099, y: 5.1087515e-12, z: 0.00095034123}
+--- !u!1 &6141319382568501379
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5358813196573493722}
+  m_Layer: 0
+  m_Name: AnchorGrab
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5358813196573493722
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6141319382568501379}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2411820621940313835}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &6165713773003876581
 GameObject:
   m_ObjectHideFlags: 0
@@ -9304,6 +9345,61 @@ Transform:
   - {fileID: 6271005440886423384}
   m_Father: {fileID: 6094426135140175249}
   m_LocalEulerAnglesHint: {x: 0.63284105, y: -9.796337, z: 0.53626084}
+--- !u!1 &7104526890119966658
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7596901010560851600}
+  - component: {fileID: 8202003620007476559}
+  m_Layer: 0
+  m_Name: AbilityGrab
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7596901010560851600
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7104526890119966658}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: -0.3}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4201063857236382823}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!136 &8202003620007476559
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7104526890119966658}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 1.08
+  m_Height: 3.38
+  m_Direction: 2
+  m_Center: {x: 0, y: 0, z: -0.04}
 --- !u!1 &7329541925113987968
 GameObject:
   m_ObjectHideFlags: 0
@@ -9398,6 +9494,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 8594325269900647738}
+  - {fileID: 5358813196573493722}
   m_Father: {fileID: 2259603672040547020}
   m_LocalEulerAnglesHint: {x: 9.125661, y: 0, z: 0}
 --- !u!1 &7443947181160448196

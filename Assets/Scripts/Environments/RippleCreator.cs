@@ -52,7 +52,7 @@ public class RippleCreator : MonoBehaviour
             createTimer = 0;
             if(minCreateDist < Vector3.Distance(transform.position, rippleInitPos))
             {
-                if (playerStateController != null && playerStateController.playerPlaceState != PlayerPlaceState.Dive)
+                if (playerStateController != null && playerStateController.PlayerPlaceState != PlayerPlaceState.Dive)
                 {
                     if(!hasCreateParent)
                     {

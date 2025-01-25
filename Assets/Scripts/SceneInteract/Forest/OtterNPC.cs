@@ -62,7 +62,7 @@ public class OtterNPC : MonoBehaviour
         {
             animator.SetBool(ValueShortcut.anim_PlayerCome, true);
             AnimatorManager.instance.HasOtterNpc(true);
-            if (other.GetComponent<PlayerStateController>().playerAniState == PlayerInteractAniState.Sleep)
+            if (other.GetComponent<PlayerStateController>().PlayerAniState == PlayerInteractAniState.Sleep)
             {
                 other.transform.position = playerSleepPosition.position;
                 other.transform.rotation = playerSleepPosition.rotation;

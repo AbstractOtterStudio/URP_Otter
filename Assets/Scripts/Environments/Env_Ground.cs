@@ -1,6 +1,6 @@
 
 
-public class Env_Ground : TerrainEffectBase
+public class Env_Ground : TerrainBase
 {
 
 }

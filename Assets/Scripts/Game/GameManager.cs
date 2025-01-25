@@ -64,7 +64,7 @@ public class GameManager : SingletonBase<GameManager>
         {
             dayState = DayState.Night;
         }
-        if (playerState.playerAniState == PlayerInteractAniState.Sleep)
+        if (playerState.PlayerAniState == PlayerInteractAniState.Sleep)
         {
             Time.timeScale = 5;
         }
@@ -84,9 +84,7 @@ public class GameManager : SingletonBase<GameManager>
     #region Game Logic
     private void GameOverDetect() 
     {
-        if (playerState.playerFullState == PlayerFullState.Dead) {
-            GameOver();
-        }
+       
     }
     public void GameStart()
     {

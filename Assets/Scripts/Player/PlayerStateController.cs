@@ -1,413 +1,376 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
+using System;
 
-[RequireComponent(typeof(PlayerMovement))]
-[RequireComponent(typeof(PlayerProperty))]
-[RequireComponent(typeof(PlayerHand))]
 public class PlayerStateController : MonoBehaviour
 {
-    [DebugDisplay]
-    public PlayerPlaceState playerPlaceState { get; set; } = PlayerPlaceState.Float; //角色所在地型狀態
-    [DebugDisplay]
-    public PlayerPlaceState playerTempPlaceState { get; set; } = PlayerPlaceState.Float;// 临时角色所在地形状态 
-    [DebugDisplay]
-    public PlayerSpeedState playerSpeedState { get; set; } = PlayerSpeedState.Normal; //角色速度狀態
-    [DebugDisplay]
-    public PlayerFullState playerFullState { get; set; } = PlayerFullState.Strong; //角色饱腹状态
-    [DebugDisplay]
-    public PlayerInteractAniState playerAniState { get; set; } = PlayerInteractAniState.Idle; //角色动画状态
-    public PlayerCleanState playerCleanState;
-    private PlayerMovement playerMovement; //角色移動組件
-    private PlayerProperty playerProperty; //角色屬性組件  
-    private PlayerHand playerHand; //角色手部组件
-    public AudioSource playerAudio { get; private set;} //角色AudioSource组件
-    public bool playerCanClean; //角色是否可清潔
-    public bool playerCanSleep;//角色是否可睡觉
-    [DebugDisplay]
-    public bool playerStateLock;//角色状态锁，用于防止角色同一时间处于多个状态
-    public bool playerAddSpeedLock {get; private set; }//角色加速锁，用于处理玩家在不同等级瀑布中的逻辑
-    public bool onKnock {get; private set;}
-    public bool canPassGame;
+    public PlayerPlaceState PlayerPlaceState { get; private set; } = PlayerPlaceState.Float;
+    public PlayerSpeedState PlayerSpeedState { get; private set; } = PlayerSpeedState.Normal;
+    public PlayerFullState PlayerFullState { get; private set; } = PlayerFullState.Strong;
+    public PlayerInteractAniState PlayerAniState { get; private set; } = PlayerInteractAniState.Idle;
+    public PlayerCleanState PlayerCleanState { get; private set; } = PlayerCleanState.Clean;
+
+    public bool IsStateLocked { get; private set; }
+    public bool IsAddSpeedLocked { get; private set; }
+    public bool CanPassGame { get; private set; }
+
+    public bool CanClean { get; private set; }
+    public bool CanSleep { get; private set; }
+    public bool IsKnocking { get; private set; }
+
+    private PlayerMovement playerMovement;
+    private PlayerProperty playerProperty;
+    private PlayerHand playerHand;
+    private PlayerInputHandler inputHandler;
+
+    private AudioSource playerAudio;
+
     [SerializeField]
     private ParticleSystem playerFloatParticle;
     [SerializeField]
     private Material playerMaterial;
 
-   void Start()
-   {
-       if (playerFloatParticle == null)
+    public event Action OnStateChanged;
+
+    private void Start()
+    {
+        if (playerFloatParticle == null)
         {
-            Debug.LogError("Require Player Float Particle System !");
+            Debug.LogError("Player Float Particle System is not assigned!");
         }
-       playerMovement = GetComponent<PlayerMovement>();
-       playerProperty = GetComponent<PlayerProperty>();
-       playerHand = GetComponent<PlayerHand>();
-       playerPlaceState = PlayerPlaceState.Float; //默認為飄浮狀態     
-       playerFullState = PlayerFullState.Strong; //默认为健康状态 
-       playerCleanState = PlayerCleanState.Clean; //默认为干净状态    
-       playerAudio = GetComponent<AudioSource>(); 
-   }
-    void Update()
+
+        playerMovement = GetComponent<PlayerMovement>();
+        playerProperty = GetComponent<PlayerProperty>();
+        playerHand = GetComponent<PlayerHand>();
+        inputHandler = GetComponent<PlayerInputHandler>();
+        playerAudio = GetComponent<AudioSource>();
+
+        playerProperty.OnStatusChanged += HandleStatusChanged;
+    }
+
+    private void Update()
     {
         if (GameManager.instance.GetGameAction())
         {
-            PlayerSpeedStateChange();
-            PlayerPlaceStateChange();
-            PlayerFullStateChange();
-            PlayerCleanStateChange();
-            PlayerKnockStateChange();
-            PlayerSleepStateChange();
+            UpdatePlayerStates();
         }
     }
 
-    /// <summary>
-    /// When Player's Health Value Change,
-    /// Update Player Healthy State and Responding Speed
-    /// </summary>
-    private void PlayerFullStateChange() 
+    private void HandleStatusChanged()
     {
-        // if (playerProperty.currentHealthValue <= 0) {
-        //     playerHealthState = PlayerHealthState.Dead;
-        //     return;
-        // }
-        //Change to Strong
-        if (playerFullState != PlayerFullState.Strong 
-        && playerProperty.currentHealthValue > playerProperty.hungryHealthValue) 
+        UpdateFullState();
+        UpdateCleanState();
+        OnStateChanged?.Invoke();
+    }
+
+    #region 状态更新方法
+
+    private void UpdatePlayerStates()
+    {
+        UpdatePlaceState();
+        UpdateSpeedState();
+        HandleKnockState();
+        HandleSleepState();
+    }
+
+    private void UpdatePlaceState()
+    {
+        if (IsStateLocked) return;
+
+        if (playerProperty.Status.Oxygen <= 0 && PlayerPlaceState == PlayerPlaceState.Dive)
         {
-            if (playerFullState == PlayerFullState.Agony) {
-                //If update more elements in Game, change these scripts, because they cannot do in State Controller
-                playerMovement.ReturnCurSpeed(1 - playerProperty.agonyHealthSpeedRatio);
-            }
-            playerFullState = PlayerFullState.Strong;
+            ChangePlaceState(PlayerPlaceState.Float);
+            ExitDiveMode();
+            return;
         }
 
-        //Change to Hungry
-        if (playerFullState != PlayerFullState.Hungry
-        && (playerProperty.currentHealthValue > playerProperty.agonyHealthValue
-        && playerProperty.currentHealthValue < playerProperty.hungryHealthValue))
+        if (PlayerPlaceState != PlayerPlaceState.WaterFall && inputHandler.IsDiving)
         {
-            if (playerFullState == PlayerFullState.Agony) {
-                //If update more elements in Game, change these scripts, because they cannot do in State Controller
-                playerMovement.ReturnCurSpeed(1 - playerProperty.agonyHealthSpeedRatio);
+            if (PlayerPlaceState == PlayerPlaceState.Dive)
+            {
+                ChangePlaceState(PlayerPlaceState.Float);
+                ExitDiveMode();
             }
-            playerFullState = PlayerFullState.Hungry;
-            EventCenter.Broadcast(GameEvents.BecomeHungry);
-        }
-
-        //Change to Agony
-        else if (playerFullState != PlayerFullState.Agony 
-        && playerProperty.currentHealthValue <= playerProperty.agonyHealthValue) 
-        {
-            playerMovement.EffectCurSpeed(1 - playerProperty.agonyHealthSpeedRatio);
-            playerFullState = PlayerFullState.Agony;
-            EventCenter.Broadcast(GameEvents.BecomeHungry);
+            else if (PlayerPlaceState == PlayerPlaceState.Float && playerProperty.Status.Oxygen > 0)
+            {
+                ChangePlaceState(PlayerPlaceState.Dive);
+                EnterDiveMode();
+            }
         }
     }
 
-    /// <summary>
-    /// When Player's Health Value Change,
-    /// Update Player Healthy State and Responding Speed
-    /// </summary>
-    private void PlayerCleanStateChange()
+    private void UpdateSpeedState()
     {
-        if (playerCleanState != PlayerCleanState.Clean && playerProperty.currentCleanValue > playerProperty.dirtyCleanValue)
+        if (playerMovement.IsMoving)
         {
-            switch (playerCleanState)
+            if (playerProperty.Status.Power <= 0 && PlayerPlaceState != PlayerPlaceState.Dive)
             {
-                case PlayerCleanState.Dirty:
-                    playerMovement.ReturnCurSpeed(1 - playerProperty.dirtyCleanSpeedRatio);
-                    break;
-                case PlayerCleanState.TwiceDirty:
-                    playerMovement.ReturnCurSpeed(1 - playerProperty.dirtyCleanSpeedRatio * 2);
-                    break;
-                case PlayerCleanState.Weak:
-                    playerMovement.ReturnCurSpeed(1 - playerProperty.dangerCleanSpeedRatio);
-                    break;
-                default:
-                    break;
-            }
-            playerCleanState = PlayerCleanState.Clean;
-            //If update more elements in Game, change these scripts, because they cannot do in State Controller
-            playerMaterial.SetFloat("Dirt1_Lerp",0);
-            playerMaterial.SetFloat("Dirt2_Lerp",0);
-            playerMaterial.SetFloat("Dirt3_Lerp",0);
-            //
-        }
-
-        if (playerCleanState != PlayerCleanState.Dirty 
-        && playerProperty.currentCleanValue <= playerProperty.dirtyCleanValue
-        && playerProperty.currentCleanValue > playerProperty.dirtyTwiceCleanValue)
-        {
-            switch (playerCleanState)
-            {
-                case PlayerCleanState.Clean:
-                    playerMovement.EffectCurSpeed(1 - playerProperty.dirtyCleanSpeedRatio);
-                    break;
-                case PlayerCleanState.TwiceDirty:
-                    playerMovement.ReturnCurSpeed(1 - playerProperty.dirtyCleanSpeedRatio);
-                    break;
-                case PlayerCleanState.Weak:
-                    playerMovement.ReturnCurSpeed(1 - playerProperty.dangerCleanSpeedRatio);
-                    playerMovement.EffectCurSpeed(1 - playerProperty.dirtyCleanSpeedRatio);
-                    break;
-                default:
-                    break;
-            }
-            playerCleanState = PlayerCleanState.Dirty;
-            //If update more elements in Game, change these scripts, because they cannot do in State Controller
-            playerMaterial.SetFloat("Dirt1_Lerp",1);
-            playerMaterial.SetFloat("Dirt2_Lerp",0);
-            playerMaterial.SetFloat("Dirt3_Lerp",0);
-            //
-        }
-
-        if (playerCleanState != PlayerCleanState.TwiceDirty
-        && playerProperty.currentCleanValue <= playerProperty.dirtyTwiceCleanValue
-        && playerProperty.currentCleanValue > playerProperty.dangerCleanValue)
-        {
-            switch (playerCleanState)
-            {
-                case PlayerCleanState.Clean:
-                    playerMovement.EffectCurSpeed(1 - playerProperty.dirtyCleanSpeedRatio * 2);
-                    break;
-                case PlayerCleanState.Dirty:
-                    playerMovement.EffectCurSpeed(1 - playerProperty.dirtyCleanSpeedRatio);
-                    break;
-                case PlayerCleanState.Weak:
-                    playerMovement.ReturnCurSpeed(1 - playerProperty.dangerCleanSpeedRatio);
-                    playerMovement.EffectCurSpeed(1 - playerProperty.dirtyCleanSpeedRatio * 2);
-                    break;
-                default:
-                    break;
-            }
-            playerCleanState = PlayerCleanState.TwiceDirty;
-            //If update more elements in Game, change these scripts, because they cannot do in State Controller
-            playerMaterial.SetFloat("Dirt1_Lerp",1);
-            playerMaterial.SetFloat("Dirt2_Lerp",1);
-            playerMaterial.SetFloat("Dirt3_Lerp",0);
-            //
-        }
-
-        if (playerCleanState != PlayerCleanState.Weak
-        && playerProperty.currentCleanValue <= playerProperty.dangerCleanValue)
-        {
-            switch (playerCleanState)
-            {
-                case PlayerCleanState.Clean:
-                    playerMovement.EffectCurSpeed(1- playerProperty.dangerCleanSpeedRatio);
-                    break;
-                case PlayerCleanState.Dirty:
-                    playerMovement.ReturnCurSpeed(1- playerProperty.dirtyCleanSpeedRatio);
-                    playerMovement.EffectCurSpeed(1- playerProperty.dangerCleanSpeedRatio);
-                    break;
-                case PlayerCleanState.TwiceDirty:
-                    playerMovement.ReturnCurSpeed(1 - playerProperty.dirtyCleanSpeedRatio * 2);
-                    playerMovement.EffectCurSpeed(1 - playerProperty.dangerCleanSpeedRatio);
-                    break;
-                default:
-                    break;
-            }
-            playerCleanState = PlayerCleanState.Weak;
-            //If update more elements in Game, change these scripts, because they cannot do in State Controller
-            playerMaterial.SetFloat("Dirt1_Lerp",1);
-            playerMaterial.SetFloat("Dirt2_Lerp",1);
-            playerMaterial.SetFloat("Dirt3_Lerp",1);
-            //
-        }
-    }
-
-    /// <summary>
-    /// When Player Input Add Speed Keycode Or Decrease Speed by something,
-    /// Call Event to Change Responding Current Speed;
-    /// </summary>
-    private void PlayerSpeedStateChange() 
-    {
-        if (playerMovement.isMoveStop) {
-            playerSpeedState = PlayerSpeedState.Stop;
-            playerMovement.playerSpeedChangeHandle.Invoke(playerSpeedState);
-        }
-        else {
-            if (playerProperty.currentPowerValue <= 0 && playerPlaceState != PlayerPlaceState.Dive)
-            //if (playerProperty.IfCountOut() && playerPlaceState != PlayerPlaceState.Dive)
-            {
-                playerSpeedState = PlayerSpeedState.Normal;
-                //If update more elements in Game, change these scripts, because they cannot do in State Controller
-                playerMovement.playerSpeedChangeHandle.Invoke(playerSpeedState);
+                ChangeSpeedState(PlayerSpeedState.Normal);
                 EventCenter.Broadcast(GameEvents.BecomeTired);
                 return;
             }
-            
-            if (playerSpeedState != PlayerSpeedState.Fast && (
-                (playerPlaceState == PlayerPlaceState.Dive || Input.GetKey(GlobalSetting.AddSpeedKey)) &&
-                playerHand.grabItemInHand == null)) 
+
+            if (PlayerSpeedState != PlayerSpeedState.Fast &&
+                (PlayerPlaceState == PlayerPlaceState.Dive || inputHandler.IsAddingSpeed) &&
+                playerHand.grabItemInHand == null)
             {
-                playerSpeedState = PlayerSpeedState.Fast;
-                //If update more elements in Game, change these scripts, because they cannot do in State Controller
-                playerMovement.playerSpeedChangeHandle.Invoke(playerSpeedState);
+                ChangeSpeedState(PlayerSpeedState.Fast);
             }
-            
-            else if (playerSpeedState != PlayerSpeedState.Normal && (
-            (!Input.GetKey(GlobalSetting.AddSpeedKey) && playerPlaceState != PlayerPlaceState.Dive) ||
-            playerHand.grabItemInHand != null) )
+            else if (PlayerSpeedState != PlayerSpeedState.Normal &&
+                (!inputHandler.IsAddingSpeed && PlayerPlaceState != PlayerPlaceState.Dive || playerHand.grabItemInHand != null))
             {
-                playerSpeedState = PlayerSpeedState.Normal;
-                //If update more elements in Game, change these scripts, because they cannot do in State Controller
-                playerMovement.playerSpeedChangeHandle.Invoke(playerSpeedState);            
+                ChangeSpeedState(PlayerSpeedState.Normal);
             }
         }
-        
-    }
-
-    /// <summary>
-    /// Change Player Dive or Float State
-    /// </summary>
-    private void PlayerPlaceStateChange() 
-    {
-        if (playerStateLock) { return; } 
-        if (playerProperty.currentOxygenValue <= 0 && playerPlaceState == PlayerPlaceState.Dive)
+        else
         {
-            playerPlaceState = PlayerPlaceState.Float;
-            AudioManager.instance.ChangeAudioLowpassCutoff(false);
-            PostProcessingManager.instance.ChangeSeaAlpha(false);
-            AnimatorManager.instance.DetectDiveOrFloatAniPlay();
-            PlayerParticlePlay();
-            //AudioManager.instance.PlayLocalSFX(SFX_Name.DiveAndFloat, transform.position, 1);
-            return;
+            ChangeSpeedState(PlayerSpeedState.Stop);
         }
-        if (playerPlaceState != PlayerPlaceState.WaterFall && (Input.GetKeyDown(GlobalSetting.DiveKey))) {    
-            if (playerPlaceState == PlayerPlaceState.Dive) {           
-                playerPlaceState = PlayerPlaceState.Float;
+    }
 
-                //If update more elements in Game, change these scripts, because they cannot do in State Controller
-                AudioManager.instance.ChangeAudioLowpassCutoff(false);
-                PostProcessingManager.instance.ChangeSeaAlpha(false);
-                AnimatorManager.instance.DetectDiveOrFloatAniPlay();
-                //AudioManager.instance.PlayLocalSFX(SFX_Name.DiveAndFloat, transform.position, 1);
-                //
+    private void UpdateFullState()
+    {
+        float health = playerProperty.Status.Health;
+        float hungerThreshold = playerProperty.Status.HungerThreshold;
+        float agonyThreshold = playerProperty.Status.AgonyThreshold;
 
+        if (PlayerFullState != PlayerFullState.Strong && health > hungerThreshold)
+        {
+            if (PlayerFullState == PlayerFullState.Agony)
+            {
+                playerMovement.ModifyCurrentSpeed(1 - playerProperty.Status.AgonySpeedRatio, false);
             }
+            PlayerFullState = PlayerFullState.Strong;
+        }
+        else if (PlayerFullState != PlayerFullState.Hungry && health <= hungerThreshold && health > agonyThreshold)
+        {
+            if (PlayerFullState == PlayerFullState.Agony)
+            {
+                playerMovement.ModifyCurrentSpeed(1 - playerProperty.Status.AgonySpeedRatio, false);
+            }
+            PlayerFullState = PlayerFullState.Hungry;
+            EventCenter.Broadcast(GameEvents.BecomeHungry);
+        }
+        else if (PlayerFullState != PlayerFullState.Agony && health <= agonyThreshold)
+        {
+            playerMovement.ModifyCurrentSpeed(1 - playerProperty.Status.AgonySpeedRatio, true);
+            PlayerFullState = PlayerFullState.Agony;
+            EventCenter.Broadcast(GameEvents.BecomeHungry);
+        }
+    }
 
-            else if (playerPlaceState == PlayerPlaceState.Float && playerProperty.currentOxygenValue > 0)
-            //else if (playerPlaceState == PlayerPlaceState.Float && !playerProperty.IfCountOut()) 
-            {       
-                playerPlaceState = PlayerPlaceState.Dive;
-                
-                //If update more elements in Game, change these scripts, because they cannot do in State Controller
-                AudioManager.instance.ChangeAudioLowpassCutoff(true);
-                PostProcessingManager.instance.ChangeSeaAlpha(true);
-                AnimatorManager.instance.DetectDiveOrFloatAniPlay();
-                AudioManager.instance.PlayLocalSFX(SFX_Name.DiveAndFloat, transform.position, 1);
-                //
+    private void UpdateCleanState()
+    {
+        float cleanliness = playerProperty.Status.Cleanliness;
+        float dirtyThreshold = playerProperty.Status.DirtyThreshold;
+        float veryDirtyThreshold = playerProperty.Status.VeryDirtyThreshold;
+        float dangerThreshold = playerProperty.Status.DangerThreshold;
+
+        if (cleanliness > dirtyThreshold)
+        {
+            if (PlayerCleanState != PlayerCleanState.Clean)
+            {
+                ResetCleanStateEffects();
+                PlayerCleanState = PlayerCleanState.Clean;
+            }
+        }
+        else if (cleanliness <= dirtyThreshold && cleanliness > veryDirtyThreshold)
+        {
+            if (PlayerCleanState != PlayerCleanState.Dirty)
+            {
+                ApplyCleanStateEffects(PlayerCleanState.Dirty);
+                PlayerCleanState = PlayerCleanState.Dirty;
+            }
+        }
+        else if (cleanliness <= veryDirtyThreshold && cleanliness > dangerThreshold)
+        {
+            if (PlayerCleanState != PlayerCleanState.TwiceDirty)
+            {
+                ApplyCleanStateEffects(PlayerCleanState.TwiceDirty);
+                PlayerCleanState = PlayerCleanState.TwiceDirty;
+            }
+        }
+        else if (cleanliness <= dangerThreshold)
+        {
+            if (PlayerCleanState != PlayerCleanState.Weak)
+            {
+                ApplyCleanStateEffects(PlayerCleanState.Weak);
+                PlayerCleanState = PlayerCleanState.Weak;
             }
         }
     }
 
-    /// <summary>
-    /// When Player's Anim is in Knock and the Knock Animation has done,
-    /// When Player Input KeyCode Without Knock again, Finish Knock State.
-    /// </summary>
-    private void PlayerKnockStateChange() 
+    private void HandleKnockState()
     {
-        if (!onKnock && playerAniState == PlayerInteractAniState.Knock) {
-            onKnock = true;
+        if (!IsKnocking && PlayerAniState == PlayerInteractAniState.Knock)
+        {
+            IsKnocking = true;
         }
-        else if (onKnock && Input.anyKeyDown && !Input.GetKeyDown(GlobalSetting.InterectKey)) {
+        else if (IsKnocking && Input.anyKeyDown && !Input.GetKeyDown(GlobalSetting.InterectKey))
+        {
             AnimatorManager.instance.OffLockState();
-            onKnock = false;
-        }       
+            IsKnocking = false;
+        }
     }
 
-    private void PlayerSleepStateChange() 
+    private void HandleSleepState()
     {
-        if (playerAniState != PlayerInteractAniState.Sleep) { return; }
-        if (GameManager.instance.GetCurTime() >= 0
-        && GameManager.instance.GetDayState() == DayState.Day)
+        if (PlayerAniState != PlayerInteractAniState.Sleep) return;
+
+        if (GameManager.instance.GetCurTime() >= 0 && GameManager.instance.GetDayState() == DayState.Day)
         {
             AnimatorManager.instance.OffLockState();
         }
     }
 
-    public void GetPassGame()
+    #endregion
+
+    #region 状态变化方法
+
+    private void ChangePlaceState(PlayerPlaceState newState)
     {
-        canPassGame = true;
+        PlayerPlaceState = newState;
+        OnStateChanged?.Invoke();
     }
 
-    //Our Leader Like a Shit
-    void OnTriggerEnter(Collider other)
+    private void ChangeSpeedState(PlayerSpeedState newState)
     {
-        TerrainBase terrain;
-        if (other.GetComponent<TerrainBase>() && playerPlaceState != PlayerPlaceState.Dive){
-            terrain = other.GetComponent<TerrainBase>();
-            if (terrain.GetComponent<Env_WaterFall>()) {
-                playerPlaceState = PlayerPlaceState.WaterFall;
-                //Add Lock to Avoid PLayer's Power Return
-                if(playerProperty.currentLevel < terrain.GetComponent<TerrainEffectBase>().waterfallLevel)
-                {
-                    playerAddSpeedLock = true;
-                }
-            }
-        }
-        else {
-            return;
-        }
-
-        if (terrain.canClean) {
-            playerCanClean = true;
-            
-        } 
-        
-        if (terrain.canSleep) {
-            playerCanSleep = true;
-        }
+        PlayerSpeedState = newState;
+        playerMovement.OnPlayerSpeedChange?.Invoke(newState);
+        OnStateChanged?.Invoke();
     }
 
-    void OnTriggerExit(Collider other)
+    public void ChangeAniState(PlayerInteractAniState newState)
     {
-        TerrainBase terrain;
-        if (other.GetComponent<TerrainBase>()){
-            terrain = other.GetComponent<TerrainBase>();
-            if (playerPlaceState == PlayerPlaceState.WaterFall 
-            && terrain.GetComponent<Env_WaterFall>()) {
-                playerPlaceState = PlayerPlaceState.Float;
-                playerAddSpeedLock = false;
-            }
-        }
-        else {
-            return;
-        }
-
-        if (terrain.canClean) {
-            playerCanClean = false;
-        } 
-        
-        if (terrain.canSleep) {
-            playerCanSleep = false;
-        }      
+        PlayerAniState = newState;
+        OnStateChanged?.Invoke();
     }
 
-    public void ChangeAniState(PlayerInteractAniState aniState) 
+    #endregion
+
+    #region 潜水和浮出处理
+
+    private void EnterDiveMode()
     {
-        playerAniState = aniState;
+        AudioManager.instance.ChangeAudioLowpassCutoff(true);
+        PostProcessingManager.instance.ChangeSeaAlpha(true);
+        AnimatorManager.instance.DetectDiveOrFloatAniPlay();
+        AudioManager.instance.PlayLocalSFX(SFX_Name.DiveAndFloat, transform.position, 1);
     }
 
-    public void StateOnLock() 
+    private void ExitDiveMode()
     {
-        Debug.Log("OnLock !");
-        playerStateLock = true;
+        AudioManager.instance.ChangeAudioLowpassCutoff(false);
+        PostProcessingManager.instance.ChangeSeaAlpha(false);
+        AnimatorManager.instance.DetectDiveOrFloatAniPlay();
+        PlayFloatParticle();
     }
 
-    public void StateOffLock() 
+    private void PlayFloatParticle()
     {
-        Debug.Log("OffLock !");
-        playerStateLock = false;
-    }
-    /// <summary>
-    // TODO : When Add Particle System Manager, Transfer the Function to Manager
-    /// </summary>
-    public void PlayerParticlePlay()
-    {
-        if (playerFloatParticle.isPlaying) { return; }
+        if (playerFloatParticle.isPlaying) return;
         playerFloatParticle.Play();
+    }
+
+    #endregion
+
+    #region 清洁状态效果处理
+
+    private void ResetCleanStateEffects()
+    {
+        playerMovement.ModifyCurrentSpeed(1 - playerProperty.Status.DirtySpeedRatio, false);
+        playerMaterial.SetFloat("Dirt1_Lerp", 0);
+        playerMaterial.SetFloat("Dirt2_Lerp", 0);
+        playerMaterial.SetFloat("Dirt3_Lerp", 0);
+    }
+
+    private void ApplyCleanStateEffects(PlayerCleanState newState)
+    {
+        switch (newState)
+        {
+            case PlayerCleanState.Dirty:
+                playerMovement.ModifyCurrentSpeed(1 - playerProperty.Status.DirtySpeedRatio, true);
+                playerMaterial.SetFloat("Dirt1_Lerp", 1);
+                playerMaterial.SetFloat("Dirt2_Lerp", 0);
+                playerMaterial.SetFloat("Dirt3_Lerp", 0);
+                break;
+            case PlayerCleanState.TwiceDirty:
+                playerMovement.ModifyCurrentSpeed(1 - playerProperty.Status.DirtySpeedRatio * 2, true);
+                playerMaterial.SetFloat("Dirt1_Lerp", 1);
+                playerMaterial.SetFloat("Dirt2_Lerp", 1);
+                playerMaterial.SetFloat("Dirt3_Lerp", 0);
+                break;
+            case PlayerCleanState.Weak:
+                playerMovement.ModifyCurrentSpeed(1 - playerProperty.Status.DangerSpeedRatio, true);
+                playerMaterial.SetFloat("Dirt1_Lerp", 1);
+                playerMaterial.SetFloat("Dirt2_Lerp", 1);
+                playerMaterial.SetFloat("Dirt3_Lerp", 1);
+                break;
+        }
+    }
+
+    #endregion
+
+    #region 碰撞和触发器处理
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (PlayerPlaceState == PlayerPlaceState.Dive) return;
+
+        var terrain = other.GetComponent<TerrainBase>();
+        if (terrain != null)
+        {
+            if (terrain.GetComponent<Env_WaterFall>())
+            {
+                ChangePlaceState(PlayerPlaceState.WaterFall);
+                //TODO: Waterfall logic
+            }
+
+            CanClean = terrain.canClean;
+            CanSleep = terrain.canSleep;
+        }
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        var terrain = other.GetComponent<TerrainBase>();
+        if (terrain != null)
+        {
+            if (PlayerPlaceState == PlayerPlaceState.WaterFall && terrain.GetComponent<Env_WaterFall>())
+            {
+                ChangePlaceState(PlayerPlaceState.Float);
+                IsAddSpeedLocked = false;
+            }
+
+            if (terrain.canClean)
+            {
+                CanClean = false;
+            }
+
+            if (terrain.canSleep)
+            {
+                CanSleep = false;
+            }
+        }
+    }
+
+    #endregion
+
+    #region 状态锁定
+
+    public void StateOnLock()
+    {
+        IsStateLocked = true;
+    }
+
+    public void StateOffLock()
+    {
+        IsStateLocked = false;
+    }
+
+    #endregion
+
+    public void SetCanPassGame(bool value)
+    {
+        CanPassGame = value;
     }
 }

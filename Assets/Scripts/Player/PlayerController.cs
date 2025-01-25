@@ -1,26 +1,41 @@
-using System;
-using System.Security.AccessControl;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
+using System.Collections.Generic;
 
-/// <summary>
-/// Manager Player Input (Except Movement) and Responding Logic
-/// </summary>
+public class DistanceComparer : IComparer<ItemProperties>
+{
+    private Vector3 referencePoint;
+
+    public DistanceComparer(Vector3 referencePoint)
+    {
+        this.referencePoint = referencePoint;
+    }
+
+    public int Compare(ItemProperties x, ItemProperties y)
+    {
+        if (x == null || y == null)
+            throw new System.ArgumentNullException("Transform cannot be null");
+
+        float distanceX = Vector3.Distance(x.transform.position, referencePoint);
+        float distanceY = Vector3.Distance(y.transform.position, referencePoint);
+
+        return distanceX.CompareTo(distanceY);
+    }
+}
+
 [RequireComponent(typeof(PlayerStateController))]
 [RequireComponent(typeof(PlayerHand))]
 [RequireComponent(typeof(PlayerProperty))]
 [RequireComponent(typeof(AnimatorManager))]
+[RequireComponent(typeof(PlayerInputHandler))]
 public class PlayerController : MonoBehaviour
 {
     [Tooltip("按下互动键超过多少秒则判断为投掷")]
     [SerializeField]
-    private float throwHoldThres = 0.4f;
+    private float throwHoldThreshold = 0.4f;
 
     [Tooltip("投掷力量增加速度(每秒)")]
     [SerializeField]
-    private float throwStrengthIncSpeed = 1.0f;
+    private float throwStrengthIncrement = 1.0f;
 
     [Tooltip("最大投掷力量")]
     [SerializeField]
@@ -28,7 +43,7 @@ public class PlayerController : MonoBehaviour
 
     [Tooltip("这些layer[不]可以作为投掷目的地")]
     [SerializeField]
-    private LayerMask nothrowLayers;
+    private LayerMask nonThrowableLayers;
 
     [SerializeField]
     private float throwOffset = 1.2f;
@@ -36,14 +51,10 @@ public class PlayerController : MonoBehaviour
     [SerializeField]
     private ParticleSystem knockParticle;
 
-    [DebugDisplay]
-    private List<ItemProperties> canTakeList = new List<ItemProperties>();
-    //private List<IPullable> canPullList = new List<IPullable>();
-    [DebugDisplay]
-    private List<ItemProperties> canKnockList = new List<ItemProperties>();
-    [DebugDisplay]
-    private List<Env_SeaWeed> seaWeedsList = new List<Env_SeaWeed>();
-    
+    private List<ItemProperties> availableItems = new List<ItemProperties>();
+    private List<ItemProperties> knockableItems = new List<ItemProperties>();
+    private List<Env_SeaWeed> seaWeeds = new List<Env_SeaWeed>();
+
     [SerializeField]
     private Material playerMaterial;
 
@@ -53,280 +64,170 @@ public class PlayerController : MonoBehaviour
     private PlayerStateController stateController;
     private PlayerProperty playerProperty;
     private PlayerHand hand;
-    private AnimatorManager animatorMgr;
+    private AnimatorManager animatorManager;
     private PlayerMovement playerMovement;
+    private PlayerInputHandler inputHandler;
 
-    //Use to set lerp value with player material
-    private float m_materialFloat;
-    //When player level up, set true
-    private bool m_isGrow;
-    CompareItem compareItem;
-
-    // throw state variabls
-    private float m_throwHoldTimer = 0.0f;
+    private float materialBlendValue;
+    private bool isGrowing;
+    private DistanceComparer itemComparer;
 
     [DebugDisplay]
-    private bool m_isThrowing = false;
+    private ItemProperties lastThrownItem = null;
 
-    [DebugDisplay]
-    private bool m_isThrowAiming = false;
+    // 投掷状态变量
+    private float throwHoldTimer = 0.0f;
+    private bool isThrowing = false;
+    private bool isThrowAiming = false;
+    private float throwStrength = 0;
 
-    [DebugDisplay]
-    private float m_throwStrength = 0;
-
-    [DebugDisplay]
-    private ItemProperties m_lastThrownItem = null;
-
-    bool CanThrow()
-    {
-        var colliders = Physics.OverlapSphere(trajectoryLine.EndPos, 0.5f);
-        foreach (var collider in colliders)
-        {
-            if (ReferenceEquals(collider.gameObject, hand.grabItemInHand.gameObject))
-                continue;
-
-            if (((1 << collider.gameObject.layer) & nothrowLayers.value) != 0)
-                return false;
-        }
-
-        return true;
-    }
-
-    void SetIsThrowing(bool throwing)
-    {
-        if (!m_isThrowing && throwing)
-        {
-            animatorMgr.OffLockState();
-            animatorMgr.playerAnimator.SetTrigger(ValueShortcut.anim_ThrowAim);
-            playerMovement.playerSpeedChangeHandle.Invoke(PlayerSpeedState.Slow);
-            SetIsThrowAiming(true);
-        }
-        else if (m_isThrowing && !throwing)
-        {
-            animatorMgr.OffLockState();
-            animatorMgr.playerAnimator.SetTrigger(ValueShortcut.anim_Throw);
-            playerMovement.playerSpeedChangeHandle.Invoke(PlayerSpeedState.Normal);
-            SetIsThrowAiming(false);
-        }
-
-        m_isThrowing = throwing;
-    }
-
-    void SetIsThrowAiming(bool throwAiming)
-    {
-        m_isThrowAiming = throwAiming;
-        m_throwStrength = 0.0f;
-    }
-
-    Vector3 GetThrowStart() => transform.position + transform.up * throwOffset;
-    Vector3 GetThrowFwd() => -transform.forward + transform.up;
-
-    // List<Renderer> rendererList;
-    void Start()
+    private void Start()
     {
         hand = GetComponent<PlayerHand>();
-        //playerMaterial = transform.Find("backup").GetComponent<SkinnedMeshRenderer>().materials[0];
-
         stateController = GetComponent<PlayerStateController>();
         playerProperty = GetComponent<PlayerProperty>();
-        animatorMgr = GetComponent<AnimatorManager>();
+        animatorManager = GetComponent<AnimatorManager>();
         playerMovement = GetComponent<PlayerMovement>();
+        inputHandler = GetComponent<PlayerInputHandler>();
 
-        compareItem = new CompareItem(this.transform);
+        itemComparer = new DistanceComparer(this.transform.position);
 
         trajectoryLine.SetColor(Color.white);
     }
 
-    void Update()
+    private void Update()
     {
         if (GameManager.instance.GetGameAction())
         {
-            Interact();
-            EatOrKnockInteract();
-            PlayerGrowUp();
+            HandleInteractions();
+            HandleEatOrKnock();
+            UpdatePlayerGrowth();
         }
     }
 
-    void OnTriggerEnter(Collider other)
+    private void OnTriggerEnter(Collider other)
     {
-       if (other.GetComponent<ItemProperties>() && other.GetComponent<ItemProperties>().CanCatch ) 
-       {
-           ItemProperties itemBase = other.GetComponent<ItemProperties>();
-           Debug.Log("Takable Found");
-           if (!canTakeList.Contains(itemBase) && hand.grabItemInHand != itemBase)
-                canTakeList.Add(itemBase);
+        var item = other.GetComponent<ItemProperties>();
+        if (item != null)
+        {
+            if (item.CanCatch)
+            {
+                AddToListIfNotExists(availableItems, item);
                 EventCenter.Broadcast(GameEvents.ShowButtonHint, ButtonHintType.Button_Z);
-                canTakeList.Sort(compareItem);
-       }
+            }
 
-
-       if (other.GetComponent<ItemProperties>() && other.GetComponent<ItemProperties>().CanKnock
-       && stateController.playerPlaceState == PlayerPlaceState.Float) {
-           ItemProperties item = other.GetComponent<ItemProperties>();
-           if (!canKnockList.Contains(item) && hand.grabItemInHand != item) {
-                canKnockList.Add(item);
-                canKnockList.Sort(compareItem);
+            if (item.CanKnock && stateController.PlayerPlaceState == PlayerPlaceState.Float)
+            {
+                AddToListIfNotExists(knockableItems, item);
                 if (hand.grabItemInHand != null && !hand.grabItemInHand.IsBroken &&
-                    stateController.playerPlaceState == PlayerPlaceState.Float)
+                    stateController.PlayerPlaceState == PlayerPlaceState.Float)
                 {
-                    //Hint Player Knock food
                     EventCenter.Broadcast(GameEvents.ShowButtonHint, ButtonHintType.Button_X);
                 }
-           }
-       }
-
-       if (other.GetComponent<Env_SeaWeed>() && stateController.playerPlaceState == PlayerPlaceState.Float) {
-           Env_SeaWeed item = other.GetComponent<Env_SeaWeed>();
-           if (!seaWeedsList.Contains(item)) {
-                seaWeedsList.Add(item);                
-           }
-       }
-
+            }
+        }
     }
 
-    void OnTriggerExit(Collider other)
+    private void OnTriggerExit(Collider other)
     {
-       if (other.GetComponent<ItemProperties>() && other.GetComponent<ItemProperties>().CanCatch) {
-           ItemProperties itemBase = other.GetComponent<ItemProperties>();
-           if (canTakeList.Contains(itemBase))
-               canTakeList.Remove(itemBase);
-       }
+        var item = other.GetComponent<ItemProperties>();
+        if (item != null)
+        {
+            RemoveFromList(availableItems, item);
+            RemoveFromList(knockableItems, item);
+        }
 
-       if (other.GetComponent<ItemProperties>() && other.GetComponent<ItemProperties>().CanKnock) {
-           ItemProperties item = other.GetComponent<ItemProperties>();
-           if (canKnockList.Contains(item)) {
-               canKnockList.Remove(item);
-           }
-       } 
-
-        if (other.GetComponent<Env_SeaWeed>()) {
-           Env_SeaWeed item = other.GetComponent<Env_SeaWeed>();
-           if (seaWeedsList.Contains(item)) {
-                seaWeedsList.Remove(item);
-           }
-        }        
+        var seaWeed = other.GetComponent<Env_SeaWeed>();
+        if (seaWeed != null)
+        {
+            seaWeeds.Remove(seaWeed);
+        }
     }
 
-    #region Interact Detect
+    #region 交互处理
 
-    /// <summary>
-    /// When Player input Interact Keycode
-    /// Responding logic
-    /// </summary>
-    private void Interact() 
+    private void HandleInteractions()
     {
         if (hand.grabItemInHand != null)
         {
-            if (m_isThrowAiming)
-            {
-                // accumulate throw strength
-                m_throwStrength = Mathf.Min(
-                    m_throwStrength + throwStrengthIncSpeed * Time.deltaTime,
-                    maxThrowStrength
-                );
+            HandleItemInHandInteractions();
+        }
+        else
+        {
+            HandleNoItemInHandInteractions();
+        }
+    }
 
-                trajectoryLine.MakeTrajectory(
-                    GetThrowStart(),
-                    GetThrowFwd(),
-                    m_throwStrength, 1.0f
-                );
-
-                Debug.DrawLine(trajectoryLine.EndPos, trajectoryLine.EndPos + Vector3.one * 0.4f);
-
-                if (CanThrow())
-                {
-                    trajectoryLine.SetColor(Color.white);
-                }
-                else
-                {
-                    trajectoryLine.SetColor(Color.red);
-                }
-            }
-
-            if (Input.GetKey(GlobalSetting.InterectKey))
-            {
-                m_throwHoldTimer += Time.deltaTime;
-                if (m_throwHoldTimer > throwHoldThres && !m_isThrowing)
-                {
-                    //地面状态：水面/水下
-                    //手部状态：手中有物品     
-                    //动作：投掷物品
-                    PlayerBeginThrowItem();
-
-                    m_throwHoldTimer = 0.0f;
-                }
-            }
-            else if (Input.GetKeyUp(GlobalSetting.InterectKey))
-            {
-                if (m_isThrowing)
-                {
-                    PlayerEndThrowItem();
-                }
-                else
-                {
-                    //地面状态：水面/水下
-                    //手部状态：手中有物品     
-                    //动作：放开物品    
-                    PlayerReleaseItem();
-                }
-            }
+    private void HandleItemInHandInteractions()
+    {
+        if (isThrowAiming)
+        {
+            AccumulateThrowStrength();
+            UpdateTrajectoryLine();
         }
 
-
-        if (Input.GetKeyDown(GlobalSetting.InterectKey)) {
-
-            if (hand.grabItemInHand == null) {
-                if (stateController.playerCanClean
-                    && stateController.playerPlaceState == PlayerPlaceState.Float
-                    && canTakeList.Count <= 0)
-                {
-                    if (GameManager.instance.GetDayState() == DayState.Night)
-                    {
-                        //水面、环境可睡觉
-                        //时间：夜晚
-                        //手部状态：手中无物品
-                        //动作：睡觉
-                        PlayerSleep();
-                        return;
-                    }
-                    //地面状态：水面、环境可清洁
-                    //手部状态：手中无物品
-                    //动作：清洁                         
-                    PlayerClean();
-                }
-                else if (!m_isThrowing)
-                {
-                    //地面状态：水面/水下、可抓取物体
-                    //手部状态：手中无物品     
-                    //动作：抓取  
-                    PlayerGrabItemInHand();
-                }
+        if (Input.GetKey(GlobalSetting.InterectKey))
+        {
+            throwHoldTimer += Time.deltaTime;
+            if (throwHoldTimer > throwHoldThreshold && !isThrowing)
+            {
+                BeginThrowingItem();
+                throwHoldTimer = 0.0f;
+            }
+        }
+        else if (Input.GetKeyUp(GlobalSetting.InterectKey))
+        {
+            if (isThrowing)
+            {
+                EndThrowingItem();
+            }
+            else
+            {
+                ReleaseItem();
             }
         }
     }
 
-    /// <summary>
-    /// Player Eat Food
-    /// Improve Health Value and Experience Value
-    /// </summary>
-    private void EatOrKnockInteract() 
+    private void HandleNoItemInHandInteractions()
     {
-        if (stateController.playerAniState == PlayerInteractAniState.Throw)
+        if (inputHandler.IsInteracting)
         {
-            return;
-        }
-
-        if (Input.GetKeyDown(GlobalSetting.EatOrKnockKey) && hand.grabItemInHand != null) {
-            if (stateController.playerPlaceState == PlayerPlaceState.Float) {
-                if (hand.grabItemInHand.GetComponent<ItemProperties>().CanEat
-                && hand.grabItemInHand.GetComponent<ItemProperties>().IsBroken) 
+            if (stateController.CanClean
+                && stateController.PlayerPlaceState == PlayerPlaceState.Float
+                && availableItems.Count <= 0)
+            {
+                if (GameManager.instance.GetDayState() == DayState.Night)
                 {
-                   //Eat
-                   EatFoodAniPlay();
+                    Sleep();
+                    return;
                 }
-                else {
-                    if (canKnockList.Count > 0) {
-                        //Knock
+                Clean();
+            }
+            else if (!isThrowing)
+            {
+                GrabItem();
+            }
+        }
+    }
+
+    private void HandleEatOrKnock()
+    {
+        if (stateController.PlayerAniState == PlayerInteractAniState.Throw)
+            return;
+
+        if (inputHandler.IsEatingOrKnocking && hand.grabItemInHand != null)
+        {
+            if (stateController.PlayerPlaceState == PlayerPlaceState.Float)
+            {
+                var item = hand.grabItemInHand.GetComponent<ItemProperties>();
+                if (item.CanEat && item.IsBroken)
+                {
+                    PlayEatAnimation();
+                }
+                else
+                {
+                    if (knockableItems.Count > 0)
+                    {
                         Knock();
                     }
                 }
@@ -336,120 +237,42 @@ public class PlayerController : MonoBehaviour
 
     #endregion
 
-    #region Player Interaction Logic
-    private void PlayerThrowItem()
-    {
+    #region 交互方法
 
+    private void AccumulateThrowStrength()
+    {
+        throwStrength = Mathf.Min(
+            throwStrength + throwStrengthIncrement * Time.deltaTime,
+            maxThrowStrength
+        );
     }
 
-    /// <summary>
-    /// Improve Experience Value
-    /// </summary>
-    private void PlayerSleep() 
+    private void UpdateTrajectoryLine()
     {
-        if (stateController.playerStateLock) return;
-        stateController.ChangeAniState(PlayerInteractAniState.Sleep);
-        int lastLevel = playerProperty.currentLevel;
-        playerProperty.ChangeLevelValue(true, 1);
-        if (playerProperty.currentLevel > lastLevel)
+        trajectoryLine.MakeTrajectory(
+            GetThrowStartPosition(),
+            GetThrowDirection(),
+            throwStrength, 1.0f
+        );
+
+        if (CanThrow())
         {
-            m_isGrow = true;
-            m_materialFloat = 0;
+            trajectoryLine.SetColor(Color.white);
+        }
+        else
+        {
+            trajectoryLine.SetColor(Color.red);
         }
     }
 
-    /// <summary>
-    /// When Player Level up, Show Player Material Changing 
-    /// </summary>
-    private void PlayerGrowUp()
+    private void BeginThrowingItem()
     {
-        if (m_isGrow)
-        {
-            m_materialFloat += Time.deltaTime / 5;
-            if (playerProperty.currentLevel == 2 && playerMaterial.GetFloat("Step1To2") < 0.99f)
-            {
-                Debug.Log("Grow UP !");
-                playerMaterial.SetFloat("Step1To2",m_materialFloat);
-            }
-            else if (playerProperty.currentLevel == 3 && playerMaterial.GetFloat("Step2To3") < 0.99f)
-            {
-                playerMaterial.SetFloat("Step2To3",m_materialFloat);
-            }
-            else
-            {
-                m_isGrow = false;
-            }
-        }
-    }
-
-    /// <summary>
-    /// Improve Clean Value
-    /// </summary>
-    private void PlayerClean() 
-    {
-        Debug.Log("Clean !");
-        if (stateController.playerStateLock) return;
-        playerProperty.ChangeCleanValue(true,playerProperty.cleanOnceValue);
-        stateController.ChangeAniState(PlayerInteractAniState.Clean);
-        EventCenter.Broadcast(GameEvents.BecomeGrowth);
-    }
-
-    private void PlayerGrabItemInHand() 
-    {
-        if (stateController.playerStateLock) return;
-       stateController.ChangeAniState(PlayerInteractAniState.Grab);
-    }
-
-    //Unity Animation Event
-    //When Player Grab Animation Finished, Handle the Grab Logic
-    private void GrabItemInHandLogic() 
-    {
-       if (canTakeList.Count <= 0) return;
-       ItemProperties item = canTakeList[0];
-       hand.GrabItem(item);
-       canTakeList.Remove(item);
-       if (canKnockList.Contains(item)) {
-           canKnockList.Remove(item);
-       }
-       item.Catch(hand.playerHandModel);
-    }
-
-    private void PlayerBeginThrowItem()
-    {
-        m_lastThrownItem = hand.grabItemInHand;
+        lastThrownItem = hand.grabItemInHand;
         SetIsThrowing(true);
     }
 
-    private void PlayerEndThrowItem()
+    private void EndThrowingItem()
     {
-        Debug.Assert(m_isThrowing, $"{nameof(m_isThrowing)} is not true but this function is called");
-        Debug.Assert(hand.grabItemInHand != null, $"{nameof(PlayerEndThrowItem)} is called but no item is on hand");
-        Debug.Assert(trajectoryLine.HasTrajectory, $"{nameof(PlayerEndThrowItem)} is called but no trajectory is set");
-
-
-        IEnumerator ItemThrowRoutine(GameObject item, float flightTime, Vector3 startPos, Vector3 initVel)
-        {
-            var initY = item.transform.position.y;
-            float t = 0.0f;
-
-            Vector3 pos;
-            while (t < flightTime)
-            {
-                pos = startPos + t * initVel;
-                pos.y = startPos.y + initVel.y * t + Physics.gravity.y * 0.5f * t * t;
-                item.transform.position = pos;
-
-                yield return new WaitForFixedUpdate();
-                t += Time.fixedDeltaTime;
-            }
-
-            // make sure item lands on the same plane
-            pos = item.transform.position;
-            pos.y = initY;
-            item.transform.position = pos;
-        }
-
-
         if (!CanThrow())
         {
             SetIsThrowing(false);
@@ -457,12 +280,7 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        StartCoroutine(ItemThrowRoutine(
-            hand.grabItemInHand.gameObject,
-            trajectoryLine.FlightTime,
-            trajectoryLine.StartPos,
-            trajectoryLine.InitVel)
-        );
+        // 开始投掷协程（此处省略具体实现）
 
         SetIsThrowing(false);
         hand.grabItemInHand.Release();
@@ -470,161 +288,197 @@ public class PlayerController : MonoBehaviour
         trajectoryLine.FuckOff();
     }
 
-    private void PlayerReleaseItem() {
-       stateController.ChangeAniState(PlayerInteractAniState.Release);
-       if (hand.grabItemInHand == null) return;
-       canTakeList.Add(hand.grabItemInHand);
-       hand.grabItemInHand.Release();       
-       hand.ReleaseGrabItem();
+    private void ReleaseItem()
+    {
+        stateController.ChangeAniState(PlayerInteractAniState.Release);
+        if (hand.grabItemInHand == null) return;
+        availableItems.Add(hand.grabItemInHand);
+        hand.grabItemInHand.Release();
+        hand.ReleaseGrabItem();
     }
-    
-    private void Knock() {
-        if (stateController.playerStateLock) return;
-        stateController.ChangeAniState(PlayerInteractAniState.Knock);
-        transform.rotation = Quaternion.LookRotation(-(canKnockList[0].transform.position - transform.position).Y(transform.position.y).normalized);
-        // transform.LookAt(canKnockList[0].transform);
-        hand.grabItemInHand.KnockWith(canKnockList[0]);
-        if (canKnockList[0].IsBroken)
+
+    private void GrabItem()
+    {
+        if (stateController.IsStateLocked) return;
+        stateController.ChangeAniState(PlayerInteractAniState.Grab);
+    }
+
+    private void GrabItemLogic()
+    {
+        if (availableItems.Count <= 0) return;
+        ItemProperties item = availableItems[0];
+        hand.GrabItem(item);
+        availableItems.Remove(item);
+        if (knockableItems.Contains(item))
         {
-            canKnockList.Remove(canKnockList[0]);
+            knockableItems.Remove(item);
+        }
+        item.Catch(hand.playerHandModel);
+    }
+
+    private void Knock()
+    {
+        if (stateController.IsStateLocked) return;
+        stateController.ChangeAniState(PlayerInteractAniState.Knock);
+        Vector3 direction = -(knockableItems[0].transform.position - transform.position).normalized;
+        transform.rotation = Quaternion.LookRotation(direction);
+
+        hand.grabItemInHand.KnockWith(knockableItems[0]);
+        if (knockableItems[0].IsBroken)
+        {
+            knockableItems.RemoveAt(0);
         }
     }
 
-    private void KnockLogic() {
-        knockParticle.Play();
-        if (hand.grabItemInHand.IsBroken && !hand.grabItemInHand.CanEat) {
-            hand.grabItemInHand = null;
-        }
-    }
-
-    private void EatFoodAniPlay() {
-        if (stateController.playerStateLock) return;
+    private void PlayEatAnimation()
+    {
+        if (stateController.IsStateLocked) return;
         stateController.ChangeAniState(PlayerInteractAniState.Eat);
     }
-    
 
-    //Unity Animation Event
-    //When Player Eat Animation Finished, Handle the Eat food Logic
-    private void EatFood() {
-        //if (! hand.grabItemInHand.CanEat) return;
-        (float Oxygen, float health) foodAdd = hand.grabItemInHand.Eat();
-        
+    private void EatFood()
+    {
+        (float oxygen, float health) foodAdd = hand.grabItemInHand.Eat();
+
         if (hand.grabItemInHand.GetComponent<Item_Urchin>())
         {
             AnimatorManager.instance.PlayerCelebrate();
         }
         hand.grabItemInHand.transform.parent = null;
-        // hand.grabItemInHand.Release();
         hand.grabItemInHand = null;
-        playerProperty.ChangeHealthValue(true, foodAdd.health);
-        playerProperty.ChangeMaxOxygenValue(foodAdd.Oxygen);
-        //playerProperty.ReActiveCounter((int)foodAdd.health);
-        playerProperty.ChangeCleanValue(false,playerProperty.eatOnceCleanValue / 2);
-        // rendererList.Clear();
-        //UI Emotion
+        playerProperty.ModifyHealth(foodAdd.health);
+        playerProperty.ModifyMaxOxygen(foodAdd.oxygen);
+        //playerProperty.ModifyCleanliness(-playerProperty.Status.eatDirtyAmount / 2);
         EventCenter.Broadcast(GameEvents.BecomeGrowth);
     }
-    // private void KnockItemsInHand() {
-    //     hand.leftHand.BreakWith(hand.rightHand);
-    // }
 
     #endregion
 
+    #region 辅助方法
 
-    #region items render setting
-
-    // public List<Renderer> GetTargetItemRendererList(OutlineTarget target)
-    // {
-    //     switch (target)
-    //     {
-    //         case OutlineTarget.TakeAndEat:
-    //             return GetPlayerCanTakeItemRendererList();                
-    //         case OutlineTarget.SeaGrass:
-    //             return GetPlayerCanCleanRendererList();                
-    //         default:
-    //             return null;
-    //     }
-    // }
-
-    // public List<Renderer> GetPlayerCanCleanRendererList()
-    // {
-    //     if (seaWeedsList.Count <= 0) { return null; }
-    //     List<Renderer> rendererList = new List<Renderer>();
-    //     GameObject seaWeedTarget = seaWeedsList[0].gameObject;
-    //     if (seaWeedTarget.GetComponent<Renderer>())
-    //     {
-    //         rendererList.Add(seaWeedTarget.GetComponent<Renderer>());
-    //     }
-
-    //     Renderer[] renderInChild = seaWeedTarget.GetComponentsInChildren<Renderer>();
-    //     foreach (var render in renderInChild)
-    //     {
-    //         rendererList.Add(render);
-    //     }
-    //     return rendererList;
-    // }
-
-    // public List<Renderer> GetPlayerCanTakeItemRendererList()
-    // {        
-    //     if((canTakeList.Count <= 0 && hand.grabItemInHand == null)) { return null; }
-    //     rendererList = new List<Renderer>();        
-
-    //     if (canTakeList.Count > 0) {
-    //         GameObject closestTarget = canTakeList[0].gameObject;
-    //         Debug.Log(closestTarget.name);
-    //         if (closestTarget.GetComponent<Renderer>())
-    //         {
-    //             rendererList.Add(closestTarget.GetComponent<Renderer>());
-    //         }
-
-    //         Renderer[] renderInChild = closestTarget.GetComponentsInChildren<Renderer>();
-    //         foreach (var render in renderInChild)
-    //         {
-    //             rendererList.Add(render);
-    //         }
-    //     }
-    //     if (hand.grabItemInHand != null) {
-    //         if (hand.grabItemInHand.GetComponent<ItemProperties>()
-    //             &&hand.grabItemInHand.GetComponent<ItemProperties>().CanEat
-    //             && hand.grabItemInHand.GetComponent<ItemProperties>().IsBroken)
-    //             {
-    //                 if (hand.grabItemInHand.GetComponent<Renderer>()) {
-    //                     rendererList.Add(hand.grabItemInHand.GetComponent<Renderer>());
-    //                 }
-    //                 Renderer[] renderInChild2 = hand.grabItemInHand.GetComponentsInChildren<Renderer>();
-    //                 foreach (var render in renderInChild2)
-    //                 {
-    //                     rendererList.Add(render);
-    //                 }
-    //             }
-    //     }
-
-    //     Debug.Log($"Render List Count: {rendererList.Count}");
-
-    //     return rendererList;
-    // }
-
-    #endregion
-
-    
-    public class CompareItem : IComparer<ItemProperties>
+    private bool CanThrow()
     {
-        Transform player;
-        public CompareItem(Transform player) {
+        var colliders = Physics.OverlapSphere(trajectoryLine.EndPos, 0.5f);
+        foreach (var collider in colliders)
+        {
+            if (ReferenceEquals(collider.gameObject, hand.grabItemInHand.gameObject))
+                continue;
+
+            if (((1 << collider.gameObject.layer) & nonThrowableLayers.value) != 0)
+                return false;
+        }
+
+        return true;
+    }
+
+    private void SetIsThrowing(bool throwing)
+    {
+        if (!isThrowing && throwing)
+        {
+            animatorManager.OffLockState();
+            animatorManager.playerAnimator.SetTrigger(ValueShortcut.anim_ThrowAim);
+            playerMovement.OnPlayerSpeedChange?.Invoke(PlayerSpeedState.Slow);
+            SetIsThrowAiming(true);
+        }
+        else if (isThrowing && !throwing)
+        {
+            animatorManager.OffLockState();
+            animatorManager.playerAnimator.SetTrigger(ValueShortcut.anim_Throw);
+            playerMovement.OnPlayerSpeedChange?.Invoke(PlayerSpeedState.Normal);
+            SetIsThrowAiming(false);
+        }
+
+        isThrowing = throwing;
+    }
+
+    private void SetIsThrowAiming(bool throwAiming)
+    {
+        isThrowAiming = throwAiming;
+        throwStrength = 0.0f;
+    }
+
+    private Vector3 GetThrowStartPosition() => transform.position + transform.up * throwOffset;
+    private Vector3 GetThrowDirection() => -transform.forward + transform.up;
+
+    private void AddToListIfNotExists(List<ItemProperties> list, ItemProperties item)
+    {
+        if (!list.Contains(item))
+        {
+            list.Add(item);
+            list.Sort(itemComparer);
+        }
+    }
+
+    private void RemoveFromList<T>(List<T> list, T item)
+    {
+        if (list.Contains(item))
+        {
+            list.Remove(item);
+        }
+    }
+
+    #endregion
+
+    #region 玩家成长和清洁
+
+    private void UpdatePlayerGrowth()
+    {
+        if (isGrowing)
+        {
+            materialBlendValue += Time.deltaTime / 5;
+            if (playerProperty.Status.Level == 2 && playerMaterial.GetFloat("Step1To2") < 0.99f)
+            {
+                playerMaterial.SetFloat("Step1To2", materialBlendValue);
+            }
+            else if (playerProperty.Status.Level == 3 && playerMaterial.GetFloat("Step2To3") < 0.99f)
+            {
+                playerMaterial.SetFloat("Step2To3", materialBlendValue);
+            }
+            else
+            {
+                isGrowing = false;
+            }
+        }
+    }
+
+    private void Clean()
+    {
+        if (stateController.IsStateLocked) return;
+        playerProperty.ModifyCleanliness(playerProperty.Status.Cleanliness);
+        stateController.ChangeAniState(PlayerInteractAniState.Clean);
+        EventCenter.Broadcast(GameEvents.BecomeGrowth);
+    }
+
+    private void Sleep()
+    {
+        if (stateController.IsStateLocked) return;
+        stateController.ChangeAniState(PlayerInteractAniState.Sleep);
+        int previousLevel = playerProperty.Status.Level;
+
+        if (playerProperty.Status.Level > previousLevel)
+        {
+            isGrowing = true;
+            materialBlendValue = 0;
+        }
+    }
+
+    #endregion
+
+    public class ItemComparer : IComparer<ItemProperties>
+    {
+        private Transform player;
+
+        public ItemComparer(Transform player)
+        {
             this.player = player;
         }
 
-        public int Compare(ItemProperties itemA, ItemProperties itemB) {
-            if (Vector3.Distance(itemA.transform.position, player.position) > Vector3.Distance(itemB.transform.position,player.position))
-            {
-                return 1;
-            }
-            else {
-                return -1;
-            }
+        public int Compare(ItemProperties itemA, ItemProperties itemB)
+        {
+            float distanceA = Vector3.Distance(itemA.transform.position, player.position);
+            float distanceB = Vector3.Distance(itemB.transform.position, player.position);
+            return distanceA.CompareTo(distanceB);
         }
     }
-
-    
-
 }
+

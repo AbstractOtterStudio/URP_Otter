@@ -1,280 +1,368 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using static ValueShortcut;
 
-/// <summary>
-/// Player Action and Movement
-/// </summary>
-[RequireComponent(typeof(Rigidbody))]
 public class PlayerMovement : MonoBehaviour
 {
-    [SerializeField]
-    private float playerOriSpeed = GlobalSetting.playerInitSpeed;
-    [SerializeField]
-    private float addSpeedRatio = GlobalSetting.playerAddSpeedRatio;
-    [SerializeField]
-    private float slowSpeedRatio = 0.3f;
-    [SerializeField]
-    private float swimTimelyRatio = 2.5f;
-    [SerializeField]
-    private float playerdiveDepth = 1.5f;
-    [SerializeField]
-    private float playerdiveSpeed = 3;
-    [SerializeField]
-    private float colliderRebackSpeed = 3;
-    private float m_playerCurSpeed;
-    private bool m_isFloat;
-    private float playerDiveAim;
-    private float playerFloatAim;
-    private Rigidbody m_rigidbody;
-    private Vector3 m_preVelocity;
-    private PlayerStateController m_stateController;
-    public delegate void PlayerSpeedChangeHandle(PlayerSpeedState speedState);
-    public PlayerSpeedChangeHandle playerSpeedChangeHandle { get; set; }
-    public bool isMoveStop;
+    [Header("==== Basic Movement Settings ====")]
+    [SerializeField] private float maxSpeed = 5f;       // 基础最大速度
+    [SerializeField] private float acceleration = 10f;  // 加速度 (让角色 0.3~0.5s 加速到 maxSpeed)
 
+    [Header("==== Additional Multipliers ====")]
+    [SerializeField] private float fastMultiplier = 1.5f;  // 快速游动倍数
+    [SerializeField] private float slowMultiplier = 0.5f;  // 慢速游动倍数
+    // 其他 multiplier 可自定义，比如潜水 multiplier,diveSpeedMultiplier 等
+    [SerializeField] private float diveSpeedMultiplier = 0.8f; // 潜水时速度倍数（示例）
 
-    [SerializeField] float rotSpeed = 3;  
-    [SerializeField] float accelerationSpeed = 0.8f;  
-    float h;
-    float v;    
-    Animator m_Animator;    
-    Quaternion rot;
-    Vector3 Dir;
+    [Header("==== Turning Settings ====")]
+    [SerializeField] private float minTurningSpeed = 3f;  
+    [SerializeField] private float maxTurningSpeed = 6f;  
+    [SerializeField] private float brakeAngle = 90f;        // 超过此夹角则进入刹车区
+    [SerializeField] private float brakeSpeed = 1.0f;        // 刹车减速度
 
-    //Just for test
-    private float _timer;
+    [Header("==== Dive & Float Settings ====")]
+    [SerializeField] private float diveDepth = 1.5f;
+    [SerializeField] private float verticalSpeed = 3f;  // 用于上下浮潜速度
 
-    void Start()
+    [Header("==== Collision Settings ====")]
+    [SerializeField] private float collisionReboundSpeed = 3f;
+
+    [Header("==== Debug ====")]
+    [SerializeField] private float currentSpeed;  // 当前速度（标量）
+    private float targetDiveDepth;
+    private float targetFloatDepth;
+
+    private Rigidbody rb;
+    private PlayerStateController stateController;
+    private PlayerInputHandler inputHandler;
+    private Animator animator;
+
+    // 用于记录玩家的输入方向（平面）
+    private Vector3 movementInput;
+    private Vector3 currentVelocity;  // 用于保存实际的运动向量
+    public bool IsMoving { get; private set; }
+
+    #region Delegates
+    public delegate void PlayerSpeedChangeHandler(PlayerSpeedState speedState);
+    public PlayerSpeedChangeHandler OnPlayerSpeedChange { get; set; }
+    #endregion
+
+    private void Start()
     {
-        playerFloatAim = transform.position.y;
-        playerDiveAim = transform.position.y - playerdiveDepth;
-        m_isFloat = true;
-        m_playerCurSpeed = playerOriSpeed;
-        playerSpeedChangeHandle = PlayerSpeedChange;
-        m_rigidbody = GetComponent<Rigidbody>();
-        m_stateController = GetComponent<PlayerStateController>();
-        m_Animator = GetComponent<Animator>();
+        rb = GetComponent<Rigidbody>();
+        stateController = GetComponent<PlayerStateController>();
+        inputHandler = GetComponent<PlayerInputHandler>();
+        animator = GetComponent<Animator>();
 
-        _timer = Time.fixedDeltaTime * 20;        
+        // 初始速度设为 0，或者设置为一个默认值也可以
+        currentSpeed = 0f;
+        currentVelocity = Vector3.zero;
+
+        // 潜水/浮水的目标深度
+        targetFloatDepth = transform.position.y;
+        targetDiveDepth = transform.position.y - diveDepth;
+
+        // 如果有需求，可注册此回调
+        OnPlayerSpeedChange = HandlePlayerSpeedChange;
     }
 
-    void FixedUpdate()
+    private void Update()
     {
+        // 从输入获取移动方向（不带 Y 轴，主要在 XZ 平面）
+        movementInput = inputHandler.MovementInput;
+        IsMoving = movementInput != Vector3.zero;
+    }
+
+    private void FixedUpdate()
+    {
+        // 在此处判断游戏是否可交互
         if (GameManager.instance.GetGameAction())
         {
-            Movement(m_playerCurSpeed);               
-            m_preVelocity = m_rigidbody.velocity;
+            MovePlayer();
         }
     }
 
-    void Update()
-    {
-        Shader.SetGlobalVector("PlayerPosition", transform.position);
-        if (h == 0 && v == 0) {
-            _timer -= Time.deltaTime;
-            if (_timer <= 0) {
-                isMoveStop = true;
-            }
-        }
-        else {
-            isMoveStop = false;
-            _timer = Time.fixedDeltaTime * 20;
-        }
-    }
+    #region === 玩家移动核心逻辑 ===
 
-    /// <summary>
-    /// Change Player's Current Speed When Player Move to Different Place
-    /// Change Player's Current Speed When Player Transfer Different Speed State
-    /// </summary>
-    /// <param name="placeState"></param>
-    private void PlayerSpeedChange(PlayerSpeedState speedState) {
-        switch(speedState) {
-            case PlayerSpeedState.Fast:
-                m_playerCurSpeed = playerOriSpeed * addSpeedRatio;
-                break;
-            case PlayerSpeedState.Stop:
-                //m_playerCurSpeed = 0;
-                break;
-            case PlayerSpeedState.Slow:
-                m_playerCurSpeed = playerOriSpeed * slowSpeedRatio;
-                break;
-            case PlayerSpeedState.Normal:
-                m_playerCurSpeed = playerOriSpeed;
-                break;
-            default:
-                break;          
-        }
-    }
-    
-    /// <summary>
-    ///   W
-    /// A S D  to Controll Player Movement with Current Speed
-    /// Space bar to Let Player Dive in the Sea with Dive Speed
-    /// </summary>
-    /// <param name="speed"></param>
-    private void Movement(float speed) 
+    private void MovePlayer()
     {
-        h = Input.GetAxisRaw("Horizontal");
-        v = Input.GetAxisRaw("Vertical");
-        Vector3 world2Screen = Camera.main.WorldToScreenPoint(transform.position);
-        Vector3 screenXOffset = Camera.main.ScreenToWorldPoint(new Vector3(world2Screen.x + 1, world2Screen.y, world2Screen.z));
-        Vector3 screenYOffset = Camera.main.ScreenToWorldPoint(new Vector3(world2Screen.x, world2Screen.y + 1, world2Screen.z));
-        if (!m_stateController.playerStateLock || m_stateController.playerAniState == PlayerInteractAniState.Grab) 
+        if (stateController.IsStateLocked && stateController.PlayerAniState != PlayerInteractAniState.Grab)
         {
-            Dir = ((screenXOffset - transform.position) * h + (screenYOffset - transform.position) * v).normalized * speed;
-            Dir = new Vector3(Dir.x, 0, Dir.z);		
-            //m_rigidbody.velocity = Dir;
-            m_rigidbody.velocity = Vector3.Lerp(m_rigidbody.velocity, Dir, Mathf.Clamp01(accelerationSpeed * Time.deltaTime));			
-            
-            if (Dir.x != 0 || Dir.z != 0)
-            {									
-                rot = Quaternion.LookRotation(Dir.X(Dir.x * -1).Z(Dir.z * -1));	
-                // AudioManager.instance.PlayObjectSFX(m_stateController.playerAudio, (SFX_Name)UnityEngine.Random.Range((int)SFX_Name.Swim_A, (int)SFX_Name.Swim_D + 1) , 1);
-                //Vector3 v = 					
-                transform.rotation = Quaternion.Slerp(transform.rotation, 
-                    rot, Mathf.Clamp01(rotSpeed * Time.deltaTime));			
-            }	
+            rb.velocity = Vector3.zero;
+            return;
+        }
 
-            if (m_stateController.playerPlaceState == PlayerPlaceState.Dive) 
+        // 1) 计算输入方向
+        Vector3 desiredDirection = GetInputDirection();
+
+        // 2) 判断当前朝向与输入方向的夹角
+        float deltaAngle = Vector3.Angle(-transform.forward, desiredDirection);
+
+        if (movementInput != Vector3.zero && desiredDirection.sqrMagnitude > 0.01f)
+        {
+
+            if (currentSpeed < 0.5f && deltaAngle > 120f)
             {
-                PlayerDiveOrFloat (true , playerDiveAim);
+                TurnFirstThenMove(desiredDirection);
             }
-            else if (m_stateController.playerPlaceState == PlayerPlaceState.Float) 
+            else 
             {
-                RaycastHit hit;
-                if (Physics.Raycast(this.transform.position,this.transform.up, out hit, 30))
+                // 如果大于 brakeAngle，则执行刹车逻辑
+                if (deltaAngle > brakeAngle)
                 {
-                    if (hit.collider.GetComponent<ItemProperties>())
-                    {
-                        //Debug.Log("Test Back !");
-                        //this.transform.position += Vector3.back * Time.deltaTime;
-                    }
+                    BrakeAndTurn(desiredDirection);
                 }
                 else
                 {
-                    PlayerDiveOrFloat (false , playerFloatAim);
+                    NormalTurnAndAccelerate(desiredDirection);
                 }
-            }       
-        }
-        else {
-            m_rigidbody.velocity = Vector3.zero;
-        }
-        // transform.LookAt(transform.position + new Vector3(h, 0f, v).normalized);
-    }
-
-    void OnTriggerExit(Collider other)
-    {
-        if (m_stateController.playerPlaceState == PlayerPlaceState.Float 
-        && other.gameObject.layer == LayerIndex_WaterSurface) {
-            m_isFloat = false; 
-        }
-    }
-
-    void OnTriggerStay(Collider other)
-    {
-        if (other.gameObject.layer == LayerIndex_WaterSurface) {
-            m_isFloat = true; 
-        }
-    }
-
-    void PlayerDiveOrFloat(bool isDive,float aimDepth) {
-        if (isDive && transform.position.y > aimDepth) { 
-                transform.position += Vector3.down * Time.deltaTime * playerdiveSpeed;
             }
-        else if (transform.position.y < aimDepth) {
-                transform.position += Vector3.up * Time.deltaTime * playerdiveSpeed;
-            }
+        }
+        else
+        {
+            // 无输入时，逐渐减速到 0（也可以保持惯性，看需求）
+            currentSpeed = Mathf.MoveTowards(currentSpeed, 0f, acceleration * Time.deltaTime);
+        }
+
+        // 3) 更新刚体速度
+        currentVelocity = desiredDirection.normalized * currentSpeed;
+        rb.velocity = currentVelocity;
+
+        // 4) 处理上下浮潜
+        HandleDiveAndFloat();
     }
 
-    public float GetCurrentSpeed() {
-        return m_playerCurSpeed;
+    // private void MovePlayer()
+    // {
+    //     if (stateController.IsStateLocked && stateController.PlayerAniState != PlayerInteractAniState.Grab)
+    //     {
+    //         rb.velocity = Vector3.zero;
+    //         return;
+    //     }
+
+    //     Vector3 desiredVelocity = GetDesiredVelocity();
+    //     rb.velocity = Vector3.Lerp(rb.velocity, desiredVelocity, acceleration * Time.deltaTime);
+    //     if (movementInput != Vector3.zero)
+    //     {
+    //         RotatePlayer(desiredVelocity);
+    //     }
+
+    //     HandleDiveAndFloat();
+    // }
+
+    // private Vector3 GetDesiredVelocity()
+    // {
+    //     Camera mainCamera = Camera.main;
+
+    //     Vector3 right = mainCamera.transform.right;
+    //     Vector3 forward = Vector3.Cross(right, Vector3.up);
+        
+    //     Vector3 direction = (right * movementInput.x + forward * movementInput.z).normalized;
+
+    //     direction = new Vector3(direction.x, 0, direction.z).normalized * directionSpeed;
+
+    //     return direction * currentSpeed;
+    // }
+
+
+    // private void RotatePlayer(Vector3 desiredVelocity)
+    // {
+    //     Quaternion targetRotation = Quaternion.LookRotation(-desiredVelocity);
+    //     transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+    // }
+    /// <summary>
+    /// 计算玩家输入方向，基于相机朝向（保持在 XZ 平面）
+    /// </summary>
+    private Vector3 GetInputDirection()
+    {
+        Camera mainCamera = Camera.main;
+        Vector3 right = mainCamera.transform.right;
+        Vector3 forward = Vector3.Cross(right, Vector3.up);
+
+        // 输入方向(不考虑Y，保持在XZ平面)
+        Vector3 direction = (right * movementInput.x + forward * movementInput.z).normalized;
+        direction.y = 0f;
+        return direction;
     }
 
     /// <summary>
-    /// When PLayer Move to Different Water Area,
-    /// Reset Dive or Float Height.
+    /// 刹车区逻辑：先快速将当前速度减为 0，再朝目标方向重新加速
     /// </summary>
-    /// <param name="isAdd"></param>
-    /// <param name="height"></param>
-    public void SetDiveOrFloatHeight(bool isAdd, float height) {
-        if (isAdd) {
-            playerDiveAim += height;
-            playerFloatAim += height;
-        }
-        else {
-            playerDiveAim -= height;
-            playerFloatAim -= height;
+    private void BrakeAndTurn(Vector3 desiredDirection)
+    {
+        // 先刹车
+        currentSpeed = Mathf.MoveTowards(currentSpeed, 0f, brakeSpeed * Time.deltaTime);
+
+        // 如果已经几乎停止，再开始朝新的方向加速
+        if (currentSpeed < 0.5f)
+        {
+           TurnSmoothly(desiredDirection, maxTurningSpeed * 2);
+
+            // 再按照普通加速度往 maxSpeed 加
+            currentSpeed = Mathf.MoveTowards(currentSpeed, maxSpeed, acceleration * Time.deltaTime);
         }
     }
 
     /// <summary>
-    /// Correct Player Direction When Player Hit the Collider
+    /// 普通转向并加速
     /// </summary>
-    /// <param name="collision"></param>
-    public void OnCollisionEnter(Collision collision)
+    private void NormalTurnAndAccelerate(Vector3 desiredDirection)
     {
-        //ContactPoint contactPoint = collision.contacts[0];
-        //Vector3 curDir = transform.TransformDirection(Vector3.forward);
-        //Vector3 newDir = Vector3.Reflect(curDir, contactPoint.normal);
-        //rot = Quaternion.FromToRotation(Vector3.forward, newDir);
-        //m_rigidbody.velocity = ( newDir.normalized * m_preVelocity.x / (m_preVelocity.normalized.x + 0.01f) ).normalized * colliderRebackSpeed;
+        // 计算 deltaAngle，用于在 minTurningSpeed ~ maxTurningSpeed 之间插值
+        float angle = Vector3.Angle(transform.forward, desiredDirection);
+        float t = angle / 180f;  // 0 ~ 1, 这里简单做个线性映射
+        float turnSpeed = Mathf.Lerp(minTurningSpeed, maxTurningSpeed, t);
 
-        //Vector3 reboundVelocity = newDir.normalized * colliderRebackSpeed;
-        //m_rigidbody.velocity = reboundVelocity;
-        if (collision.gameObject.GetComponent<TerrainEffectBase>()) return;
+        // 平滑转向
+        TurnSmoothly(desiredDirection, turnSpeed);
+
+        // 加速到 maxSpeed
+        currentSpeed = Mathf.MoveTowards(currentSpeed, maxSpeed, acceleration * Time.deltaTime);
+    }
+
+    /// <summary>
+    /// 瞬间转向（用于刹车完毕后的快速转向）
+    /// </summary>
+    private void TurnInstantly(Vector3 desiredDirection)
+    {
+        if (desiredDirection.sqrMagnitude > 0.01f)
+        {
+            transform.rotation = Quaternion.LookRotation(-desiredDirection, Vector3.up);
+        }
+    }
+
+    /// <summary>
+    /// 当速度很小且需要大角度掉头时，先转向，再移动
+    /// </summary>
+    private void TurnFirstThenMove(Vector3 desiredDirection)
+    {
+        // 1) 让速度保持在一个非常小的值（甚至可以直接设置为 0）
+        currentSpeed = Mathf.MoveTowards(currentSpeed, 0f, brakeSpeed * Time.deltaTime);
+
+        // 2) 用一个稍大的转向速度做平滑转向
+        float fastTurnSpeed = maxTurningSpeed * 5f;
+        TurnSmoothly(desiredDirection, fastTurnSpeed);
+
+        // 3) 判断什么时候“转得差不多”了，可以开始加速
+        float angleAfterTurn = Vector3.Angle(transform.forward, desiredDirection);
+        if (angleAfterTurn < 15f)
+        {
+            // 开始加速
+            currentSpeed = Mathf.MoveTowards(currentSpeed, maxSpeed, acceleration * Time.deltaTime);
+        }
+    }
+
+    /// <summary>
+    /// 平滑转向
+    /// </summary>
+    private void TurnSmoothly(Vector3 desiredDirection, float turnSpeed)
+    {
+            if (desiredDirection.sqrMagnitude > 0.01f)
+        {
+            Quaternion targetRotation = Quaternion.LookRotation(-desiredDirection, Vector3.up);
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, turnSpeed * Time.deltaTime);
+        }
+    }
+
+    /// <summary>
+    /// 浮潜处理
+    /// </summary>
+    private void HandleDiveAndFloat()
+    {
+        if (stateController.PlayerPlaceState == PlayerPlaceState.Dive)
+        {
+            // 潜水时可附加一个 multiplier
+            float diveTargetSpeed = maxSpeed * diveSpeedMultiplier;
+            currentSpeed = Mathf.Clamp(currentSpeed, 0f, diveTargetSpeed);
+
+            // 下潜
+            if (transform.position.y > targetDiveDepth)
+            {
+                transform.position += Vector3.down * verticalSpeed * Time.deltaTime;
+            }
+        }
+        else if (stateController.PlayerPlaceState == PlayerPlaceState.Float)
+        {
+            if (transform.position.y < targetFloatDepth)
+            {
+                transform.position += Vector3.up * verticalSpeed * Time.deltaTime;
+            }
+        }
+    }
+
+    #endregion
+
+    #region === 速度控制 ===
+
+    private void HandlePlayerSpeedChange(PlayerSpeedState speedState)
+    {
+        switch (speedState)
+        {
+            case PlayerSpeedState.Fast:
+                // 快速倍数
+                currentSpeed = currentSpeed * fastMultiplier;
+                break;
+            case PlayerSpeedState.Slow:
+                currentSpeed = currentSpeed * slowMultiplier;
+                break;
+            case PlayerSpeedState.Normal:
+            default:
+                currentSpeed = Mathf.Min(currentSpeed, maxSpeed);
+                break;
+        }
+    }
+
+    /// <summary>
+    /// 对 currentSpeed 做乘法或除法倍数调整（保留原接口）
+    /// </summary>
+    public void ModifyCurrentSpeed(float multiplier, bool isMultiplying)
+    {
+        currentSpeed = isMultiplying ? currentSpeed * multiplier : currentSpeed / multiplier;
+        // 可根据需要设置上限/下限
+        if (currentSpeed > maxSpeed * fastMultiplier)
+        {
+            currentSpeed = maxSpeed * fastMultiplier;
+        }
+        if (currentSpeed < 0f)
+        {
+            currentSpeed = 0f;
+        }
+    }
+
+    public float GetCurrentSpeed()
+    {
+        return currentSpeed;
+    }
+
+    #endregion
+
+    #region === 碰撞处理 ===
+
+    private void OnCollisionEnter(Collision collision)
+    {
         Vector3 normal = collision.contacts[0].normal;
-        Vector3 edgeDirection = Vector3.ProjectOnPlane(m_rigidbody.velocity, normal).normalized;
-        m_rigidbody.velocity = edgeDirection * colliderRebackSpeed;
+        Vector3 reboundDirection = Vector3.ProjectOnPlane(rb.velocity, normal).normalized;
+        rb.velocity = reboundDirection * collisionReboundSpeed;
     }
 
-    /// <summary>
-    /// Decrease Speed ratio
-    /// Remember Add Speed after Slow Down
-    /// </summary>
-    /// <param name="ratio"></param>
-    public void ReturnCurSpeed(float ratio) {
-        m_playerCurSpeed = m_playerCurSpeed / ratio;
-        DetectSpeedRange();
-    }
+    #endregion
+
+    #region === 公共方法 ===
 
     /// <summary>
-    /// Add Speed ratio
-    /// Remember Decrease Speed after Add Speed
+    /// 设置潜水或浮水的目标水面高度（示例）
     /// </summary>
-    /// <param name="ratio"></param>
-    public void EffectCurSpeed(float ratio) {
-        m_playerCurSpeed = m_playerCurSpeed * ratio;
-        DetectSpeedRange();
-    }  
-
-    /// <summary>
-    /// Avoid Player's Speed being so huge
-    /// When Player's Speed exceeds Max Speed, Currect the Speed
-    /// </summary>
-    private void DetectSpeedRange() 
+    public void SetDiveOrFloatHeight(bool increase, float height)
     {
-        if (m_stateController.playerSpeedState != PlayerSpeedState.Fast) {
-            if (m_playerCurSpeed > playerOriSpeed * swimTimelyRatio) 
-            {
-                m_playerCurSpeed = playerOriSpeed * addSpeedRatio;
-            }
+        if (increase)
+        {
+            targetDiveDepth += height;
+            targetFloatDepth += height;
         }
-        else {
-            if (m_playerCurSpeed > playerOriSpeed * swimTimelyRatio * addSpeedRatio) 
-            {
-                m_playerCurSpeed = playerOriSpeed * addSpeedRatio * addSpeedRatio;
-            }
+        else
+        {
+            targetDiveDepth -= height;
+            targetFloatDepth -= height;
         }
     }
 
-    private void SwimFastSpeed() {
-        EffectCurSpeed(swimTimelyRatio);
-    }
-
-    private void SwimSlowSpeed() {
-        ReturnCurSpeed(swimTimelyRatio);
-    }  
+    #endregion
 }
