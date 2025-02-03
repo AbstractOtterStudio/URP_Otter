@@ -120,18 +120,28 @@ public class AnimatorManager : MonoBehaviour
         switch (stateController.PlayerSpeedState) 
         {
             case PlayerSpeedState.Stop:
+                // playerAnimator.SetBool(ValueShortcut.anim_isWalk, false);
+                playerAnimator.SetBool("isMoving", false);
                 playerAnimator.SetBool(ValueShortcut.anim_isWalk, false);
-                break;
-
-            case PlayerSpeedState.Normal:
+                 break;
+ 
+             case PlayerSpeedState.Normal:
+                // playerAnimator.SetBool(ValueShortcut.anim_isWalk, true);
+                // playerAnimator.SetBool(ValueShortcut.anim_FlipToBreast, false);
+                playerAnimator.SetBool("isMoving", true);
+                playerAnimator.SetBool("isSprinting", false);                
                 playerAnimator.SetBool(ValueShortcut.anim_isWalk, true);
                 playerAnimator.SetBool(ValueShortcut.anim_FlipToBreast, false);                
-                break;
-
-            case PlayerSpeedState.Fast:
+                 break;
+ 
+             case PlayerSpeedState.Fast:
+                // playerAnimator.SetBool(ValueShortcut.anim_isWalk, true);
+                // playerAnimator.SetBool(ValueShortcut.anim_FlipToBreast, true);
+                playerAnimator.SetBool("isMoving", true);
+                playerAnimator.SetBool("isSprinting", true);
                 playerAnimator.SetBool(ValueShortcut.anim_isWalk, true);
                 playerAnimator.SetBool(ValueShortcut.anim_FlipToBreast, true);          
-                break;
+                 break;
 
             default:
                 break;
@@ -143,21 +153,26 @@ public class AnimatorManager : MonoBehaviour
     {
         switch (stateController.PlayerPlaceState) {
             case PlayerPlaceState.Dive :
-                    if (!stateController.IsStateLocked) {
+                if (!stateController.IsStateLocked) {
                         stateController.StateOnLock();
-                        playerAnimator.SetTrigger(ValueShortcut.anim_Dive);
-                        playerAnimator.SetBool(ValueShortcut.anim_UnderWater,true);
-                    }
-
+                    // playerAnimator.SetTrigger(ValueShortcut.anim_Dive);
+                    // playerAnimator.SetBool(ValueShortcut.anim_UnderWater,true);
+                    playerAnimator.SetTrigger("Dive");
+                    playerAnimator.SetTrigger(ValueShortcut.anim_Dive);
+                    playerAnimator.SetBool(ValueShortcut.anim_UnderWater,true);
+                }
+ 
                 break;
-            
+             
             case PlayerPlaceState.Float :
                 if (!stateController.IsStateLocked) {
-                    stateController.StateOnLock();
+                     stateController.StateOnLock();
+                    // playerAnimator.SetTrigger(ValueShortcut.anim_Float);
+                    // playerAnimator.SetBool(ValueShortcut.anim_UnderWater,false);
+                    playerAnimator.SetTrigger("Ascend");
                     playerAnimator.SetTrigger(ValueShortcut.anim_Float);
                     playerAnimator.SetBool(ValueShortcut.anim_UnderWater,false);
                 }
-
                 break;
 
             default:
