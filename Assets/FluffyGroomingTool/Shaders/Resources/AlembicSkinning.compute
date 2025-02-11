@@ -1,0 +1,91 @@
+#pragma kernel SkinningKernel
+#define SIZEOF_INT 4
+#include "VerletSimulationInclude.hlsl"
+#include "HairRendererInclude.hlsl"
+#include "../NormalHelperInclude.cginc"
+
+RWStructuredBuffer<HairStrandPoint> hairStrandPoints;
+StructuredBuffer<float3> curvePoints;
+StructuredBuffer<float2> uvBuffer;
+StructuredBuffer<MeshProperties> sourceMesh;
+RWByteAddressBuffer meshIndexBuffer;
+uint maxX;
+uint maxY;
+
+bool isInsideTriangle(float3 bc)
+{
+    return bc.x >= 0 && bc.y >= 0 && bc.x + bc.y <= 1;
+}
+
+float inverseScale;
+
+THREAD_SIZE
+void SkinningKernel(uint3 id : SV_DispatchThreadID)
+{
+    const uint pointRootIndex = id.x * strandPointsCount;
+    if (pointRootIndex >= maxX) return;
+    for (uint triInd = 0; triInd < maxY; triInd += 3)
+    {
+        uint triIndex1 = meshIndexBuffer.Load(triInd * SIZEOF_INT);
+        uint triIndex2 = meshIndexBuffer.Load((triInd + 1) * SIZEOF_INT);
+        uint triIndex3 = meshIndexBuffer.Load((triInd + 2) * SIZEOF_INT);
+
+        const MeshProperties sm1 = sourceMesh[triIndex1];
+        const MeshProperties sm2 = sourceMesh[triIndex2];
+        const MeshProperties sm3 = sourceMesh[triIndex3];
+
+        const float3 vert1 = sm1.sourceVertex;
+        const float3 vert2 = sm2.sourceVertex;
+        const float3 vert3 = sm3.sourceVertex;
+
+        const float3 curvePoint = curvePoints[pointRootIndex];
+        const float3 barycentricCoordinate = Barycentric(vert1, vert2, vert3, curvePoint);
+
+        const float3 baryCentricPosition = Interpolate3(vert1, vert2, vert3, barycentricCoordinate);
+
+        if (isInsideTriangle(barycentricCoordinate) && distance(baryCentricPosition, curvePoint) < 0.005)
+        {
+            const float3 normal1 = sm1.sourceNormal;
+            const float3 normal2 = sm2.sourceNormal;
+            const float3 normal3 = sm3.sourceNormal;
+
+            const float4 tangent1 = sm1.sourceTangent;
+            const float4 tangent2 = sm2.sourceTangent;
+            const float4 tangent3 = sm3.sourceTangent;
+
+            const float3 barycentricNormal = Interpolate3(normal1, normal2, normal3, barycentricCoordinate);
+            const float4 barycentricTangent = Interpolate4(tangent1, tangent2, tangent3, barycentricCoordinate);
+            const float2 uv = Interpolate2(
+                uvBuffer[triIndex1],
+                uvBuffer[triIndex2],
+                uvBuffer[triIndex3],
+                barycentricCoordinate
+            );
+            half4 normalTangentRotation = QuaternionLookRotation(barycentricTangent.xyz, barycentricNormal);
+
+            half4 normalTangentRotationInverse = half4(
+                -normalTangentRotation.x,
+                -normalTangentRotation.y,
+                -normalTangentRotation.z,
+                normalTangentRotation.w
+            );
+            half4x4 inverseRotationMatrix = quaternionToMatrix(normalTangentRotationInverse);
+
+            for (uint j = pointRootIndex; j < pointRootIndex + strandPointsCount; j++)
+            {
+                float3 localStrandPoint = curvePoints[j];
+                float originalDistance = distance(baryCentricPosition, localStrandPoint);
+
+                localStrandPoint -= baryCentricPosition;
+                localStrandPoint = mul(inverseRotationMatrix, float4(localStrandPoint.xyz, 1)).xyz;
+                HairStrandPoint p;
+                p.barycentricCoordinate = barycentricCoordinate;
+                p.triangleIndices = float3(triIndex1, triIndex2, triIndex3);
+                p.rotationDiffFromNormal = localStrandPoint * inverseScale;
+                p.distanceToRoot = originalDistance * inverseScale;
+                p.uv = uv;
+                hairStrandPoints[j] = p;
+            }
+        }
+    }
+}

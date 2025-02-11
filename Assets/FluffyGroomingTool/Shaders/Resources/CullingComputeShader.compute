@@ -1,0 +1,256 @@
+#pragma kernel DistanceAndVisibility
+#pragma kernel Initialize
+#pragma kernel AssembleIndices
+#pragma kernel AssembleVisibleTrianglesIndices
+#pragma kernel FrustomCullingAndLodOnly
+
+#include "CommonConstants.cginc"
+#include "Thread.hlsl"
+
+struct MeshTriangle
+{
+    int3 triangleIndices;
+    float distanceToCamera;
+    int isVisible;
+};
+#pragma multi_compile __  OCCLUSION_CULLING
+
+RWByteAddressBuffer meshIndexBuffer;
+RWByteAddressBuffer furMeshBuffer;
+#if defined(OCCLUSION_CULLING)
+Texture2D<float4> depthTexture;
+#endif
+SamplerState samplerdepthTexture;
+
+uint vertexBufferStride;
+
+float4x4 _UNITY_MATRIX_MVP;
+RWStructuredBuffer<MeshTriangle> triangles;
+AppendStructuredBuffer<MeshTriangle> visibleTriangles;
+float3 worldSpaceCameraPosition;
+uint isFrustumCullingEnabled;
+uint lodSkipStrandsCount;
+uint trianglesCount;
+
+THREAD_SIZE
+void Initialize(uint3 id : SV_DispatchThreadID)
+{
+    uint triangle1Index1 = id.x * 3;
+    uint triangle1Index2 = triangle1Index1 + 1;
+    uint triangle1Index3 = triangle1Index1 + 2;
+    MeshTriangle meshTriangle;
+    meshTriangle.isVisible = 1;
+    meshTriangle.distanceToCamera = -1;
+    meshTriangle.triangleIndices = int3(
+        meshIndexBuffer.Load(triangle1Index1 * 4),
+        meshIndexBuffer.Load(triangle1Index2 * 4),
+        meshIndexBuffer.Load(triangle1Index3 * 4)
+    );
+    triangles[id.x] = meshTriangle;
+}
+
+//-1 if flipped directX/metal
+float isFlippedY;
+float cameraFarClipPlane;;
+
+inline float4 ComputeScreenPos(float4 pos)
+{
+    float4 o = pos * 0.5f;
+    o.xy = float2(o.x, o.y * isFlippedY) + o.w;
+    o.zw = pos.zw;
+    return o;
+}
+
+inline float2 ComputeScreenUV(float4 pos)
+{
+    const float4 sp = ComputeScreenPos(pos);
+    return sp.xy / sp.w;
+}
+
+inline uint IsVisibleAfterFrustumCulling(float4 clipPos)
+{
+    float clipPosW = clipPos.w + 0.1;
+    return (clipPos.z > clipPosW
+               || clipPos.x < -clipPosW
+               || clipPos.x > clipPosW
+               || clipPos.y < -clipPosW
+               || clipPos.y > clipPosW)
+               ? 0
+               : 1;
+}
+
+#define OCCLUSION_CULLING_PADDING 0.1
+
+uint isVisibleAfterOcclusionCulling(float2 uv, float vertexDistanceToCam)
+{
+    #if defined(OCCLUSION_CULLING)
+    float3 pixelWorldSpace = depthTexture.SampleLevel(samplerdepthTexture, uv, 0).xyz;
+        float pixelDistanceFromCamera = distance(worldSpaceCameraPosition, pixelWorldSpace) + OCCLUSION_CULLING_PADDING;
+        return vertexDistanceToCam <= pixelDistanceFromCamera ? 1 : 0;
+    #else
+    return 1;
+    #endif
+}
+
+uint loadHairStrandIndex(uint index)
+{
+    //Hair strand index is stored in uv4.y so we need the correct byte offset:
+    //VertexPos and Normal: SIZEOF_FLOAT3 * 2, Tangent and Color: SIZEOF_FLOAT4 * 2, Uv1-3: SIZEOF_FLOAT2 * 3
+    return (uint)asfloat(furMeshBuffer.Load2(index * vertexBufferStride + SIZEOF_FLOAT3 * 2 + SIZEOF_FLOAT4 * 2 + SIZEOF_FLOAT2 * 3)).y;
+}
+
+THREAD_SIZE
+void DistanceAndVisibility(uint3 id : SV_DispatchThreadID)
+{
+    uint index = id.x;
+    if (index < trianglesCount)
+    {
+        MeshTriangle meshTriangle = triangles[index];
+        float3 pos1 = asfloat(furMeshBuffer.Load3(meshTriangle.triangleIndices.x * vertexBufferStride));
+        float3 pos2 = asfloat(furMeshBuffer.Load3(meshTriangle.triangleIndices.y * vertexBufferStride));
+        float3 pos3 = asfloat(furMeshBuffer.Load3(meshTriangle.triangleIndices.z * vertexBufferStride));
+
+        int hairStrandIndex = loadHairStrandIndex((int)meshTriangle.triangleIndices.x);
+
+        float3 triangleCenterPosition = (pos1 + pos2 + pos3) / 3;
+        meshTriangle.distanceToCamera = -distance(worldSpaceCameraPosition, triangleCenterPosition);
+        if (fmod(hairStrandIndex, lodSkipStrandsCount) > 0)
+        {
+            meshTriangle.isVisible = 0;
+        }
+        else
+        {
+            if (isFrustumCullingEnabled > 0)
+            {
+                float4 clipPos1 = mul(_UNITY_MATRIX_MVP, float4(pos1, 1));
+                float4 clipPos2 = mul(_UNITY_MATRIX_MVP, float4(pos2, 1));
+                float4 clipPos3 = mul(_UNITY_MATRIX_MVP, float4(pos3, 1));
+
+                uint isInFrustum =
+                    IsVisibleAfterFrustumCulling(clipPos1) +
+                    IsVisibleAfterFrustumCulling(clipPos2) +
+                    IsVisibleAfterFrustumCulling(clipPos3);
+                #if defined(OCCLUSION_CULLING)
+                if (isInFrustum > 0)
+                {
+                    uint isOccluded = isVisibleAfterOcclusionCulling(ComputeScreenUV(clipPos1), distance(worldSpaceCameraPosition, pos1)) -
+                            isVisibleAfterOcclusionCulling(ComputeScreenUV(clipPos2), distance(worldSpaceCameraPosition, pos2)) -
+                            isVisibleAfterOcclusionCulling(ComputeScreenUV(clipPos3), distance(worldSpaceCameraPosition, pos3));
+          
+                    meshTriangle.isVisible = isOccluded > 0 ? 1 : 0;
+                }
+                else
+                {
+                    meshTriangle.isVisible = 0;
+                }
+                #else
+                meshTriangle.isVisible = isInFrustum == 0 ? 0 : 1;
+                #endif
+            }
+            else
+            {
+                meshTriangle.isVisible = 1;
+            }
+        }
+        if (meshTriangle.isVisible > 0) visibleTriangles.Append(meshTriangle);
+        triangles[index] = meshTriangle;
+    }
+}
+
+
+StructuredBuffer<uint> Keys;
+StructuredBuffer<uint> renderMeshArguments;
+uniform uint numberOfVisibleTriangles;
+
+THREAD_SIZE
+void AssembleIndices(uint3 id : SV_DispatchThreadID)
+{
+    uint index = id.x;
+    if (index < numberOfVisibleTriangles)
+    {
+        MeshTriangle meshTriangle = triangles[Keys[index]];
+        uint triangleIndex = index * 3;
+
+        meshIndexBuffer.Store((triangleIndex + 0) * 4, asuint(meshTriangle.triangleIndices.x));
+        meshIndexBuffer.Store((triangleIndex + 1) * 4, asuint(meshTriangle.triangleIndices.y));
+        meshIndexBuffer.Store((triangleIndex + 2) * 4, asuint(meshTriangle.triangleIndices.z));
+    }
+}
+
+StructuredBuffer<MeshTriangle> visibleTrianglesRead;
+
+THREAD_SIZE
+void AssembleVisibleTrianglesIndices(uint3 id : SV_DispatchThreadID)
+{
+    uint index = id.x;
+    if (index < numberOfVisibleTriangles)
+    {
+        MeshTriangle meshTriangle = visibleTrianglesRead[(int)index];
+        uint triangleIndex = index * 3;
+
+        meshIndexBuffer.Store((triangleIndex + 0) * 4, asuint(meshTriangle.triangleIndices.x));
+        meshIndexBuffer.Store((triangleIndex + 1) * 4, asuint(meshTriangle.triangleIndices.y));
+        meshIndexBuffer.Store((triangleIndex + 2) * 4, asuint(meshTriangle.triangleIndices.z));
+    }
+}
+
+void storeAsHiddenTriangle(uint triangleIndex)
+{
+    meshIndexBuffer.Store((triangleIndex + 0) * 4, 0);
+    meshIndexBuffer.Store((triangleIndex + 1) * 4, 0);
+    meshIndexBuffer.Store((triangleIndex + 2) * 4, 0);
+}
+
+void storeAsVisibleTriangle(MeshTriangle meshTriangle, uint triangleIndex)
+{
+    meshIndexBuffer.Store((triangleIndex + 0) * 4, asuint(meshTriangle.triangleIndices.x));
+    meshIndexBuffer.Store((triangleIndex + 1) * 4, asuint(meshTriangle.triangleIndices.y));
+    meshIndexBuffer.Store((triangleIndex + 2) * 4, asuint(meshTriangle.triangleIndices.z));
+}
+
+THREAD_SIZE
+void FrustomCullingAndLodOnly(uint3 id : SV_DispatchThreadID)
+{
+    uint index = id.x;
+    if (index < trianglesCount)
+    {
+        MeshTriangle meshTriangle = triangles[index];
+
+        int hairStrandIndex = loadHairStrandIndex((int)meshTriangle.triangleIndices.x);
+
+        uint triangleIndex = index * 3;
+        bool isLODCulled = fmod(hairStrandIndex, lodSkipStrandsCount) > 0;
+        if (isLODCulled)
+        {
+            storeAsHiddenTriangle(triangleIndex);
+            return;
+        }
+        if (isFrustumCullingEnabled > 0)
+        {
+            float3 pos1 = asfloat(furMeshBuffer.Load3(meshTriangle.triangleIndices.x * vertexBufferStride));
+            float3 pos2 = asfloat(furMeshBuffer.Load3(meshTriangle.triangleIndices.y * vertexBufferStride));
+            float3 pos3 = asfloat(furMeshBuffer.Load3(meshTriangle.triangleIndices.z * vertexBufferStride));
+
+            float4 clipPos1 = mul(_UNITY_MATRIX_MVP, float4(pos1, 1));
+            float4 clipPos2 = mul(_UNITY_MATRIX_MVP, float4(pos2, 1));
+            float4 clipPos3 = mul(_UNITY_MATRIX_MVP, float4(pos3, 1));
+
+            uint isInFrustum =
+                IsVisibleAfterFrustumCulling(clipPos1) +
+                IsVisibleAfterFrustumCulling(clipPos2) +
+                IsVisibleAfterFrustumCulling(clipPos3);
+            if (isInFrustum > 0)
+            {
+                storeAsVisibleTriangle(meshTriangle, triangleIndex);
+            }
+            else
+            {
+                storeAsHiddenTriangle(triangleIndex);
+            }
+        }
+        else
+        {
+            storeAsVisibleTriangle(meshTriangle, triangleIndex);
+        }
+    }
+}

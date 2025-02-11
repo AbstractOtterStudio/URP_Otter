@@ -1,0 +1,68 @@
+﻿#include "Thread.hlsl"
+
+#define MAX_DIM_GROUPS 1024
+#define MAX_DIM_THREADS (THREAD_SIZE_VAL * MAX_DIM_GROUPS)
+#pragma kernel BitonicSort 
+#pragma kernel InitKeys
+
+struct MeshTriangle
+{
+    int3 triangleIndices;
+    float distanceToCamera;
+    int isVisible;
+};
+
+uint trianglesCount;
+
+int block; 
+int dim;
+uint count;
+RWStructuredBuffer<uint> Keys;
+StructuredBuffer<MeshTriangle> Values;
+StructuredBuffer<int> IntValues;
+
+THREAD_SIZE
+void BitonicSort(uint3 id : SV_DispatchThreadID)
+{
+    uint i = id.x + id.y * MAX_DIM_THREADS;
+    uint j = i ^ block;
+
+    if (j < i || i >= count)
+        return;
+
+    uint key_i = Keys[i];
+    uint key_j = Keys[j];
+    float value_i = 1000000.0;
+    float value_j = 1000000.0;
+    if (key_i < trianglesCount)
+    {
+        const MeshTriangle mt = Values[key_i];
+        if (mt.isVisible > 0)
+        {
+            value_i = mt.distanceToCamera;
+        }
+    }
+    if (key_j < trianglesCount)
+    {
+        const MeshTriangle mt = Values[key_j];
+        if (mt.isVisible > 0)
+        {
+            value_j = mt.distanceToCamera;
+        }
+    }
+
+    float diff = (value_i - value_j) * ((i & dim) == 0 ? 1 : -1);
+    if (diff > 0)
+    {
+        Keys[i] = key_j;
+        Keys[j] = key_i;
+    }
+}
+
+THREAD_SIZE
+void InitKeys(uint3 id : SV_DispatchThreadID)
+{
+    uint i = id.x + id.y * MAX_DIM_THREADS;
+    if (i < count)
+        Keys[i] = i;
+}

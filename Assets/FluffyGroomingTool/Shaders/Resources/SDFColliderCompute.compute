@@ -1,0 +1,168 @@
+//---------------------------------------------------------------------------------------
+// Shader code related to simulating hair strands in compute.
+//-------------------------------------------------------------------------------------
+//
+// Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+//
+
+#pragma kernel InitializeSignedDistanceField
+#pragma kernel ConstructSignedDistanceField
+#pragma kernel FinalizeSignedDistanceField
+#pragma kernel CollideWithVerletNodesKernel
+#pragma multi_compile __  USE_FORWARD_COLLISION
+
+#include "VerletSimulationInclude.hlsl" 
+#include "Thread.hlsl" 
+
+// One thread for each cell. 
+THREAD_SIZE_LARGE
+void InitializeSignedDistanceField(uint GIndex : SV_GroupIndex,
+                                   uint3 GId : SV_GroupID,
+                                   uint3 DTid : SV_DispatchThreadID)
+{
+    int numSdfCells = g_NumCellsX * g_NumCellsY * g_NumCellsZ;
+
+    int sdfCellIndex = GId.x * THREAD_SIZE_LARGE_VAL + GIndex;
+ 
+    if (sdfCellIndex >= numSdfCells) return;
+    g_SignedDistanceField[sdfCellIndex] = FloatFlip3(INITIAL_DISTANCE);
+}
+ 
+int3 GetLocalCellPositionFromIndex(uint localCellIndex, int3 cellsPerDimensionLocal)
+{
+    uint cellsPerLine = (uint)cellsPerDimensionLocal.x;
+    uint cellsPerPlane = (uint)(cellsPerDimensionLocal.x * cellsPerDimensionLocal.y);
+
+    uint numPlanesZ = localCellIndex / cellsPerPlane;
+    uint remainder = localCellIndex % cellsPerPlane;
+
+    uint numLinesY = remainder / cellsPerLine;
+    uint numCellsX = remainder % cellsPerLine;
+
+    return int3((int)numCellsX, (int)numLinesY, (int)numPlanesZ);
+}
+
+static const uint out_struc_stride = 32;
+uniform int numTriangles;
+uniform float4x4 rootMatrix;
+
+// One thread per each triangle
+THREAD_SIZE_LARGE
+void ConstructSignedDistanceField(uint GIndex : SV_GroupIndex,
+                                  uint3 GId : SV_GroupID,
+                                  uint3 DTid : SV_DispatchThreadID)
+{
+    int triangleIndex = GId.x * THREAD_SIZE_LARGE_VAL + GIndex;
+
+    if (triangleIndex >= numTriangles)
+        return;
+    int indexFormatMultiplier = 4;
+    uint index0 = g_TrimeshVertexIndices.Load((triangleIndex * 3 + 0) * indexFormatMultiplier);
+    uint index1 = g_TrimeshVertexIndices.Load((triangleIndex * 3 + 1) * indexFormatMultiplier);
+    uint index2 = g_TrimeshVertexIndices.Load((triangleIndex * 3 + 2) * indexFormatMultiplier);
+
+    float3 tri0 = mul(rootMatrix, float4(collMeshVertexPositions[index0].sourceVertex, 1)).xyz;
+    float3 tri1 = mul(rootMatrix, float4(collMeshVertexPositions[index1].sourceVertex, 1)).xyz;
+    float3 tri2 = mul(rootMatrix, float4(collMeshVertexPositions[index2].sourceVertex, 1)).xyz;
+
+    float3 aabbMin = min(tri0, min(tri1, tri2)) - float3(MARGIN, MARGIN, MARGIN);
+    float3 aabbMax = max(tri0, max(tri1, tri2)) + float3(MARGIN, MARGIN, MARGIN);
+
+    int3 gridMin = GetSdfCoordinates(aabbMin) - GRID_MARGIN;
+    int3 gridMax = GetSdfCoordinates(aabbMax) + GRID_MARGIN;
+
+    gridMin.x = max(0, min(gridMin.x, g_NumCellsX - 1));
+    gridMin.y = max(0, min(gridMin.y, g_NumCellsY - 1));
+    gridMin.z = max(0, min(gridMin.z, g_NumCellsZ - 1));
+
+    gridMax.x = max(0, min(gridMax.x, g_NumCellsX - 1));
+    gridMax.y = max(0, min(gridMax.y, g_NumCellsY - 1));
+    gridMax.z = max(0, min(gridMax.z, g_NumCellsZ - 1));
+
+    for (int z = gridMin.z; z <= gridMax.z; ++z)
+        for (int y = gridMin.y; y <= gridMax.y; ++y)
+            for (int x = gridMin.x; x <= gridMax.x; ++x)
+            {
+                int3 gridCellCoordinate = int3(x, y, z);
+                int gridCellIndex = GetSdfCellIndex(gridCellCoordinate);
+                float3 cellPosition = GetSdfCellPosition(gridCellCoordinate);
+
+                float distance = SignedDistancePointToTriangle(cellPosition, tri0, tri1, tri2);
+                //distance -= MARGIN;
+                uint distanceAsUint = FloatFlip3(distance);
+                InterlockedMin(g_SignedDistanceField[gridCellIndex], distanceAsUint);
+            }
+}
+
+// One thread per each cell. 
+THREAD_SIZE_LARGE
+void FinalizeSignedDistanceField(uint GIndex : SV_GroupIndex,
+                                 uint3 GId : SV_GroupID,
+                                 uint3 DTid : SV_DispatchThreadID)
+{
+    int numSdfCells = g_NumCellsX * g_NumCellsY * g_NumCellsZ;
+
+    int sdfCellIndex = GId.x * THREAD_SIZE_LARGE_VAL + GIndex;
+    if (sdfCellIndex >= numSdfCells) return;
+
+
+    uint distance = g_SignedDistanceField[sdfCellIndex];
+
+    g_SignedDistanceField[sdfCellIndex] = IFloatFlip3(distance);
+}
+
+uint nodesCount;  
+#pragma warning( disable : 4714 )
+#pragma warning( disable : 4000 ) 
+THREAD_SIZE_LARGE
+void CollideWithVerletNodesKernel(uint3 id : SV_DispatchThreadID)
+{
+    int nodeIndex = id.x;
+
+    if (nodeIndex >= (int)nodesCount) return;
+
+    VerletNode currentNode = verletNodes[nodeIndex];
+    float3 hairVertex = currentNode.position; 
+    if (isFixed(currentNode)) return;
+
+    int didSDFCollide = 0;
+    #if defined(USE_FORWARD_COLLISION) 
+        CollideHairVerticesWithSdf_forward(didSDFCollide, hairVertex, 0);//Out hairVertex
+    #else
+        collideWithSDF(didSDFCollide, hairVertex, 0);//Out hairVertex
+    #endif
+    const float3 collisionDiff = currentNode.position - hairVertex; 
+
+    if (didSDFCollide == 1)
+    {
+        const uint furMeshLeftIndex = nodeIndex * 2 * furMeshBufferStride;
+        const uint furMeshRightIndex = (nodeIndex * 2 + 1) * furMeshBufferStride;
+
+        const float3 meshVertexPositionLeft = loadSourceVertex(furMeshLeftIndex);
+        const float3 meshVertexPositionRight = loadSourceVertex(furMeshRightIndex);
+ 
+        writeVector3(furMeshLeftIndex, 0, meshVertexPositionLeft + collisionDiff);
+        writeVector3(furMeshRightIndex, 0, meshVertexPositionRight + collisionDiff);
+ 
+        currentNode.position = hairVertex; 
+        verletNodes[nodeIndex] = currentNode;
+    }
+}

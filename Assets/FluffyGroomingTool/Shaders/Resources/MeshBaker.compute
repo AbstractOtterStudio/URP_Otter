@@ -1,0 +1,156 @@
+#pragma kernel BakeMeshKernel
+#pragma kernel RayCastKernel
+
+#pragma multi_compile __  IS_SKINNED_MESH
+#include "../NormalHelperInclude.cginc"
+#include "Thread.hlsl"
+
+struct MeshProperties
+{
+    float3 sourceVertex;
+    float3 sourceNormal;
+    float4 sourceTangent;
+};
+
+uniform RWByteAddressBuffer sourceMeshData;
+uniform uint vertexBufferStride;
+uniform RWStructuredBuffer<MeshProperties> bakedMesh;
+
+#define SIZEOF_FLOAT3 12
+uniform float4x4 transformMatrix;
+uniform float4x4 rotationMatrix;
+uniform uint verticesCount;
+
+float3 loadSourceVertex(uint index)
+{
+    return asfloat(sourceMeshData.Load3(index * vertexBufferStride));
+}
+
+float3 loadSourceNormal(uint index)
+{
+    return mul(rotationMatrix, float4(asfloat(sourceMeshData.Load3(index * vertexBufferStride + SIZEOF_FLOAT3)), 1)).xyz;
+}
+
+float4 loadSourceTangent(uint index)
+{
+    return mul(rotationMatrix, asfloat(sourceMeshData.Load4(index * vertexBufferStride + SIZEOF_FLOAT3 * 2)));
+}
+
+
+THREAD_SIZE
+void BakeMeshKernel(uint3 id : SV_DispatchThreadID)
+{
+    uint index = id.x;
+    if (index < verticesCount)
+    {
+        MeshProperties baked;
+        float3 vertex = loadSourceVertex(index);
+
+        baked.sourceVertex = mul(transformMatrix, float4(vertex, 1)).xyz;
+        baked.sourceNormal = loadSourceNormal(index);
+        baked.sourceTangent = loadSourceTangent(index);
+        bakedMesh[index] = baked;
+    }
+}
+
+float3 origin;
+float3 direction;
+RWByteAddressBuffer meshIndexBuffer;
+AppendStructuredBuffer<MeshProperties> rayCastHits;
+
+bool intersectTriangle(float3 a, float3 b, float3 c, out float3 barycentricCoordinate)
+{
+    barycentricCoordinate = float3(0, 0, 0);
+    bool returnValue = true;
+    float3 ro = origin;
+    float3 rd = direction;
+
+    float3 ab = b - a;
+    float3 ac = c - a;
+    float3 n = cross(rd, ac);
+    float det = dot(ab, n);
+    if (abs(det) < 1e-5)
+    {
+        returnValue = false;
+    }
+    else
+    {
+        float invDet = 1.0 / det;
+        float3 k = ro - a;
+        float u = dot(k, n) * invDet;
+        if (u < 0.0 || u > 1.0)
+        {
+            returnValue = false;
+        }
+        else
+        {
+            float v = dot(rd, cross(k, ab)) * invDet;
+            if (v < 0.0 || u + v > 1.0)
+            {
+                returnValue = false;
+            }
+            else
+            {
+                float w = 1.0f - u - v;
+                barycentricCoordinate = float3(u, v, w);
+            }
+        }
+    }
+
+
+    return returnValue;
+}
+
+MeshProperties getBarycentricMeshData(MeshProperties mp1, MeshProperties mp2, MeshProperties mp3, float3 barycentricCoord)
+{
+    MeshProperties interpolated;
+    interpolated.sourceVertex = Interpolate3(mp1.sourceVertex, mp2.sourceVertex, mp3.sourceVertex, barycentricCoord);
+    interpolated.sourceNormal = Interpolate3(mp1.sourceNormal, mp2.sourceNormal, mp3.sourceNormal, barycentricCoord);
+    interpolated.sourceTangent = Interpolate4(mp1.sourceTangent, mp2.sourceTangent, mp3.sourceTangent, barycentricCoord);
+    return interpolated;
+}
+
+MeshProperties createWorldPosMeshProperty(float3 worldVertex, MeshProperties mp)
+{
+    MeshProperties meshProperty;
+    meshProperty.sourceVertex = worldVertex;
+    meshProperty.sourceNormal = mp.sourceNormal;
+    meshProperty.sourceTangent = mp.sourceTangent;
+    return meshProperty;
+}
+
+THREAD_SIZE_EDITOR
+void RayCastKernel(uint3 id : SV_DispatchThreadID)
+{
+    uint triangle1Index1 = id.x * 3;
+    uint triangle1Index2 = triangle1Index1 + 1;
+    uint triangle1Index3 = triangle1Index1 + 2;
+
+    triangle1Index1 = meshIndexBuffer.Load(triangle1Index1 * 4);
+    triangle1Index2 = meshIndexBuffer.Load(triangle1Index2 * 4);
+    triangle1Index3 = meshIndexBuffer.Load(triangle1Index3 * 4);
+    MeshProperties mp1 = bakedMesh[triangle1Index1];
+    MeshProperties mp2 = bakedMesh[triangle1Index2];
+    MeshProperties mp3 = bakedMesh[triangle1Index3];
+
+    float3 worldVertex1 = mul(transformMatrix, float4(mp1.sourceVertex, 1)).xyz;
+    float3 worldVertex2 = mul(transformMatrix, float4(mp2.sourceVertex, 1)).xyz;
+    float3 worldVertex3 = mul(transformMatrix, float4(mp3.sourceVertex, 1)).xyz;
+
+    float3 baryCentricCoordinate;
+
+    if (intersectTriangle(worldVertex3, worldVertex1, worldVertex2, baryCentricCoordinate))
+    {
+        MeshProperties meshData = getBarycentricMeshData(
+            createWorldPosMeshProperty(worldVertex1, mp1),
+            createWorldPosMeshProperty(worldVertex2, mp2),
+            createWorldPosMeshProperty(worldVertex3, mp3)
+            , baryCentricCoordinate
+        );
+        meshData.sourceNormal = mul(rotationMatrix, float4(meshData.sourceNormal, 1)).xyz;
+        meshData.sourceTangent = mul(rotationMatrix, meshData.sourceTangent);
+        rayCastHits.Append(
+            meshData
+        );
+    }
+}

@@ -1,0 +1,62 @@
+#pragma kernel CSMain
+#include "Thread.hlsl"
+
+struct MeshFullProperties
+{
+    float3 sourceVertex;
+    float3 sourceNormal;
+    float4 sourceTangent;
+    float4 sourceColor;
+    float2 sourceUV;
+};
+
+uniform RWByteAddressBuffer sourceMeshData;
+uniform uint vertexBufferStride;
+uniform RWStructuredBuffer<MeshFullProperties> bakedMesh;
+
+#define SIZEOF_FLOAT3 12
+#define SIZEOF_FLOAT4 16
+uniform float4x4 transformMatrix;
+uniform float4x4 rotationMatrix;
+uniform uint verticesCount;
+
+float3 loadSourceVertex(uint index)
+{
+    return mul(transformMatrix, float4(asfloat(sourceMeshData.Load3(index * vertexBufferStride)), 1)).xyz;
+}
+
+float3 loadSourceNormal(uint index)
+{
+    return mul(rotationMatrix, float4(asfloat(sourceMeshData.Load3(index * vertexBufferStride + SIZEOF_FLOAT3)), 1)).xyz;
+}
+
+float4 loadSourceTangent(uint index)
+{
+    return mul(rotationMatrix, asfloat(sourceMeshData.Load4(index * vertexBufferStride + SIZEOF_FLOAT3 * 2)));
+}
+
+float4 loadSourceColor(uint index)
+{
+    return mul(rotationMatrix, asfloat(sourceMeshData.Load4(index * vertexBufferStride + SIZEOF_FLOAT3 * 2 + SIZEOF_FLOAT4)));
+}
+
+float2 loadSourceUV(uint index)
+{
+    return mul(rotationMatrix, float4(asfloat(sourceMeshData.Load2(index * vertexBufferStride + SIZEOF_FLOAT3 * 2 + SIZEOF_FLOAT4 * 2)), 1, 1)).xy;
+}
+
+THREAD_SIZE
+void CSMain(uint3 id : SV_DispatchThreadID)
+{
+    uint index = id.x;
+    if (index < verticesCount)
+    {
+        MeshFullProperties baked;
+        baked.sourceVertex = loadSourceVertex(index);
+        baked.sourceNormal = loadSourceNormal(index);
+        baked.sourceTangent = loadSourceTangent(index);
+        baked.sourceColor = loadSourceColor(index);
+        baked.sourceUV = loadSourceUV(index);
+        bakedMesh[index] = baked;
+    }
+}

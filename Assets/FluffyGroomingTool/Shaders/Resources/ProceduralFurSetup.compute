@@ -1,0 +1,263 @@
+#pragma kernel UpdateFurMeshKernel
+#pragma kernel UpdateClumpsPositionKernel
+
+#pragma multi_compile __  HAS_COLLIDERS
+#pragma multi_compile __  VERLET_ENABLED
+#pragma multi_compile __  INIT_VERLET
+#pragma multi_compile __  HAS_CLUMPS
+#pragma multi_compile __  IS_CHILD_CLUMP
+
+#include <HLSLSupport.cginc>
+#include "FurMotionInclude.cginc"
+#include "Thread.hlsl"
+#include "../NormalHelperInclude.cginc"
+
+uniform StructuredBuffer<MeshProperties> sourceMesh;
+uniform StructuredBuffer<MeshFullProperties> cardMesh;
+
+int cardMeshVerticesCount;
+uint layerVertexStartIndex;
+
+float extraScale = 1;
+
+//START Clumps
+uniform StructuredBuffer<HairStrandStruct> clumpsBuffer;
+uniform StructuredBuffer<float> clumpAttractionCurve;
+uniform RWStructuredBuffer<float4> clumpPointsPosition;
+uniform RWStructuredBuffer<float4> parentClumpPointsPosition;
+int clumpYCoordinates;
+// END Clumps
+
+static float CARD_MESH_HEIGHT = 0.12;
+static float MAX_TWIST = 1900;
+
+float3 skinnedMeshScale;
+
+
+float3 applyClumping(HairStrandStruct hairStrand, float4 colors, float3 currentPosition, float clumpOffset)
+{
+    float3 positionWithClumping = currentPosition;
+
+    if (hairStrand.clumpIndices >= 0 && hairStrand.clumpMask > 0)
+    {
+        float myScaleY = length(float3(hairStrand.scaleMatrix[0][1], hairStrand.scaleMatrix[1][1], hairStrand.scaleMatrix[2][1]));
+        int clumpRootIndex = hairStrand.clumpIndices * clumpYCoordinates;
+        int strandMeshYIndex = colors.y;
+
+        float clumpScaleY = clumpPointsPosition[clumpRootIndex + strandMeshYIndex].w;
+        float scalePercent = myScaleY / clumpScaleY;
+        float newIndex = scalePercent * (float)strandMeshYIndex;
+        float newIndexLower = min(floor(newIndex), clumpYCoordinates - 1);
+        float newIndexUpper = min(newIndexLower + 1, clumpYCoordinates - 1);
+        float lerpAmount = newIndex - newIndexLower;
+
+        float3 clumpPositionLow = clumpPointsPosition[clumpRootIndex + newIndexLower].xyz;
+        float3 clumpPositionHigh = clumpPointsPosition[clumpRootIndex + newIndexUpper].xyz;
+        float3 clumpPosition = lerp(clumpPositionLow, clumpPositionHigh, lerpAmount);
+
+        clumpPosition.z += clumpOffset; //Not the best solution but ok for now. Prevents the strands from disappearing.
+        clumpPosition.x += clumpOffset;
+        float attractionAmountLow = clumpAttractionCurve[(int)newIndexLower];
+        float attractionAmountHigh = clumpAttractionCurve[(int)newIndexUpper];
+        float attraction = 1.0 - lerp(attractionAmountLow, attractionAmountHigh, lerpAmount);
+        positionWithClumping = lerp(currentPosition, clumpPosition, clamp(0, 1, attraction) * hairStrand.clumpMask);
+        // normal = normalize(currentPosition - clumpPosition);
+    }
+    return positionWithClumping;
+}
+
+uniform int layerVerticesCount;
+
+MeshProperties getBarycentricMeshData(float3 indices, float3 barycentricCoord)
+{
+    MeshProperties triangle1 = sourceMesh[(int)indices.x];
+    MeshProperties triangle2 = sourceMesh[(int)indices.y];
+    MeshProperties triangle3 = sourceMesh[(int)indices.z];
+    MeshProperties interpolated;
+    interpolated.sourceVertex = Interpolate3(triangle1.sourceVertex, triangle2.sourceVertex, triangle3.sourceVertex, barycentricCoord);
+    interpolated.sourceNormal = Interpolate3(triangle1.sourceNormal, triangle2.sourceNormal, triangle3.sourceNormal, barycentricCoord);
+    interpolated.sourceTangent = Interpolate4(triangle1.sourceTangent, triangle2.sourceTangent, triangle3.sourceTangent, barycentricCoord);
+    return interpolated;
+}
+
+#if defined(VERLET_ENABLED)
+    RWStructuredBuffer<VerletNode> verletNodes; 
+    RWStructuredBuffer<VerletRestNode> _RestPositions;
+ 
+    void setupVerlet(uint proceduralMeshIndex, float3 currentPosition, float vertexMovability, float windContribution, float3 worldSourceMeshNormal)
+    {
+        if(proceduralMeshIndex % 2 == 0)
+        {
+            int verletIndex = proceduralMeshIndex / 2;
+            VerletRestNode restNode = _RestPositions[verletIndex];
+            restNode.position = currentPosition;
+            restNode.worldSourceMeshNormal = worldSourceMeshNormal;
+#if defined(INIT_VERLET)
+            VerletNode node;
+            node.position = currentPosition;
+            node.prevPosition = currentPosition;
+            restNode.vertMoveAbility = vertexMovability;
+            restNode.pinnedAmount = 1 - windContribution;
+            node.isFixed = restNode.vertMoveAbility == 0 || restNode.pinnedAmount == 1;//This means we can't paint wind during play mode.
+            node.tangent = 0;
+            node.rotationDiffFromPrevNode = 0;
+            node.rotationDiffFromPrevNode2 = 0;
+            verletNodes[verletIndex] = node; 
+#endif
+            _RestPositions[verletIndex] = restNode;
+            if(vertexMovability == 0)
+            {
+                VerletNode fixedNode = verletNodes[verletIndex];
+                fixedNode.position = currentPosition;
+                fixedNode.prevPosition = currentPosition;
+                verletNodes[verletIndex] = fixedNode;
+            }
+        } 
+    }
+#endif
+
+void setupNormal(const uint proceduralMeshIndex, const float3 worldSourceMeshNormal, float3 currentPosition, uint furMeshIndex)
+{
+    if (proceduralMeshIndex % 2 == 0)
+    {
+        uint nextStrandPosIndex = ((uint)proceduralMeshIndex + 2) * furMeshBufferStride;
+        uint nextMeshIndex = ((uint)proceduralMeshIndex + 1) * furMeshBufferStride;
+        float3 tangent = normalize(loadSourceVertex(nextStrandPosIndex) - currentPosition);
+        writeNormal(furMeshIndex, nextMeshIndex, worldSourceMeshNormal, tangent);
+    }
+}
+
+THREAD_SIZE
+void UpdateFurMeshKernel(uint3 id : SV_DispatchThreadID)
+{
+    const int i = id.x;
+    if (i >= layerVerticesCount) return;
+    const int hairStrandIndex = floor(id.x / cardMeshVerticesCount);
+    const int cardMeshIndex = i - hairStrandIndex * cardMeshVerticesCount;
+    const uint proceduralMeshIndex = i + layerVertexStartIndex;
+    const MeshFullProperties cardMeshData = cardMesh[cardMeshIndex];
+    float3 cardStaticPosition = cardMeshData.sourceVertex;
+    float3 vertexBasePosition = cardStaticPosition;
+
+    const HairStrandStruct hairStrand = hairStrandsBuffer[hairStrandIndex];
+    const float3 triangles = hairStrand.triangles;
+    const float3 barycentricCoord = hairStrand.barycentricCoordinates;
+
+    MeshProperties meshProperties = getBarycentricMeshData(triangles, barycentricCoord);
+
+    float3 position = meshProperties.sourceVertex;
+    float3 normal = meshProperties.sourceNormal;
+    const float4 tangent = meshProperties.sourceTangent;
+
+    const float4x4 rotationFromNormalMatrix = quaternionToMatrix(QuaternionLookRotation(tangent, normal));
+    const float3 worldSourceMeshNormal = mul(objectRotationMatrix, fixed4(normal, 1.0)).xyz;
+    vertexBasePosition.z *= extraScale;
+
+    //Scale   
+    vertexBasePosition = mul(float4(vertexBasePosition, 1), hairStrand.scaleMatrix).xyz;
+    #if defined(HAS_CLUMPS)
+        float clumpOffset = vertexBasePosition.z * objectGlobalScale;
+    #endif
+    float4 colors = cardMeshData.sourceColor;
+    const float vertexMoveAbility = colors.r;
+
+    //Twist
+    vertexBasePosition = Unity_RotateAboutAxis_Degrees(vertexBasePosition, float3(0.25 * hairStrand.twist.z, 1, 0),
+                                                       MAX_TWIST * vertexMoveAbility * hairStrand.twist.x);
+    //Bend
+    const float bendAmount = hairStrand.bend.w * 90.0 * vertexMoveAbility;
+    const float3 bendXZ = float3(hairStrand.bend.x, 0, hairStrand.bend.z);
+    vertexBasePosition = Unity_RotateAboutAxis_Degrees(vertexBasePosition, bendXZ, bendAmount);
+
+    //Root rotation Y and Orientation  
+    vertexBasePosition = mul(hairStrand.rootAndOrientationMatrix, float4(vertexBasePosition, 1)).xyz;
+    vertexBasePosition = mul(rotationFromNormalMatrix, float4(vertexBasePosition, 1)).xyz;
+
+    //Source mesh position
+    vertexBasePosition += position;
+
+    //Apply the localToWorldMatrix
+    float3 currentPosition = mul(localToWorldMatrix, float4(vertexBasePosition, 1.0)).xyz;
+
+    uint furMeshIndex = (uint)proceduralMeshIndex * furMeshBufferStride;
+    //Add clumping
+    #if defined(HAS_CLUMPS)
+        currentPosition = applyClumping(hairStrand, colors, currentPosition, clumpOffset);
+    #else
+    #endif
+    const float3 oldPosition = loadSourceVertex(furMeshIndex);
+    //Our strand vertex is setup, now let's append the same shenanigans as for the regular move kernels 
+    #if defined(VERLET_ENABLED)
+        setupVerlet(proceduralMeshIndex, currentPosition, vertexMoveAbility, hairStrand.windContribution, worldSourceMeshNormal);
+    #else
+    //NORMAL
+    setupNormal(proceduralMeshIndex, worldSourceMeshNormal, currentPosition, furMeshIndex);
+    #endif
+    //VERTEX
+    writeVector3(furMeshIndex, 0, currentPosition);
+    //TANGENT
+    writeVector4(furMeshIndex, SIZEOF_FLOAT3 * 2, tangent); //Should this use the same logic as the normals? 
+    //OVERRIDE COLOR 
+    writeVector4(furMeshIndex, SIZEOF_FLOAT3 * 2 + SIZEOF_FLOAT4, hairStrand.overrideColor);
+    //SOURCE MESH UV
+    writeVector2(furMeshIndex, SIZEOF_FLOAT3 * 2 + SIZEOF_FLOAT4 * 2, hairStrand.uv);
+    //CARD UV
+    writeVector2(furMeshIndex, SIZEOF_FLOAT3 * 2 + SIZEOF_FLOAT4 * 2 + SIZEOF_FLOAT2, cardMeshData.sourceUV + hairStrand.uvOffset);
+    //We store the previous position in uv3-4 for motion vectors
+    //OLD POS XY Can we use a separate buffer here instead? Maybe use drawPocedural? 
+    writeVector2(furMeshIndex, SIZEOF_FLOAT3 * 2 + SIZEOF_FLOAT4 * 2 + SIZEOF_FLOAT2 * 2, float2(oldPosition.x, oldPosition.y));
+    //OLD POS Z and HAIR_STRAND_INDEX
+    writeVector2(furMeshIndex, SIZEOF_FLOAT3 * 2 + SIZEOF_FLOAT4 * 2 + SIZEOF_FLOAT2 * 3, float2(oldPosition.z, (float)hairStrandIndex));
+}
+
+uniform float clumpPointsCount;
+
+THREAD_SIZE
+void UpdateClumpsPositionKernel(uint3 id : SV_DispatchThreadID)
+{
+    int i = id.x;
+    if (i >= clumpPointsCount)return;
+    const int clumpIndex = floor((float)i / (float)clumpYCoordinates);
+    const int clumpPointIndex = i - clumpIndex * clumpYCoordinates;
+    const float yPercent = (float)(clumpPointIndex + 1) / (float)clumpYCoordinates;
+    const HairStrandStruct clump = clumpsBuffer[clumpIndex];
+
+    MeshProperties meshProperties = getBarycentricMeshData(clump.triangles, clump.barycentricCoordinates);
+
+    float3 clumpPos = meshProperties.sourceVertex;
+    float3 normal = meshProperties.sourceNormal;
+    const float4 tangent = meshProperties.sourceTangent;
+    float3 vertexBasePosition = float3(0, yPercent * CARD_MESH_HEIGHT, 0);
+
+    const float4x4 rotationFromNormalMatrix = quaternionToMatrix(QuaternionLookRotation(tangent, normal));
+
+    //Scale   
+    vertexBasePosition = mul(float4(vertexBasePosition, 1), clump.scaleMatrix).xyz;
+
+    //Bend
+    #ifndef IS_CHILD_CLUMP
+    vertexBasePosition = Unity_RotateAboutAxis_Degrees(
+        vertexBasePosition,
+        float3(0.25 * clump.twist.w, 1, 0),
+        MAX_TWIST * (1 - yPercent) * clump.twist.y);
+    #endif
+    const float bendAmount = clump.bend.w * 90.0 * yPercent;
+    const float3 bendXZ = float3(clump.bend.x, 0, clump.bend.z);
+    vertexBasePosition = Unity_RotateAboutAxis_Degrees(vertexBasePosition, bendXZ, bendAmount);
+
+    //Root rotation Y and Orientation TODO: Should look at cam? 
+    vertexBasePosition = mul(clump.rootAndOrientationMatrix, float4(vertexBasePosition, 1)).xyz;
+    vertexBasePosition = mul(rotationFromNormalMatrix, float4(vertexBasePosition, 1)).xyz;
+    vertexBasePosition += clumpPos;
+    float clumpScale = length(float3(clump.scaleMatrix[0][1], clump.scaleMatrix[1][1], clump.scaleMatrix[2][1]));
+    vertexBasePosition.xyz = mul(localToWorldMatrix, float4(vertexBasePosition, 1.0)).xyz;
+
+    #if defined(IS_CHILD_CLUMP)
+        int clumpRootIndex = clump.clumpIndices * clumpYCoordinates;
+        float3 parentClumpPointPosition = parentClumpPointsPosition[clumpRootIndex + clumpPointIndex];
+        float attraction = clumpAttractionCurve[clumpPointIndex];
+        vertexBasePosition.xyz = lerp(parentClumpPointPosition, vertexBasePosition.xyz, attraction);
+    #endif
+
+    clumpPointsPosition[i] = float4(vertexBasePosition.xyz, clumpScale);
+}

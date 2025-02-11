@@ -1,0 +1,285 @@
+#pragma kernel AllInOneKernel
+#pragma kernel LinesIndicesKernel
+#pragma kernel TriangleIndicesKernel
+#include "VerletSimulationInclude.hlsl"
+#include "HairRendererInclude.hlsl"
+#include "Thread.hlsl"
+#include "../NormalHelperInclude.cginc"
+
+#pragma multi_compile __  INITIALIZE_VERLET_NODES
+#pragma multi_compile __  STRIP_TOPOLOGY
+#pragma multi_compile __  VERLET_ENABLED
+#pragma multi_compile __  HAS_COLLIDERS
+#pragma multi_compile __  COLLIDE_WITH_SOURCE_MESH
+#pragma multi_compile __  USE_FORWARD_COLLISION
+#pragma multi_compile __  IS_SKINNED
+#pragma warning( disable : 4000 )
+#pragma warning( disable : 4714 )
+
+StructuredBuffer<HairStrandPoint> hairStrandPoints;
+
+uniform float strandsWidth;
+uniform StructuredBuffer<MeshProperties> sourceMesh;
+uniform StructuredBuffer<float> strandShapeBuffer;
+uniform float extraScale;
+uniform float keepShapeStrength;
+
+void initializeVerletNode(uint index, float3 position)
+{
+    #if defined(INITIALIZE_VERLET_NODES)
+        verletNodes[index].position = position;
+        verletNodes[index].prevPosition = position;
+    #endif
+}
+
+void getHairCurPrevNextPosition(int index, bool isFirst, bool isLast, out float3 current, out float3 next,
+                                out float3 prev, out float3 sourceNormal)
+{
+    next = float3(0, 0, 0);
+    prev = float3(0, 0, 0);
+    #if defined(IS_SKINNED)
+        const HairStrandPoint hairStrandPointCurrent = hairStrandPoints[index];
+        const MeshProperties sm1 = sourceMesh[(int)hairStrandPointCurrent.triangleIndices.x];
+        const MeshProperties sm2 = sourceMesh[(int)hairStrandPointCurrent.triangleIndices.y];
+        const MeshProperties sm3 = sourceMesh[(int)hairStrandPointCurrent.triangleIndices.z];
+        const float3 n1 = sm1.sourceNormal;
+        const float3 n2 = sm2.sourceNormal;
+        const float3 n3 = sm3.sourceNormal;
+        const float3 normal = Interpolate3(n1, n2, n3, hairStrandPointCurrent.barycentricCoordinate);
+        sourceNormal = mul(objectRotationMatrix, float4(normal, 1)).xyz;
+        const float3 v1 = sm1.sourceVertex;
+        const float3 v2 = sm2.sourceVertex;
+        const float3 v3 = sm3.sourceVertex;
+
+        const float4 t1 = sm1.sourceTangent;
+        const float4 t2 = sm2.sourceTangent;
+        const float4 t3 = sm3.sourceTangent;
+        float4 tangent = Interpolate4(t1, t2, t3, hairStrandPointCurrent.barycentricCoordinate); 
+        const float3 rootPosition = Interpolate3(v1, v2, v3, hairStrandPointCurrent.barycentricCoordinate);
+
+        half4 normalTangentRotation = QuaternionLookRotation(tangent.xyz , normal);
+        half4x4 lookRotationMatrix = quaternionToMatrix(normalTangentRotation);
+ 
+        current = rootPosition + mul(lookRotationMatrix, float4(hairStrandPointCurrent.rotationDiffFromNormal, 1)).xyz;
+        current = mul(localToWorldMatrix, float4(current, 1)).xyz;
+ 
+        initializeVerletNode(index, current);
+
+        if (!isLast)
+        {
+            const HairStrandPoint hairStrandPointNext = hairStrandPoints[index + 1]; 
+ 
+            next = rootPosition + mul(lookRotationMatrix, float4(hairStrandPointNext.rotationDiffFromNormal, 1)).xyz;
+            next = mul(localToWorldMatrix, float4(next, 1)).xyz;
+            
+            initializeVerletNode(index + 1, next);
+        }
+        if (!isFirst)
+        {
+            const HairStrandPoint hairStrandPointPrev = hairStrandPoints[index - 1]; 
+
+            prev = rootPosition+ mul(lookRotationMatrix, float4(hairStrandPointPrev.rotationDiffFromNormal, 1)).xyz;
+            prev = mul(localToWorldMatrix, float4(prev, 1)).xyz;
+            initializeVerletNode(index - 1, prev);
+        }
+    #else
+    current = mul(localToWorldMatrix, float4(hairStrandPoints[index].barycentricCoordinate, 1)).xyz;
+    initializeVerletNode(index, current);
+    //Position is stored in barycentricCoordinate when its not skinned.
+    if (!isFirst)
+    {
+        prev = mul(localToWorldMatrix, float4(hairStrandPoints[index - 1].barycentricCoordinate, 1)).xyz;
+        initializeVerletNode(index - 1, prev);
+    }
+    if (!isLast)
+    {
+        next = mul(localToWorldMatrix, float4(hairStrandPoints[index + 1].barycentricCoordinate, 1)).xyz;
+        initializeVerletNode(index + 1, next);
+    }
+    sourceNormal = 0;
+    #endif
+}
+
+uniform int lodSkipStrandsCount;
+uniform uint maxSkipStrandsCount;
+
+uniform float killTheVert;
+
+THREAD_SIZE
+void AllInOneKernel(uint3 id : SV_DispatchThreadID)
+{
+    uint index, localPointIndex, hairStrandIndex;
+    if (calculateIndicesAndDiscard(id, index, localPointIndex, hairStrandIndex)) return;
+
+    #if defined(STRIP_TOPOLOGY)
+        const uint hairMeshIndexLeft = index * 2 * furMeshBufferStride;
+        const uint hairMeshIndexRight = (index * 2 + 1) * furMeshBufferStride; 
+    #else
+    const uint hairMeshIndexLeft = index * furMeshBufferStride;
+    #endif
+    float3 currentRestPos, prevRestPosition, nextRestPos, sourceNormal;
+    const bool isFixedNode = localPointIndex == 0;
+    const bool isNextNodeFixed = localPointIndex == strandPointsCount - 1;
+
+    getHairCurPrevNextPosition(index, isFixedNode, isNextNodeFixed, currentRestPos, nextRestPos, prevRestPosition,
+                               sourceNormal);
+    float3 currentPosition = currentRestPos;
+    float3 tangent = calculateTangent(currentRestPos, prevRestPosition, nextRestPos, isNextNodeFixed);
+    verletNodes[index].tangent = tangent;
+    #if defined(INITIALIZE_VERLET_NODES)
+    if(!isFixedNode)
+    {
+        GroupMemoryBarrierWithGroupSync(); 
+        const float3 myRotVec = normalize(currentRestPos - prevRestPosition);
+        const float3 myRotVec2 = normalize(nextRestPos-currentRestPos );
+        verletNodes[index].rotationDiffFromPrevNode = verletNodes[index-1].tangent - myRotVec;
+        verletNodes[index].rotationDiffFromPrevNode2 = tangent - myRotVec2;
+    }
+    #endif
+    GroupMemoryBarrierWithGroupSync();
+
+    const float vertMoveAbility = (float)localPointIndex / (float)(strandPointsCount - 1);
+    #if defined(VERLET_ENABLED)
+        if (localPointIndex > numberOfFixedNodesInStrand)
+        {
+            velocityGravityAndCollision(
+                currentRestPos,
+                isFixedNode,
+                vertMoveAbility,
+                0,
+                index
+            );
+            float3 pos =   verletNodes[index].position;
+            pos += (currentRestPos - pos) * keepShapeStrength * deltaTime;
+            verletNodes[index].position = pos;
+            const float shapeConstraintIntensity = lerp(shapeConstraintRoot,shapeConstraintTip, vertMoveAbility);
+            constraints(
+                index,
+                currentRestPos,
+                nextRestPos,
+                prevRestPosition,
+                isNextNodeFixed,
+                shapeConstraintIntensity
+            );
+            currentPosition = verletNodes[index].position;
+        }else
+        {
+            verletNodes[index].position = currentPosition;
+        } 
+    #endif
+
+    GroupMemoryBarrierWithGroupSync();
+    tangent = calculateTangent(currentRestPos, prevRestPosition, nextRestPos, isNextNodeFixed);
+    // tangent = calculateTangent(currentRestPos, verletNodes[index - 1].position, verletNodes[index + 1].position,
+    //                        isNextNodeFixed);
+    const float3 right = normalize(cross(tangent, normalize(currentPosition - worldSpaceCameraPos)));
+    const float3 left = normalize(cross(tangent, float3(0, 1, 0)));
+
+    // Calculate normal
+    #if defined(IS_SKINNED)
+    float3 normal = lerp(sourceNormal, cross(left, tangent), sourceMeshNormalToStrandNormalPercent);
+    #else
+    float3 normal = cross(left, tangent);
+    #endif
+
+    #if defined(STRIP_TOPOLOGY)
+        const float3 oldPositionRight = loadSourceVertex(hairMeshIndexRight);
+        const float widthFromShape = strandShapeBuffer[localPointIndex] * strandsWidth * extraScale;
+    #else
+    const float widthFromShape = 0;
+    #endif
+
+    const float3 oldPositionLeft = loadSourceVertex(hairMeshIndexLeft);
+    float3 leftVertex = currentPosition - right * widthFromShape;
+    float3 leftRight = currentPosition + right * widthFromShape;
+
+    //Vertex position
+    if (fmod(hairStrandIndex, maxSkipStrandsCount) < lodSkipStrandsCount)
+    {
+        //     //Settings it to Nan in order to cull. Based on bgolus's answer:https://forum.unity.com/threads/ignoring-some-triangles-in-a-vertex-shader.170834/#:~:text=2017%20Posts%3A%20327-,Code%20(CSharp)%3A,triangle%20in%20the%20Vertex%20Shader.
+        leftVertex = float3(0.0, 0.0, killTheVert);
+        leftRight = float3(0.0, 0.0, killTheVert);
+    }
+
+    writeVector3(hairMeshIndexLeft, 0, leftVertex);
+
+    //Normal
+    writeVector3(hairMeshIndexLeft, SIZEOF_FLOAT3, normal);
+
+    //Tangent
+    writeVector4(hairMeshIndexLeft, SIZEOF_FLOAT3 * 2, float4(tangent, 1));
+
+    //UV2
+    #if defined(INITIALIZE_VERLET_NODES)
+        float xOffset = rand((float)hairStrandIndex) > 0.25 ? 0.5 : 0;
+        float yOffset = rand((float)hairStrandIndex * 1.32) > 0.25 ? 0.5 : 0;
+    #if defined(STRIP_TOPOLOGY)
+        //Card  UV2 we only need to write it the first time
+        writeVector2(hairMeshIndexLeft, SIZEOF_FLOAT3 * 2 + SIZEOF_FLOAT4 * 2 + SIZEOF_FLOAT2, float2(0.5 + xOffset, vertMoveAbility * 0.5 + yOffset)); 
+    #else
+        writeVector2(hairMeshIndexLeft, SIZEOF_FLOAT3 * 2 + SIZEOF_FLOAT4 * 2 + SIZEOF_FLOAT2,        hairStrandPoints[index].uv); 
+    #endif
+        //Source mesh UV
+        float2 uv = hairStrandPoints[index].uv;
+        writeVector2(hairMeshIndexLeft, SIZEOF_FLOAT3 * 2 + SIZEOF_FLOAT4 * 2, uv); 
+        //Vertex Color
+        writeVector4(hairMeshIndexLeft, SIZEOF_FLOAT3 * 2 + SIZEOF_FLOAT4, float4(1, 1, 1, 1)); 
+
+    #if defined(STRIP_TOPOLOGY)
+            writeVector2(hairMeshIndexRight, SIZEOF_FLOAT3 * 2 + SIZEOF_FLOAT4 * 2 + SIZEOF_FLOAT2, float2(0 + xOffset, vertMoveAbility * 0.5 + yOffset));
+            writeVector2(hairMeshIndexRight, SIZEOF_FLOAT3 * 2 + SIZEOF_FLOAT4 * 2, uv);
+            writeVector4(hairMeshIndexRight, SIZEOF_FLOAT3 * 2 + SIZEOF_FLOAT4, float4(1, 1, 1, 1));
+    #endif
+    #endif
+
+    //Write the old positions to UV3-4
+    writeVector2(hairMeshIndexLeft, SIZEOF_FLOAT3 * 2 + SIZEOF_FLOAT4 * 2 + SIZEOF_FLOAT2 * 2,
+                 float2(oldPositionLeft.x, oldPositionLeft.y));
+    writeVector2(hairMeshIndexLeft, SIZEOF_FLOAT3 * 2 + SIZEOF_FLOAT4 * 2 + SIZEOF_FLOAT2 * 3,
+                 float2(oldPositionLeft.z, (float)localPointIndex));
+
+
+    #if defined(STRIP_TOPOLOGY)
+        writeVector3(hairMeshIndexRight, SIZEOF_FLOAT3, normal);
+        writeVector3(hairMeshIndexRight, 0, leftRight);
+        writeVector4(hairMeshIndexRight, SIZEOF_FLOAT3 * 2, float4(tangent, 1));
+    
+        writeVector2(hairMeshIndexRight, SIZEOF_FLOAT3 * 2 + SIZEOF_FLOAT4 * 2 + SIZEOF_FLOAT2 * 2,
+                   float2(oldPositionRight.x, oldPositionRight.y));
+        writeVector2(hairMeshIndexRight, SIZEOF_FLOAT3 * 2 + SIZEOF_FLOAT4 * 2 + SIZEOF_FLOAT2 * 3,
+                     float2(oldPositionRight.z, (float)localPointIndex));
+    #endif
+}
+
+uniform float cardSubdivisionsY;
+RWByteAddressBuffer meshIndexBuffer;
+
+THREAD_SIZE
+void LinesIndicesKernel(uint3 id : SV_DispatchThreadID)
+{
+    uint offset = id.x;
+    const uint triStartIndex = offset * cardSubdivisionsY;
+
+    for (int j = 0; j < cardSubdivisionsY; j += 2)
+    {
+        meshIndexBuffer.Store((triStartIndex + j) * uint(4), asuint(triStartIndex / uint(2) + j / uint(2) + offset));
+        meshIndexBuffer.Store((triStartIndex + j + uint(1)) * uint(4),
+                              asuint(triStartIndex / uint(2) + j / uint(2) + 1 + offset));
+    }
+}
+
+THREAD_SIZE
+void TriangleIndicesKernel(uint3 id : SV_DispatchThreadID)
+{
+    const uint i = id.x;
+    uint triStartIndex = i * 6;
+    const uint offset = floor((float)i / cardSubdivisionsY);
+    const uint vStartIndex = i * 2 + offset * 2;
+
+    meshIndexBuffer.Store(triStartIndex * uint(4), asuint(vStartIndex));
+    meshIndexBuffer.Store((triStartIndex + uint(1)) * uint(4), asuint(vStartIndex + uint(2)));
+    meshIndexBuffer.Store((triStartIndex + uint(2)) * uint(4), asuint(vStartIndex + uint(1)));
+    meshIndexBuffer.Store((triStartIndex + uint(3)) * uint(4), asuint(vStartIndex + uint(2)));
+    meshIndexBuffer.Store((triStartIndex + uint(4)) * uint(4), asuint(vStartIndex + uint(3)));
+    meshIndexBuffer.Store((triStartIndex + uint(5)) * uint(4), asuint(vStartIndex + uint(1)));
+}

@@ -1,0 +1,54 @@
+#pragma kernel CSMain
+#include "../../../Shaders/Resources/Thread.hlsl"
+uniform RWByteAddressBuffer sourceMeshData;
+uniform uint vertexBufferStride;
+  
+struct MeshBufferData
+{
+    float3 vertices;
+    float3 normals;
+    float4 tangents; 
+    float4 colors;
+    float2 uv1;
+    float2 uv2;
+    float2 uv3;
+    float2 uv4;
+};
+
+uniform RWStructuredBuffer<MeshBufferData> copiedData;
+
+
+#define SIZEOF_FLOAT2 8
+#define SIZEOF_FLOAT3 12
+#define SIZEOF_FLOAT4 16
+
+float3 loadVector3(uint index, uint offset) 
+{
+    return asfloat(sourceMeshData.Load3(index * vertexBufferStride + offset));
+}
+
+float2 loadVector2(uint index, uint offset)
+{
+    return asfloat(sourceMeshData.Load2(index * vertexBufferStride + offset));
+}
+
+float4 loadVector4(uint index, uint offset)
+{
+    return asfloat(sourceMeshData.Load4(index * vertexBufferStride + offset));
+}
+
+THREAD_SIZE_EDITOR
+void CSMain(uint3 id : SV_DispatchThreadID)
+{
+    uint index = id.x;
+    MeshBufferData data;
+    data.vertices = loadVector3(index, 0);
+    data.normals = loadVector3(index, SIZEOF_FLOAT3);
+    data.tangents = loadVector4(index, SIZEOF_FLOAT3 * 2);
+    data.colors = loadVector4(index, SIZEOF_FLOAT3 * 2 + SIZEOF_FLOAT4);
+    data.uv1 = loadVector2(index, SIZEOF_FLOAT3 * 2 + SIZEOF_FLOAT4 * 2);
+    data.uv2 = loadVector2(index, SIZEOF_FLOAT3 * 2 + SIZEOF_FLOAT4 * 2 + SIZEOF_FLOAT2);
+    data.uv3 = loadVector2(index, SIZEOF_FLOAT3 * 2 + SIZEOF_FLOAT4 * 2 + SIZEOF_FLOAT2 * 2);
+    data.uv4 = loadVector2(index, SIZEOF_FLOAT3 * 2 + SIZEOF_FLOAT4 * 2 + SIZEOF_FLOAT2 * 3);
+    copiedData[index] = data;
+}

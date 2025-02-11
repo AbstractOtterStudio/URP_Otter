@@ -1,0 +1,281 @@
+﻿#pragma kernel PaintGroomKernel
+#pragma kernel ApplySmoothingKernel
+#pragma kernel FloodKernel
+#include "GroomPaintingInclude.hlsl"
+#include "../../../Shaders/Resources/Thread.hlsl"
+
+#pragma multi_compile __  IS_HAIR_STRAND
+#pragma multi_compile __  PAINT_GROOM
+
+struct HairStrandStruct
+{
+    float4 bend;
+    float4x4 scaleMatrix;
+    float4x4 rootAndOrientationMatrix;
+    float2 uv;
+    float2 uvOffset;
+    float3 triangles;
+    float3 barycentricCoordinates;
+    float windContribution;
+    int clumpIndices;
+    float clumpMask;
+    float4 twist;
+    float4 overrideColor;
+};
+
+RWStructuredBuffer<HairStrandStruct> strandProperties;
+RWStructuredBuffer<StrandGroomStruct> strandGroomsBuffer;
+
+float randomRotationMultiplier;
+float randomHeightMultiplier;
+int currentLayerStrandsCount;
+uniform bool isLayerHidden;
+uniform bool drawWindContribution;
+
+struct MeshProperties
+{
+    float3 sourceVertex;
+    float3 sourceNormal;
+    float4 sourceTangent;
+};
+
+uniform RWStructuredBuffer<MeshProperties> sourceMesh;
+
+MeshProperties getBarycentricMeshData(float3 indices, float3 barycentricCoord)
+{
+    MeshProperties triangle1 = sourceMesh[(int)indices.x];
+    MeshProperties triangle2 = sourceMesh[(int)indices.y];
+    MeshProperties triangle3 = sourceMesh[(int)indices.z];
+    MeshProperties interpolated;
+    interpolated.sourceVertex = Interpolate3(triangle1.sourceVertex, triangle2.sourceVertex, triangle3.sourceVertex, barycentricCoord);
+    interpolated.sourceNormal = Interpolate3(triangle1.sourceNormal, triangle2.sourceNormal, triangle3.sourceNormal, barycentricCoord);
+    interpolated.sourceTangent = Interpolate4(triangle1.sourceTangent, triangle2.sourceTangent, triangle3.sourceTangent, barycentricCoord);
+    return interpolated;
+}
+
+void GroomToStrands(HairStrandStruct hairStrand, StrandGroomStruct strandGroomStruct, int index)
+{
+    if (strandGroomStruct.isErased < 0.5 && !isLayerHidden)
+    {
+        float3 globalScale = float3(worldScale, worldScale, worldScale);
+        const float windContribution = strandGroomStruct.windContribution;
+        const float raise = strandGroomStruct.raise;
+        const float2 scale = strandGroomStruct.scale;
+        const float clumpMask = strandGroomStruct.clumpMask;
+        const float4 twist = strandGroomStruct.twist;
+        const float4 overrideColor = strandGroomStruct.overrideColor;
+        const float2 bend = strandGroomStruct.flowDirectionBend;
+        const float2 orientation = strandGroomStruct.flowDirectionOrientation;
+        const float2 flowDirectionRoot = strandGroomStruct.flowDirectionRoot;
+        const float random = rand((float)index);
+        float rootDirectionAngle = CalculateAngle(
+            float2(flowDirectionRoot.x - 0.5f, flowDirectionRoot.y - 0.5f)
+        ) + random * 360.0 * randomRotationMultiplier;
+
+        float2 extraScale = getScaleFactor(scale);
+        float extraRandomScale = 0.5 * randomHeightMultiplier;
+        #if defined(IS_HAIR_STRAND)
+            extraRandomScale = random * randomHeightMultiplier;
+        #endif
+
+        hairStrand.scaleMatrix = getScaleMatrix(float3(extraScale.y, extraScale.y + extraRandomScale * scale.y, extraScale.x) / globalScale);
+        hairStrand.bend = getOrientationRotationValues(bend, rootDirectionAngle);
+
+        const float4 orientationRot = getOrientationRotationValues(orientation, rootDirectionAngle);
+        const float orientAmount = orientationRot.w * 90.0;
+        const float4x4 orientXZ = getQuaternionMatrix(float3(orientationRot.x * orientAmount, 0.0,
+                                                             orientationRot.z * orientAmount));
+        const float4x4 rootAndRaiseMatrix = getQuaternionMatrix(float3(0, rootDirectionAngle, getRaiseFactor(raise)));
+        hairStrand.rootAndOrientationMatrix = mul(rootAndRaiseMatrix, orientXZ);
+        hairStrand.windContribution = windContribution;
+        hairStrand.twist = twist;
+        hairStrand.clumpMask = clumpMask;
+        if (brushMenuType == WIND_MAX_DISTANCE || drawWindContribution)
+        {
+            hairStrand.overrideColor = lerp(float4(1, 0, 0, 1), float4(0, 1, 0, 1), windContribution);
+        }
+        else
+        {
+            hairStrand.overrideColor = overrideColor;
+        }
+        strandProperties[index] = hairStrand;
+    }
+    else
+    {
+        strandProperties[index].scaleMatrix = float4x4(
+            0, 0, 0, 0,
+            0, 0, 0, 0,
+            0, 0, 0, 0,
+            0, 0, 0, 1
+        );
+    }
+}
+
+
+THREAD_SIZE_EDITOR
+void ApplySmoothingKernel(uint3 id : SV_DispatchThreadID)
+{
+    int count = smoothSumBuffer[0];
+    if ((int)id.x < count)
+    {
+        float2 indexAndFalloff = smoothIndicesAndFalloffsRead[(int)id.x];
+        int index = (int)indexAndFalloff.x;
+        float fallOff = indexAndFalloff.y;
+        float countFloat = (float)count;
+        float2 flowDirectionBend = float2((float)smoothSumBuffer[1] / 100.0 / countFloat, (float)smoothSumBuffer[2] / 100.0 / countFloat);
+        float2 flowDirectionOrientation = float2((float)smoothSumBuffer[3] / 100.0 / countFloat, (float)smoothSumBuffer[4] / 100.0 / countFloat);
+        float2 scale = float2((float)smoothSumBuffer[5] / 100.0 / countFloat, (float)smoothSumBuffer[6] / 100.0 / countFloat);
+        StrandGroomStruct strandGroom = strandGroomsBuffer[index];
+        strandGroom = blendSmootie(strandGroom, brushIntensity, fallOff, resetValues.x, resetValues.y, resetValues.z, resetValues.w,
+                                   flowDirectionBend, flowDirectionOrientation, scale);
+
+        strandGroomsBuffer[index] = strandGroom;
+        GroomToStrands(strandProperties[index], strandGroom, index);
+    }
+}
+
+THREAD_SIZE_EDITOR
+void FloodKernel(uint3 id : SV_DispatchThreadID)
+{
+    const int index = id.x;
+    StrandGroomStruct strandGroom = strandGroomsBuffer[index];
+    HairStrandStruct hairStrand = strandProperties[index];
+
+    if (brushMenuType == WIDTH)
+    {
+        strandGroom.scale = float2(brushIntensity, strandGroom.scale.y);
+    }
+    else if (brushMenuType == HEIGHT)
+    {
+        strandGroom.scale = float2(strandGroom.scale.x, brushIntensity);
+    }
+    else if (brushMenuType == RAISE)
+    {
+        strandGroom.raise = brushIntensity;
+    }
+    else if (brushMenuType == CLUMPING_MASK)
+    {
+        strandGroom.clumpMask = brushIntensity;
+    }
+    else if (brushMenuType == WIND_MAX_DISTANCE)
+    {
+        strandGroom.windContribution = brushIntensity;
+    }
+    else if (TWIST)
+    {
+        if (isClumpTwistSelected)
+        {
+            strandGroom.twist = float4(strandGroom.twist.x, twistAmount, strandGroom.twist.z, twistSpread);
+        }
+        else
+        {
+            strandGroom.twist = float4(twistAmount, strandGroom.twist.y, twistSpread, strandGroom.twist.w);
+        }
+    }
+    strandGroomsBuffer[index] = strandGroom;
+
+    GroomToStrands(hairStrand, strandGroom, index);
+}
+
+THREAD_SIZE_EDITOR
+void PaintGroomKernel(uint3 id : SV_DispatchThreadID)
+{
+    const int index = id.x;
+    if (index >= currentLayerStrandsCount)return;
+    #if defined(PAINT_GROOM)
+    StrandGroomStruct strandGroom = strandGroomsBuffer[index];
+    HairStrandStruct hairStrand = strandProperties[index];
+
+    const float3 triangles = hairStrand.triangles;
+    const float3 barycentricCoord = hairStrand.barycentricCoordinates;
+
+    MeshProperties meshProperties = getBarycentricMeshData(triangles, barycentricCoord);
+
+    const float3 position = meshProperties.sourceVertex;
+    float3 normal = meshProperties.sourceNormal;
+    const float4 tangent = meshProperties.sourceTangent;
+    
+    const float3 worldPosition = mul(localToWorldMatrix, float4(position, 1.0)).xyz;
+    float magnitude = distance(worldPosition, mouseHitPoint);
+    
+    if (magnitude < brushSize)
+    {
+        float3 worldNormal = mul(localToWorldRotationMatrix, float4(normal, 1.0)).xyz;
+        float falloff = calculateFalloff(magnitude, worldNormal, mouseHitNormal);
+
+        if (brushMenuType == HEIGHT)
+        {
+            strandGroom = lerpScale(strandGroom, brushIntensity, falloff, false, true);
+        }
+        else if (brushMenuType == WIDTH)
+        {
+            strandGroom = lerpScale(strandGroom, brushIntensity, falloff, true, false);
+        }
+        else if (brushMenuType == RAISE)
+        {
+            strandGroom = lerpRaise(strandGroom, brushIntensity, falloff);
+        }
+        else if (brushMenuType == MASK)
+        {
+    #if defined(IS_HAIR_STRAND)
+            if (falloff > FALLOFF_MASK_TRESHOLD) strandGroom.isErased = maskErase;
+    #endif
+        }
+        else if (brushMenuType == CLUMPING_MASK)
+        {
+            strandGroom = lerpClumpingMask(strandGroom, brushIntensity, falloff);
+        }
+        else if (brushMenuType == TWIST)
+        {
+            strandGroom = lerpTwist(strandGroom, twistAmount, falloff, isClumpTwistSelected, twistSpread);
+        }
+        else if (brushMenuType == COLOR_OVERRIDE)
+        {
+            strandGroom = lerpColorOverride(strandGroom, overrideIntensity, falloff, overrideColor);
+        }
+        else if (brushMenuType == DIRECTION_BEND)
+        {
+            float3 texDir = calculateFlowDirection(normal, tangent, mouseHitPoint, previousMouseHitPoint);
+            strandGroom = lerpDirectionBend(strandGroom, texDir.x, texDir.z, falloff);
+        }
+        else if (brushMenuType == DIRECTION_ORIENTATION)
+        {
+            float3 texDir = calculateFlowDirection(normal, tangent, mouseHitPoint, previousMouseHitPoint);
+            strandGroom = lerpDirectionOrientation(strandGroom, texDir.x, texDir.z, falloff);
+        }
+        else if (brushMenuType == DIRECTION_ROOT)
+        {
+            float3 texDir = calculateFlowDirection(normal, tangent, mouseHitPoint, previousMouseHitPoint);
+            strandGroom = lerpDirectionRoot(strandGroom, texDir.x, texDir.z, falloff);
+        }
+        else if (brushMenuType == ATTRACT)
+        {
+            strandGroom = paintAttract(strandGroom, falloff, normal, tangent, worldPosition);
+        }
+        else if (brushMenuType == RESET)
+        {
+            strandGroom = lerpReset(strandGroom, brushIntensity, falloff, resetValues.x, resetValues.y, resetValues.z, resetValues.w);
+        }
+        else if (brushMenuType == WIND_MAX_DISTANCE)
+        {
+            strandGroom = lerpWindContribution(strandGroom, brushIntensity, falloff);
+        }
+        else if (brushMenuType == SMOOTH)
+        {
+            InterlockedAdd(smoothSumBuffer[0], 1);
+            InterlockedAdd(smoothSumBuffer[1], (int)(strandGroom.flowDirectionBend.x * 100));
+            InterlockedAdd(smoothSumBuffer[2], (int)(strandGroom.flowDirectionBend.y * 100));
+            InterlockedAdd(smoothSumBuffer[3], (int)(strandGroom.flowDirectionOrientation.x * 100));
+            InterlockedAdd(smoothSumBuffer[4], (int)(strandGroom.flowDirectionOrientation.y * 100));
+            InterlockedAdd(smoothSumBuffer[5], (int)(strandGroom.scale.x * 100));
+            InterlockedAdd(smoothSumBuffer[6], (int)(strandGroom.scale.y * 100));
+            smoothIndicesAndFalloffs.Append(float2(index, falloff));
+        }
+
+        strandGroomsBuffer[index] = strandGroom;
+    }
+    GroomToStrands(hairStrand, strandGroom, index);
+    #else
+    GroomToStrands(strandProperties[index], strandGroomsBuffer[index], index);
+    #endif
+}
