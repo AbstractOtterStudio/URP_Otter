@@ -48,6 +48,13 @@ public class CommonEditor : Editor
         // Draw the default inspector
         DrawDefaultInspector();
 
+        if (!EditorApplication.isPlaying)
+        {
+            EditorGUILayout.Separator();
+            EditorGUILayout.LabelField("Debugging Display is disabled outside of Play mode.");
+            return;
+        }
+
         EditorGUILayout.Separator();
         foldout = EditorGUILayout.BeginFoldoutHeaderGroup(foldout, new GUIContent("Debugging Display"));
         if (foldout)
@@ -62,6 +69,10 @@ public class CommonEditor : Editor
                     DoField(field.Name, field.GetType(), field.GetValue(targetObject));
                     EditorGUI.EndDisabledGroup();
                 }
+                else
+                {
+                    Debug.LogWarning($"failed to access attribute {field.Name}");
+                }
             }
 
             // Draw each property with the DebugDisplayAttribute
@@ -74,10 +85,14 @@ public class CommonEditor : Editor
                     DoField(prop.Name, prop.GetType(), prop.GetValue(targetObject));
                     EditorGUI.EndDisabledGroup();
                 }
+                else
+                {
+                    Debug.LogWarning($"failed to access attribute {prop.Name}");
+                }
             }
 
         }
-
+        
         EditorGUILayout.EndFoldoutHeaderGroup();
     }
 }

@@ -14,10 +14,10 @@ Material:
   m_ValidKeywords:
   - DR_RIM_ON
   - DR_SPECULAR_ON
-  - _CELPRIMARYMODE_STEPS
-  - _TEXTUREBLENDINGMODE_MULTIPLY
-  - _UNITYSHADOWMODE_COLOR
+  - _TEXTUREBLENDINGMODE_ADD
+  - _UNITYSHADOWMODE_MULTIPLY
   m_InvalidKeywords:
+  - _CELPRIMARYMODE_NONE
   - _FLAT_RIM_ENABLED
   - _FLAT_SHADOWS_ENABLED
   - _FLAT_SPECULAR_ENABLED
@@ -33,8 +33,8 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - _BaseMap:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
+        m_Texture: {fileID: 2800000, guid: 249658be85c3a614fb5a8d8eb3cf0f52, type: 3}
+        m_Scale: {x: 20, y: 20}
         m_Offset: {x: 0, y: 0}
     - _BumpMap:
         m_Texture: {fileID: 0}
@@ -173,8 +173,8 @@ Material:
     - _BrightenRange: 0.4
     - _BumpScale: 1
     - _CelExtraEnabled: 0
-    - _CelNumSteps: 4
-    - _CelPrimaryMode: 2
+    - _CelNumSteps: 3
+    - _CelPrimaryMode: 0
     - _ClearCoatMask: 0
     - _ClearCoatSmoothness: 0
     - _ColorMode: 0
@@ -190,11 +190,11 @@ Material:
     - _EnableInstancedPerPixelNormal: 1
     - _EnvironmentReflections: 1
     - _FadeDistance: 0.5
-    - _FlatRimEdgeSmoothness: 0
-    - _FlatRimLightAlign: 0
-    - _FlatRimSize: 0.067
-    - _FlatSpecularEdgeSmoothness: 0.311
-    - _FlatSpecularSize: 0.246
+    - _FlatRimEdgeSmoothness: 0.283
+    - _FlatRimLightAlign: 0.01
+    - _FlatRimSize: 0.06
+    - _FlatSpecularEdgeSmoothness: 0.39
+    - _FlatSpecularSize: 0.1
     - _Flatness: 1
     - _FlatnessExtra: 1
     - _FoamAmount: 0.25
@@ -216,7 +216,7 @@ Material:
     - _GradientEnabled: 0
     - _GradientSize: 6.5
     - _HeightTransition: 0
-    - _LightContribution: 0.456
+    - _LightContribution: 0.555
     - _LightFalloffSize: 0.0001
     - _LightmapDirectionPitch: 0
     - _LightmapDirectionYaw: 0
@@ -237,7 +237,7 @@ Material:
     - _RefractionScale: 1
     - _RefractionSpeed: 0.1
     - _RimEnabled: 1
-    - _SelfShadingSize: 0.885
+    - _SelfShadingSize: 0.198
     - _SelfShadingSizeExtra: 0.421
     - _ShadowEdgeSize: 0
     - _ShadowEdgeSizeExtra: 0.173
@@ -252,11 +252,11 @@ Material:
     - _SpecularHighlights: 1
     - _SrcBlend: 1
     - _Surface: 0
-    - _TextureBlendingMode: 0
-    - _TextureImpact: 1
-    - _UnityShadowMode: 2
-    - _UnityShadowPower: 0.442
-    - _UnityShadowSharpness: 10
+    - _TextureBlendingMode: 1
+    - _TextureImpact: 0.461
+    - _UnityShadowMode: 1
+    - _UnityShadowPower: 0.436
+    - _UnityShadowSharpness: 7.59
     - _VertexColorsEnabled: 0
     - _WaterClearness: 0.3
     - _WaterDepth: 5
@@ -274,22 +274,22 @@ Material:
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _ColorDeep: {r: 0.87843144, g: 0.8941177, b: 0.654902, a: 1}
     - _ColorDim: {r: 0.71178466, g: 0.7169812, b: 0.3551086, a: 1}
-    - _ColorDimCurve: {r: 0.85, g: 0.85, b: 0.85, a: 0.85}
+    - _ColorDimCurve: {r: 0.9811321, g: 0.86951447, b: 0.45045683, a: 0.85}
     - _ColorDimExtra: {r: 0.7137255, g: 0.7176471, b: 0.35686275, a: 0.85}
     - _ColorDimSteps: {r: 0, g: 0, b: 0, a: 0.85}
-    - _ColorGradient: {r: 0.9150943, g: 0.056114297, b: 0.056114297, a: 1}
+    - _ColorGradient: {r: 0.9137255, g: 0.5803922, b: 0.054901958, a: 1}
     - _ColorShallow: {r: 0.87843144, g: 0.8941177, b: 0.654902, a: 0.8}
     - _CrestColor: {r: 1, g: 1, b: 1, a: 0.9}
     - _DarkColor: {r: 0.6886792, g: 0.5614972, b: 0.3930669, a: 0}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _FlatRimColor: {r: 1, g: 1, b: 1, a: 1}
-    - _FlatSpecularColor: {r: 0.8801436, g: 0.8962264, b: 0.40301996, a: 1}
+    - _FlatSpecularColor: {r: 0.9528302, g: 0.7295345, b: 0.29363945, a: 1}
     - _FoamColor: {r: 1, g: 1, b: 1, a: 1}
     - _LightDir: {r: -5781.59, g: 11375, b: -320.67, a: 0}
     - _LightmapDirection: {r: 0, g: 1, b: 0, a: 0}
     - _MidColor: {r: 0.7830189, g: 0.64797586, b: 0.28439835, a: 0}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
-    - _UnityShadowColor: {r: 0, g: 0, b: 0, a: 1}
+    - _UnityShadowColor: {r: 0.5566038, g: 0.333568, b: 0, a: 1}
   m_BuildTextureStacks: []
 --- !u!114 &5677627697817908606
 MonoBehaviour:
