@@ -9,7 +9,8 @@ public class PlayerStateController : MonoBehaviour
     public PlayerInteractAniState PlayerAniState { get; private set; } = PlayerInteractAniState.Idle;
     public PlayerCleanState PlayerCleanState { get; private set; } = PlayerCleanState.Clean;
 
-    public bool IsStateLocked { get; private set; }
+    // public bool IsStateLocked { get; private set; }
+    public bool IsStateLocked;
     public bool IsAddSpeedLocked { get; private set; }
     public bool CanPassGame { get; private set; }
 
