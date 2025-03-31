@@ -122,7 +122,7 @@ public class PlayerStateController : MonoBehaviour
                 ChangeSpeedState(PlayerSpeedState.Normal);
             }
         }
-        else
+        else if (playerMovement.GetCurrentSpeed() < 0.1f)
         {
             ChangeSpeedState(PlayerSpeedState.Stop);
         }
@@ -236,7 +236,7 @@ public class PlayerStateController : MonoBehaviour
     private void ChangeSpeedState(PlayerSpeedState newState)
     {
         PlayerSpeedState = newState;
-        playerMovement.OnPlayerSpeedChange?.Invoke(newState);
+        //playerMovement.OnPlayerSpeedChange?.Invoke(newState);
         OnStateChanged?.Invoke();
     }
 
