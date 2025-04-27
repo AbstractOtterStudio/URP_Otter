@@ -4,19 +4,16 @@ using UnityEngine;
 
 public class UIManager : MonoBehaviour
 {
-
-    [SerializeField] UIBase[] uis;
+    UIBase[] uis;
 
 
     public void Init() 
     {
-        if (uis == null || uis.Length == 0) 
-        {            
-            throw new System.Exception("UI List is Empty");
-        }
+        uis = FindObjectsOfType<UIBase>();
+        
         foreach (UIBase ui in uis)
         {
-            Debug.Log(ui.name);
+            Debug.Log($"UI Manager: Initializing {ui.GetType().Name} on {ui.gameObject.name}");
             ui.Init();
         }
     }
