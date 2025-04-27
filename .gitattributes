@@ -159,3 +159,9 @@ Assets/Plugins/**       linguist-vendored
 
 # Exceptions for .asset files such as lightning pre-baking
 LightingData.asset     binary
+
+# Mark third-party stuff as "generated"
+Assets/Crest/** linguist-generated=true
+Assets/Shapes/** linguist-generated=true
+Assets/SimpleNaturePack/** linguist-generated=true
+Assets/Tropical\ Plants\ Pack/** linguist-generated=true
