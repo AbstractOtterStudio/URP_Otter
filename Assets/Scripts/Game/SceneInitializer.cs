@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+// TODO: 无意义class，可以删除
 public class SceneInitializer : MonoBehaviour
 {
     #region Managers
@@ -13,7 +14,7 @@ public class SceneInitializer : MonoBehaviour
     [SerializeField] MapAnimalSpawner mapSpawner;
     #endregion
 
-    void Awake()
+    void Awake() // TODO: 去掉，直接manager里awake
     {
         gameManager.Init();
         uiManager.Init();

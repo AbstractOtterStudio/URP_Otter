@@ -69,10 +69,6 @@ public class CommonEditor : Editor
                     DoField(field.Name, field.GetType(), field.GetValue(targetObject));
                     EditorGUI.EndDisabledGroup();
                 }
-                else
-                {
-                    Debug.LogWarning($"failed to access attribute {field.Name}");
-                }
             }
 
             // Draw each property with the DebugDisplayAttribute
@@ -85,14 +81,10 @@ public class CommonEditor : Editor
                     DoField(prop.Name, prop.GetType(), prop.GetValue(targetObject));
                     EditorGUI.EndDisabledGroup();
                 }
-                else
-                {
-                    Debug.LogWarning($"failed to access attribute {prop.Name}");
-                }
             }
 
         }
-        
+
         EditorGUILayout.EndFoldoutHeaderGroup();
     }
 }

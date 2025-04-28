@@ -25,8 +25,8 @@ public class PostProcessingManager : SingletonBase<PostProcessingManager>
     VolumeParameter<Vector4> tempGamma = new VolumeParameter<Vector4>();
     VolumeParameter<Vector4> tempGain = new VolumeParameter<Vector4>();
     #endregion
-    
-    [SerializeField] float eveningTime = 30f;    
+
+    [SerializeField] float eveningTime = 30f;
 
     public void Init()
     {
@@ -44,8 +44,12 @@ public class PostProcessingManager : SingletonBase<PostProcessingManager>
 
         tempGamma.value = morningGamma;
         tempGain.value = morningGain;
-        liftGammaGain.gamma.SetValue(tempGamma);
-        liftGammaGain.gain.SetValue(tempGain);
+
+        if (liftGammaGain != null)
+        {
+            liftGammaGain.gamma.SetValue(tempGamma);
+            liftGammaGain.gain.SetValue(tempGain);
+        }
 
     }
 
