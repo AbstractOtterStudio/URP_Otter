@@ -78,28 +78,4 @@ public class PostProcessingManager : Singleton<PostProcessingManager>
         liftGammaGain.gain.SetValue(tempGain);
     }
     #endregion
-
-    #region Sea Color
-    /// <summary>
-    /// When Player Dive underwater,
-    /// Change water Alpha Value
-    /// </summary>
-    /// <param name="isDive"></param>
-    public void ChangeSeaAlpha(bool isDive)
-    {
-        if (isSeaAlphaChanging)
-        {
-            StopCoroutine("SeaAlphaChanging");
-        }
-        corou = StartCoroutine("SeaAlphaChanging", isDive);
-    }
-
-
-    Coroutine corou;
-    bool isSeaAlphaChanging { get { return corou != null; } }
-    IEnumerator SeaAlphaChanging(bool isDive)
-    {
-        yield break;
-    }
-    #endregion
 }

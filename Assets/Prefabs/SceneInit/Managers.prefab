@@ -12,9 +12,10 @@ GameObject:
   - component: {fileID: 3322758431730879929}
   - component: {fileID: 6760890035215313190}
   - component: {fileID: 6544171257240695536}
+  - component: {fileID: 6352875341156477653}
+  - component: {fileID: 242062745677585851}
   - component: {fileID: 4663545236909889799}
   - component: {fileID: 7022774073855703459}
-  - component: {fileID: 6352875341156477653}
   m_Layer: 0
   m_Name: Managers
   m_TagString: Untagged
@@ -80,6 +81,41 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   lowpassCutoffUnderSea: 400
   lowpassCutoffOnSea: 16000
+--- !u!114 &6352875341156477653
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2380142839085971682}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 407562d88f0a32a48b134e5f6408fd8b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerController: {fileID: 0}
+  renderData: {fileID: 11400000, guid: 4a8e21d5c33334b11b34a596161b9360, type: 2}
+  gammaChangeSpeed: 0.5
+  gainChangeSpeed: 0.5
+  morningGamma: {x: 1, y: 1, z: 1, w: -0.3}
+  morningGain: {x: 1, y: 1, z: 1, w: 0}
+  eveningGamma: {x: 1, y: 0.5, z: 0, w: -0.2}
+  eveningGain: {x: 1, y: 0.7, z: 0.2, w: -0.1}
+  nightGamma: {x: 0.1, y: 0.2, z: 1, w: -0.8}
+  nightGain: {x: 1, y: 1, z: 1, w: 0}
+  eveningTime: 30
+--- !u!114 &242062745677585851
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2380142839085971682}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 86e31fd730c72e94ea3382e09877e76d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!82 &4663545236909889799
 AudioSource:
   m_ObjectHideFlags: 0
@@ -272,26 +308,3 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
---- !u!114 &6352875341156477653
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2380142839085971682}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 407562d88f0a32a48b134e5f6408fd8b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  playerController: {fileID: 0}
-  renderData: {fileID: 11400000, guid: 4a8e21d5c33334b11b34a596161b9360, type: 2}
-  gammaChangeSpeed: 0.5
-  gainChangeSpeed: 0.5
-  morningGamma: {x: 1, y: 1, z: 1, w: -0.3}
-  morningGain: {x: 1, y: 1, z: 1, w: 0}
-  eveningGamma: {x: 1, y: 0.5, z: 0, w: -0.2}
-  eveningGain: {x: 1, y: 0.7, z: 0.2, w: -0.1}
-  nightGamma: {x: 0.1, y: 0.2, z: 1, w: -0.8}
-  nightGain: {x: 1, y: 1, z: 1, w: 0}
-  eveningTime: 30

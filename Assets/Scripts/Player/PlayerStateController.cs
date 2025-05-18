@@ -253,7 +253,7 @@ public class PlayerStateController : MonoBehaviour
     private void EnterDiveMode()
     {
         AudioManager.Instance.ChangeAudioLowpassCutoff(true);
-        PostProcessingManager.Instance.ChangeSeaAlpha(true);
+        EffectManager.Instance.SetUnderwaterEffect(true);
         AnimatorManager.Instance.DetectDiveOrFloatAniPlay();
         AudioManager.Instance.PlayLocalSFX(SFX_Name.DiveAndFloat, transform.position, 1);
     }
@@ -261,7 +261,7 @@ public class PlayerStateController : MonoBehaviour
     private void ExitDiveMode()
     {
         AudioManager.Instance.ChangeAudioLowpassCutoff(false);
-        PostProcessingManager.Instance.ChangeSeaAlpha(false);
+        EffectManager.Instance.SetUnderwaterEffect(false);
         AnimatorManager.Instance.DetectDiveOrFloatAniPlay();
         PlayFloatParticle();
     }
