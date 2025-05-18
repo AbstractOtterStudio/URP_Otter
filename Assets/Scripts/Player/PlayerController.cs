@@ -97,7 +97,7 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
-        if (GameManager.instance.GetGameAction())
+        if (GameManager.Instance.GetGameAction())
         {
             HandleInteractions();
             HandleEatOrKnock();
@@ -196,7 +196,7 @@ public class PlayerController : MonoBehaviour
                 && stateController.PlayerPlaceState == PlayerPlaceState.Float
                 && availableItems.Count <= 0)
             {
-                if (GameManager.instance.GetDayState() == DayState.Night)
+                if (GameManager.Instance.GetDayState() == DayState.Night)
                 {
                     Sleep();
                     return;
@@ -342,7 +342,7 @@ public class PlayerController : MonoBehaviour
 
         if (hand.grabItemInHand.GetComponent<Item_Urchin>())
         {
-            AnimatorManager.instance.PlayerCelebrate();
+            AnimatorManager.Instance.PlayerCelebrate();
         }
         hand.grabItemInHand.transform.parent = null;
         hand.grabItemInHand = null;

@@ -8797,7 +8797,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 527083283}
-  - component: {fileID: 527083282}
   - component: {fileID: 527083281}
   - component: {fileID: 527083280}
   - component: {fileID: 527083279}
@@ -9070,24 +9069,6 @@ MonoBehaviour:
   dayState: 0
   playerState: {fileID: 431130209}
   isGameAction: 0
---- !u!114 &527083282
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 527083275}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6d2b14d295d35834d99dcd57bddc6561, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  gameManager: {fileID: 527083281}
-  uiManager: {fileID: 527083280}
-  audioManager: {fileID: 527083279}
-  postProcessingManager: {fileID: 527083276}
-  objectPool: {fileID: 0}
-  mapSpawner: {fileID: 0}
 --- !u!4 &527083283
 Transform:
   m_ObjectHideFlags: 0

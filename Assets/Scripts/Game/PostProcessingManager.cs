@@ -3,11 +3,10 @@ using System.Collections;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
-public class PostProcessingManager : SingletonBase<PostProcessingManager>
+public class PostProcessingManager : Singleton<PostProcessingManager>
 {
 
     #region PostProcessing
-    [SerializeField] Material seaMaterial; //Change Sea Alpha
     //Outline
     public PlayerController playerController;
     [SerializeField] UniversalRendererData renderData;
@@ -28,16 +27,9 @@ public class PostProcessingManager : SingletonBase<PostProcessingManager>
 
     [SerializeField] float eveningTime = 30f;
 
-    public void Init()
+    protected override void Awake()
     {
-        if (instance == null) { instance = this; }
-        // if (renderData != null && renderData.rendererFeatures.Count > 0)
-        // {
-        //     foreach (var feature in renderData.rendererFeatures)
-        //     {                
-        //         feature.SetActive(true);
-        //     }
-        // }
+        base.Awake();
 
         volume = Camera.main.GetComponent<Volume>();
         volume.profile.TryGet(out liftGammaGain);
@@ -107,36 +99,7 @@ public class PostProcessingManager : SingletonBase<PostProcessingManager>
     bool isSeaAlphaChanging { get { return corou != null; } }
     IEnumerator SeaAlphaChanging(bool isDive)
     {
-        float currAlpha = seaMaterial.GetFloat("_Multiplicative");
-
-        if (isDive)
-        {
-            while (currAlpha > 0.25f)
-            {
-                currAlpha -= Time.deltaTime / 2;
-                if (currAlpha <= 0.25f)
-                {
-                    currAlpha = 0.2f;
-                }
-                seaMaterial.SetFloat("_Multiplicative", currAlpha);
-                yield return null;
-            }
-        }
-        else
-        {
-            while (currAlpha < 0.95f)
-            {
-                currAlpha += Time.deltaTime / 2;
-                if (currAlpha >= 0.95f)
-                {
-                    currAlpha = 1;
-                }
-                seaMaterial.SetFloat("_Multiplicative", currAlpha);
-                yield return null;
-            }
-        }
-
-        corou = null;
+        yield break;
     }
     #endregion
 }

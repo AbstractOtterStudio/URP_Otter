@@ -13,8 +13,8 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private float diveSpeedMultiplier = 0.8f; // 潜水时速度倍数（示例）
 
     [Header("==== Turning Settings ====")]
-    [SerializeField] private float minTurningSpeed = 3f;  
-    [SerializeField] private float maxTurningSpeed = 6f;  
+    [SerializeField] private float minTurningSpeed = 3f;
+    [SerializeField] private float maxTurningSpeed = 6f;
     [SerializeField] private float brakeAngle = 90f;        // 超过此夹角则进入刹车区
     [SerializeField] private float brakeSpeed = 1.0f;        // 刹车减速度
 
@@ -74,7 +74,7 @@ public class PlayerMovement : MonoBehaviour
     private void FixedUpdate()
     {
         // 在此处判断游戏是否可交互
-        if (GameManager.instance.GetGameAction())
+        if (GameManager.Instance.GetGameAction())
         {
             MovePlayer();
         }
@@ -103,7 +103,7 @@ public class PlayerMovement : MonoBehaviour
             {
                 TurnFirstThenMove(desiredDirection);
             }
-            else 
+            else
             {
                 // 如果大于 brakeAngle，则执行刹车逻辑
                 if (deltaAngle > brakeAngle)
@@ -154,7 +154,7 @@ public class PlayerMovement : MonoBehaviour
 
     //     Vector3 right = mainCamera.transform.right;
     //     Vector3 forward = Vector3.Cross(right, Vector3.up);
-        
+
     //     Vector3 direction = (right * movementInput.x + forward * movementInput.z).normalized;
 
     //     direction = new Vector3(direction.x, 0, direction.z).normalized * directionSpeed;
@@ -194,7 +194,7 @@ public class PlayerMovement : MonoBehaviour
         // 如果已经几乎停止，再开始朝新的方向加速
         if (currentSpeed < 0.5f)
         {
-           TurnSmoothly(desiredDirection, maxTurningSpeed * 2);
+            TurnSmoothly(desiredDirection, maxTurningSpeed * 2);
 
             // 再按照普通加速度往 maxSpeed 加
             currentSpeed = Mathf.MoveTowards(currentSpeed, maxSpeed, acceleration * Time.deltaTime);
@@ -255,7 +255,7 @@ public class PlayerMovement : MonoBehaviour
     /// </summary>
     private void TurnSmoothly(Vector3 desiredDirection, float turnSpeed)
     {
-            if (desiredDirection.sqrMagnitude > 0.01f)
+        if (desiredDirection.sqrMagnitude > 0.01f)
         {
             Quaternion targetRotation = Quaternion.LookRotation(-desiredDirection, Vector3.up);
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, turnSpeed * Time.deltaTime);
