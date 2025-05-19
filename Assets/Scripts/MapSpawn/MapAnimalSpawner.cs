@@ -2,21 +2,22 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-//³õ´º°Êª«/­¹ª«¥Í¦¨
-public class MapAnimalSpawner : MonoBehaviour
+//ï¿½ï¿½ï¿½ï¿½ï¿½Êªï¿½/ï¿½ï¿½ï¿½ï¿½ï¿½Í¦ï¿½
+public class MapAnimalSpawner : Singleton<MapAnimalSpawner>
 {
     static AnimalSetting[] animalSettings { get { return ConfigFile.GetConfigFile().animalSettings; } }
     static Dictionary<AnimalPoolName, Destinations[]> animalDict;
     static List<GameObject> respawnList = new List<GameObject>();
 
-    public void Init()
+    protected override void Awake()
     {
-        animalDict = new Dictionary<AnimalPoolName, Destinations[]>();        
+        base.Awake();
+        animalDict = new Dictionary<AnimalPoolName, Destinations[]>();
         for (int i = 0; i < animalSettings.Length; i++)
         {
             animalDict.Add(animalSettings[i].poolName, animalSettings[i].patrolPoints);
         }
-        
+
         Spawn(false);
     }
 
@@ -25,7 +26,7 @@ public class MapAnimalSpawner : MonoBehaviour
         foreach (var animalType in animalDict)
         {
             //Fish, StarFish, Urchin not Respawn
-            if(isRespawn)
+            if (isRespawn)
             {
                 if (animalType.Key == AnimalPoolName.Fish ||
                     animalType.Key == AnimalPoolName.JellyFish)
@@ -36,7 +37,7 @@ public class MapAnimalSpawner : MonoBehaviour
 
             //Traverse all single animal in this animal type
             for (int i = 0; i < animalType.Value.Length; i++)
-            {                
+            {
                 ////Take current Type single animal from pool
                 //Transform spawnAnimal = ObjectPool.TakeFromPool(animalType.Key.ToString());
                 ////Init EscaperAgent
@@ -53,7 +54,7 @@ public class MapAnimalSpawner : MonoBehaviour
             }
         }
     }
-    
+
     public static void AddAnimalToRespawnList(GameObject animal)
     {
         respawnList.Add(animal);
@@ -61,13 +62,13 @@ public class MapAnimalSpawner : MonoBehaviour
 
     public static void RespawnAnimals()
     {
-        if(respawnList.Count <= 0) { return; }
+        if (respawnList.Count <= 0) { return; }
         for (int i = 0; i < respawnList.Count; i++)
         {
             if (respawnList[i].GetComponent<EscaperAgent>())
             {
                 respawnList[i].GetComponent<EscaperAgent>().ResetState();
-            }            
+            }
             respawnList[i].GetComponent<ItemProperties>().ResetProperties();
             respawnList[i].SetActive(true);
         }
@@ -84,13 +85,13 @@ public class MapAnimalSpawner : MonoBehaviour
         {
             EscaperAgent escaper = spawnAnimal.GetComponent<EscaperAgent>();
             escaper.SetPatrolPoints(destinations[desIndex].destinations);
-        }        
+        }
         //Spawn Animal to its first patrol point
         spawnAnimal.position = destinations[desIndex].destinations[0];
 
         if (spawnAnimal.GetComponent<ItemProperties>())
         {
             spawnAnimal.GetComponent<ItemProperties>().InitProperties();
-        }        
+        }
     }
 }

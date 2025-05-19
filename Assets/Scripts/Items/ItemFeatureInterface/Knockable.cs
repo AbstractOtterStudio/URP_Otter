@@ -15,18 +15,19 @@ public class Knockable : MonoBehaviour
     public bool IsBroken { get; private set; }
     void Start()
     {
-        if (currKnockNum >= maxKnockNum) {
+        if (currKnockNum >= maxKnockNum)
+        {
             IsBroken = true;
         }
     }
-    public void OnBreak() 
+    public void OnBreak()
     {
         if (IsBroken) { return; }
         if (maxKnockNum > currKnockNum)
         {
             //還可以能敲
             Debug.Log($"You are knocking {gameObject.name}.");
-            AudioManager.instance.PlayLocalSFX(knockSFX, transform.position);
+            AudioManager.Instance.PlayLocalSFX(knockSFX, transform.position);
             currKnockNum++;
         }
 

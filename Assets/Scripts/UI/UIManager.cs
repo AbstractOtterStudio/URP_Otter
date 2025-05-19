@@ -2,15 +2,14 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class UIManager : SingletonBase<UIManager>
+public class UIManager : Singleton<UIManager>
 {
     UIBase[] _uis;
     private QTEMiniGame _qteMiniGame;
 
-    public void Init() // TODO: 把所有Init()都去掉，singleton逻辑封装一下，包括dontdestroyonload
+    protected override void Awake()
     {
-        if (instance == null) { instance = this; }
-        else { Debug.LogError("UIManager instance already exists"); }
+        base.Awake();
 
         _uis = FindObjectsOfType<UIBase>();
 

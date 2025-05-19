@@ -8,10 +8,10 @@ public class OtterNPC : MonoBehaviour
     [SerializeField] private Animator animator;
     [SerializeField] private GameObject urchin;
     [SerializeField] private Transform playerSleepPosition;
-    
+
     bool m_hasGiven;
     void Start()
-    {   
+    {
         if (animator == null)
         {
             animator = GetComponent<Animator>();
@@ -32,7 +32,7 @@ public class OtterNPC : MonoBehaviour
 
     private void NPCLogicDetect()
     {
-        if (GameManager.instance.GetDayState() == DayState.Day)
+        if (GameManager.Instance.GetDayState() == DayState.Day)
         {
             if (isSingle)
             {
@@ -61,7 +61,7 @@ public class OtterNPC : MonoBehaviour
         if (m_hasGiven == false && other.GetComponent<PlayerStateController>())
         {
             animator.SetBool(ValueShortcut.anim_PlayerCome, true);
-            AnimatorManager.instance.HasOtterNpc(true);
+            AnimatorManager.Instance.HasOtterNpc(true);
             if (other.GetComponent<PlayerStateController>().PlayerAniState == PlayerInteractAniState.Sleep)
             {
                 other.transform.position = playerSleepPosition.position;
@@ -75,7 +75,7 @@ public class OtterNPC : MonoBehaviour
         if (m_hasGiven == false && other.GetComponent<PlayerMovement>())
         {
             animator.SetBool(ValueShortcut.anim_PlayerCome, false);
-            AnimatorManager.instance.HasOtterNpc(false);
+            AnimatorManager.Instance.HasOtterNpc(false);
         }
     }
 
@@ -83,7 +83,7 @@ public class OtterNPC : MonoBehaviour
     {
         urchin.SetActive(true);
         urchin.transform.parent = null;
-        urchin.GetComponent<Item_Urchin>().UrchinSpawn(urchin.transform,urchin.transform);
+        urchin.GetComponent<Item_Urchin>().UrchinSpawn(urchin.transform, urchin.transform);
         animator.SetBool(ValueShortcut.anim_PlayerCome, false);
         m_hasGiven = true;
     }
