@@ -6,6 +6,9 @@ Shader "Crest/Ocean URP"
 {
 	Properties
 	{
+		[Header(Global)]
+		_Fade("Overall Fade", Range(0.0, 1.0)) = 0.0
+
 		[Header(Normals)]
 		// Strength of the final surface normal (includes both wave normal and normal map)
 		_NormalsStrengthOverall( "Overall Normal Strength", Range( 0.0, 1.0 ) ) = 1.0
@@ -282,6 +285,9 @@ Shader "Crest/Ocean URP"
 
 			// Not set and _ScreenParams.zw is "1.0 + 1.0 / _ScreenParams.xy"
 			#define _ScreenSize float4(_ScreenParams.xy, float2(1.0, 1.0) / _ScreenParams.xy)
+
+			// Global fade value to white
+			float _Fade;
 
 			#include "OceanGlobals.hlsl"
 			#include "OceanInputsDriven.hlsl"
@@ -754,8 +760,8 @@ Shader "Crest/Ocean URP"
 					col = lerp(col, scatterCol, saturate(1. - exp(-_CrestDepthFogDensity.xyz * depthFogDistance)));
 				}
 #endif
-
-				return real4(col, 1.0);
+				real3 fadedColor = lerp(col, (real3)1., _Fade); // fade to white
+				return real4(fadedColor, 1.0);
 			}
 
 			ENDHLSL
