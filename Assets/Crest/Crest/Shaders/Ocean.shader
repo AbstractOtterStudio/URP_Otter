@@ -286,9 +286,6 @@ Shader "Crest/Ocean URP"
 			// Not set and _ScreenParams.zw is "1.0 + 1.0 / _ScreenParams.xy"
 			#define _ScreenSize float4(_ScreenParams.xy, float2(1.0, 1.0) / _ScreenParams.xy)
 
-			// Global fade value to white
-			float _Fade;
-
 			#include "OceanGlobals.hlsl"
 			#include "OceanInputsDriven.hlsl"
 			#include "OceanShaderData.hlsl"

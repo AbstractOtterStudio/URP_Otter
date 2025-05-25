@@ -1,15 +1,56 @@
+using System;
 using System.Collections;
 using Crest;
 using UnityEngine;
 
 public class EffectManager : Singleton<EffectManager>
 {
+    public class ShaderState
+    {
+        public ShaderState(float fade, Vector3 fogDensity)
+        {
+            this.fade = fade;
+            this.fogDensity = fogDensity;
+        }
+
+        public ShaderState(OceanRenderer oceanRenderer)
+        {
+            From(oceanRenderer);
+        }
+
+        public void Apply(OceanRenderer oceanRenderer)
+        {
+            oceanRenderer.OceanMaterial.SetFloat("_Fade", fade);
+            oceanRenderer.OceanMaterial.SetVector("_DepthFogDensity", fogDensity);
+        }
+
+        public void From(OceanRenderer oceanRenderer)
+        {
+            fade = oceanRenderer.OceanMaterial.GetFloat("_Fade");
+            fogDensity = oceanRenderer.OceanMaterial.GetVector("_DepthFogDensity");
+        }
+
+        public bool Equals(ShaderState other)
+        {
+            return Mathf.Abs(fade - other.fade) < 0.01f && Vector3.SqrMagnitude(fogDensity - other.fogDensity) < 0.0001f;
+        }
+
+        public float fade;
+        public Vector3 fogDensity;
+    }
+
+    // 以下的可以expose成参数，如果需要
+    const float kTargetFade = 0.34f;
+    readonly Vector3 kTargetFogDensity = new Vector3(0.05f, 0.05f, 0.05f);
+
     [SerializeField]
     float _fadeDuration = 1.0f;
 
     OceanRenderer _oceanRenderer = null;
 
     IEnumerator _fadeCoroutine = null;
+
+    ShaderState _initialShaderState = null;
 
     protected override void Awake()
     {
@@ -19,25 +60,42 @@ public class EffectManager : Singleton<EffectManager>
     void Start()
     {
         _oceanRenderer = OceanRenderer.Instance;
+
+        if (_oceanRenderer == null)
+        {
+            Debug.LogError("OceanRenderer not found; cannot set underwater effect");
+            return;
+        }
+
+        _initialShaderState = new ShaderState(_oceanRenderer);
+    }
+
+    void OnDisable()
+    {
+        if (_initialShaderState != null)
+        {
+            _initialShaderState.Apply(_oceanRenderer);
+        }
     }
 
     public void SetUnderwaterEffect(bool isUnderwater)
     {
         IEnumerator FadeCoroutine()
         {
+            ShaderState currentShaderState = new ShaderState(_oceanRenderer);
+            ShaderState targetShaderState = isUnderwater ? new ShaderState(kTargetFade, kTargetFogDensity) : _initialShaderState;
 
-            float targetFade = isUnderwater ? 0.5f : 0.0f;
-            float fadeSpeed = 0.5f / _fadeDuration;
-            float currentFade;
+            float fadeSpeed = (targetShaderState.fade - currentShaderState.fade) / _fadeDuration;
+            Vector3 fogDensitySpeed = (targetShaderState.fogDensity - currentShaderState.fogDensity) / _fadeDuration;
             do
             {
-                currentFade = _oceanRenderer.OceanMaterial.GetFloat("_Fade");
-                float fadeSpeedSign = currentFade < targetFade ? 1.0f : -1.0f;
-                float newFade = currentFade + fadeSpeed * fadeSpeedSign * Time.deltaTime;
-                _oceanRenderer.OceanMaterial.SetFloat("_Fade", newFade);
+                currentShaderState.fade += fadeSpeed * Time.deltaTime;
+                currentShaderState.fogDensity += fogDensitySpeed * Time.deltaTime;
+                currentShaderState.Apply(_oceanRenderer);
                 yield return null;
-            } while (Mathf.Abs(currentFade - targetFade) > 0.01f);
-            _oceanRenderer.OceanMaterial.SetFloat("_Fade", targetFade);
+            } while (!currentShaderState.Equals(targetShaderState));
+
+            targetShaderState.Apply(_oceanRenderer);
         }
 
         if (_oceanRenderer == null)
