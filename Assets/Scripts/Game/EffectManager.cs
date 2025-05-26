@@ -39,9 +39,11 @@ public class EffectManager : Singleton<EffectManager>
         public Vector3 fogDensity;
     }
 
-    // 以下的可以expose成参数，如果需要
-    const float kTargetFade = 0.34f;
-    readonly Vector3 kTargetFogDensity = new Vector3(0.05f, 0.05f, 0.05f);
+    [SerializeField]
+    [UnityEngine.Range(0.0f, 1.0f)]
+    float _underwaterTargetFade = 0.24f;
+    [SerializeField]
+    Vector3 _underwaterTargetFogDensity = new Vector3(0.05f, 0.05f, 0.05f);
 
     [SerializeField]
     float _fadeDuration = 1.0f;
@@ -51,6 +53,8 @@ public class EffectManager : Singleton<EffectManager>
     IEnumerator _fadeCoroutine = null;
 
     ShaderState _initialShaderState = null;
+
+    ShaderState _underwaterShaderState = null;
 
     protected override void Awake()
     {
@@ -68,6 +72,7 @@ public class EffectManager : Singleton<EffectManager>
         }
 
         _initialShaderState = new ShaderState(_oceanRenderer);
+        _underwaterShaderState = new ShaderState(_underwaterTargetFade, _underwaterTargetFogDensity);
     }
 
     void OnDisable()
@@ -83,7 +88,11 @@ public class EffectManager : Singleton<EffectManager>
         IEnumerator FadeCoroutine()
         {
             ShaderState currentShaderState = new ShaderState(_oceanRenderer);
-            ShaderState targetShaderState = isUnderwater ? new ShaderState(kTargetFade, kTargetFogDensity) : _initialShaderState;
+#if UNITY_EDITOR
+            ShaderState targetShaderState = isUnderwater ? new ShaderState(_underwaterTargetFade, _underwaterTargetFogDensity) : _initialShaderState;
+#else
+            ShaderState targetShaderState = isUnderwater ? _underwaterShaderState : _initialShaderState;
+#endif
 
             float fadeSpeed = (targetShaderState.fade - currentShaderState.fade) / _fadeDuration;
             Vector3 fogDensitySpeed = (targetShaderState.fogDensity - currentShaderState.fogDensity) / _fadeDuration;
