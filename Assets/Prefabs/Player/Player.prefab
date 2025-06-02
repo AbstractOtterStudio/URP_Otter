@@ -7344,6 +7344,10 @@ MonoBehaviour:
   maxTurningSpeed: 6
   brakeAngle: 150
   brakeSpeed: 90
+  waterSamplingObjectWidth: 4
+  idleWaterAdjustmentSpeed: 2
+  movingWaterAdjustmentSpeedMultiplier: 0.2
+  minWaterAdjustmentDelta: 0.2
   diveDepth: 1.5
   verticalSpeed: 3
   collisionReboundSpeed: 3
@@ -7360,6 +7364,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8b26001744554514cb3b476fa0ca270e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  IsStateLocked: 0
   playerFloatParticle: {fileID: 4987694229547912579}
   playerMaterial: {fileID: 0}
 --- !u!114 &4451689675927843717
@@ -7662,12 +7667,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   playerMovement: {fileID: 4451689675927843719}
-  playerRigidbody: {fileID: 4451689675927843714}
   speedToWeightRatio: 0.428
   _objectWidth: 3
   _buoyancyCoeff: 3
   _raiseObject: 1
-  _maxDispSpeed: 0.4
 --- !u!1 &4103583427619234634
 GameObject:
   m_ObjectHideFlags: 0
