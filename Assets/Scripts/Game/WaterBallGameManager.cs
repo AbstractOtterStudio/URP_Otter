@@ -4,45 +4,13 @@ using UnityEngine;
 
 public class WaterBallGameManager : MonoBehaviour
 {
-    public Transform ball;
-    public Transform goalBlue, goalRed;
-    public AIController[] teamBlue; // size 2 (AI teammates of player)
-    public AIController[] teamRed;  // size 3 opponents
-    public Transform playerSpawn, blueSpawn1, blueSpawn2, redSpawn1, redSpawn2, redSpawn3;
-
-    private Vector3 ballStartPos;
-
-    void Start()
-    {
-        ballStartPos = ball.position;
-
-        // player is assumed already spawned at playerSpawn
-        InitAI(teamBlue, true, blueSpawn1.position, blueSpawn2.position);
-        InitAI(teamRed,  false, redSpawn1.position,  redSpawn2.position, redSpawn3.position);
+    [Header("Refs")] public Ball ball; public Transform ballStart;
+    public WaterPlayer[] blueTeam; public WaterPlayer[] redTeam;
+    int scoreBlue, scoreRed;
+    void Start(){
+        foreach(var p in blueTeam){ p.team=new List<WaterPlayer>(blueTeam); p.opponents=new List<WaterPlayer>(redTeam); }
+        foreach(var p in redTeam ){ p.team=new List<WaterPlayer>(redTeam ); p.opponents=new List<WaterPlayer>(blueTeam); }
     }
-
-    void InitAI(AIController[] bots, bool isBlue, params Vector3[] homes)
-    {
-        for(int i=0;i<bots.Length && i<homes.Length;i++)
-        {
-            bots[i].transform.position = homes[i];
-            bots[i].IsTeammate = isBlue;
-            bots[i].Init(ball, isBlue?goalBlue:goalRed, isBlue?goalRed:goalBlue, homes[i]);
-        }
-    }
-
-    public void GoalScored(bool blueScored)
-    {
-        Debug.Log($"Goal!! {(blueScored?"Blue":"Red")} team scores");
-        ResetPositions();
-    }
-
-    void ResetPositions()
-    {
-        ball.position = ballStartPos;
-        ball.GetComponent<Rigidbody>().velocity = Vector3.zero;
-        InitAI(teamBlue, true, blueSpawn1.position, blueSpawn2.position);
-        InitAI(teamRed,  false, redSpawn1.position,  redSpawn2.position, redSpawn3.position);
-        // TODO reset players to spawns similarly
-    }
+    public void GoalScored(string team){ if(team=="Blue") scoreBlue++; else scoreRed++; Debug.Log($"GOAL {team}! {scoreBlue}-{scoreRed}"); ResetPlay(); }
+    void ResetPlay(){ ball.Pos = ballStart.position; ball.Rb.velocity=Vector3.zero; }
 }

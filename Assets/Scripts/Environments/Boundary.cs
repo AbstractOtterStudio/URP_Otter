@@ -1,49 +1,41 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-//Current only for waterball game boundary
+/// <summary>Attach to 4 墙的 BoxCollider（Is Trigger）</summary>
 public class Boundary : MonoBehaviour
 {
-    [Header("Pool half-extents (world units)")]
-    public float halfX = 15f;          // X 正负边界
-    public float halfZ = 10f;          // Z 正负边界
-    public float bounceDamping = 0.9f; // 0-1 反弹时保留的速度比例
+    [Tooltip("0-1，碰墙后保留的水平速度比例")]
+    public float damping = 0.9f;
 
-    void OnTriggerExit(Collider other)
+    void OnTriggerEnter(Collider other)  => Bounce(other);
+    void OnTriggerStay (Collider other)  => Bounce(other);
+
+    void Bounce(Collider col)
     {
-        // ───────────── 球：反弹 ─────────────
-        if (other.CompareTag("Ball"))
+        Ball ball = col.GetComponent<Ball>();
+        if (!ball) return;
+
+        Vector3 pos = ball.Pos;
+        Vector3 vel = ball.Rb.velocity;
+
+        // 通过比较位置 → 判断是哪一面墙；反转对应速度分量
+        float halfX = transform.lossyScale.x * 0.5f;
+        float halfZ = transform.lossyScale.z * 0.5f;
+
+        bool bounced = false;
+        if (pos.x >  halfX && vel.x > 0) { vel.x = -vel.x; bounced = true; }
+        if (pos.x < -halfX && vel.x < 0) { vel.x = -vel.x; bounced = true; }
+        if (pos.z >  halfZ && vel.z > 0) { vel.z = -vel.z; bounced = true; }
+        if (pos.z < -halfZ && vel.z < 0) { vel.z =  vel.z * -1; bounced = true; }
+
+        if (bounced)
         {
-            Rigidbody rb = other.GetComponent<Rigidbody>();
-            if (rb == null) return;
-
-            Vector3 v   = rb.velocity;        // 当前速度
-            Vector3 pos = other.transform.position;
-            bool bounced = false;
-
-            // 根据离开哪条边反转速度分量
-            if (pos.x >  halfX && v.x >  0f) { v.x = -v.x; bounced = true; }
-            if (pos.x < -halfX && v.x <  0f) { v.x = -v.x; bounced = true; }
-            if (pos.z >  halfZ && v.z >  0f) { v.z = -v.z; bounced = true; }
-            if (pos.z < -halfZ && v.z <  0f) { v.z = -v.z; bounced = true; }
-
-            if (bounced)
-            {
-                rb.velocity = v * bounceDamping;
-
-                // 轻推回池内，避免卡在边界反复触发
-                pos.x = Mathf.Clamp(pos.x, -halfX + 0.05f, halfX - 0.05f);
-                pos.z = Mathf.Clamp(pos.z, -halfZ + 0.05f, halfZ - 0.05f);
-                other.transform.position = pos;
-            }
-        }
-        else if (other.CompareTag("Player") || other.CompareTag("AI"))
-        {
-            Vector3 pos = other.transform.position;
-            pos.x = Mathf.Clamp(pos.x, -halfX, halfX);
-            pos.z = Mathf.Clamp(pos.z, -halfZ, halfZ);
-            other.transform.position = pos;
+            ball.Rb.velocity = vel * damping;
+            // 把球轻推回场内 0.05 m
+            ball.Pos = new Vector3(
+                Mathf.Clamp(pos.x, -halfX + .05f, halfX - .05f),
+                pos.y,
+                Mathf.Clamp(pos.z, -halfZ + .05f, halfZ - .05f));
         }
     }
 }
+
