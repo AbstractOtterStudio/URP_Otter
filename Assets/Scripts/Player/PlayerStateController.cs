@@ -50,7 +50,7 @@ public class PlayerStateController : MonoBehaviour
 
     private void Update()
     {
-        if (GameManager.instance.GetGameAction())
+        if (GameManager.Instance.GetGameAction())
         {
             UpdatePlayerStates();
         }
@@ -208,7 +208,7 @@ public class PlayerStateController : MonoBehaviour
         }
         else if (IsKnocking && Input.anyKeyDown && !Input.GetKeyDown(GlobalSetting.InterectKey))
         {
-            AnimatorManager.instance.OffLockState();
+            AnimatorManager.Instance.OffLockState();
             IsKnocking = false;
         }
     }
@@ -217,9 +217,9 @@ public class PlayerStateController : MonoBehaviour
     {
         if (PlayerAniState != PlayerInteractAniState.Sleep) return;
 
-        if (GameManager.instance.GetCurTime() >= 0 && GameManager.instance.GetDayState() == DayState.Day)
+        if (GameManager.Instance.GetCurTime() >= 0 && GameManager.Instance.GetDayState() == DayState.Day)
         {
-            AnimatorManager.instance.OffLockState();
+            AnimatorManager.Instance.OffLockState();
         }
     }
 
@@ -252,17 +252,17 @@ public class PlayerStateController : MonoBehaviour
 
     private void EnterDiveMode()
     {
-        AudioManager.instance.ChangeAudioLowpassCutoff(true);
-        PostProcessingManager.instance.ChangeSeaAlpha(true);
-        AnimatorManager.instance.DetectDiveOrFloatAniPlay();
-        AudioManager.instance.PlayLocalSFX(SFX_Name.DiveAndFloat, transform.position, 1);
+        AudioManager.Instance.ChangeAudioLowpassCutoff(true);
+        EffectManager.Instance.SetUnderwaterEffect(true);
+        AnimatorManager.Instance.DetectDiveOrFloatAniPlay();
+        AudioManager.Instance.PlayLocalSFX(SFX_Name.DiveAndFloat, transform.position, 1);
     }
 
     private void ExitDiveMode()
     {
-        AudioManager.instance.ChangeAudioLowpassCutoff(false);
-        PostProcessingManager.instance.ChangeSeaAlpha(false);
-        AnimatorManager.instance.DetectDiveOrFloatAniPlay();
+        AudioManager.Instance.ChangeAudioLowpassCutoff(false);
+        EffectManager.Instance.SetUnderwaterEffect(false);
+        AnimatorManager.Instance.DetectDiveOrFloatAniPlay();
         PlayFloatParticle();
     }
 

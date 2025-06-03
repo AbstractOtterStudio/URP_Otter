@@ -73,7 +73,7 @@ public class PlayerProperty : MonoBehaviour
 
     private void Update()
     {
-        if (GameManager.instance.GetGameAction())
+        if (GameManager.Instance.GetGameAction())
         {
             if (stateController.PlayerAniState != PlayerInteractAniState.Sleep)
             {

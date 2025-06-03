@@ -73,7 +73,7 @@ public class OutLineRenderPass : ScriptableRenderPass
         //    return;
         //}
         List<Renderer> renderList = new List<Renderer>();
-        if (PostProcessingManager.instance != null)
+        if (PostProcessingManager.Instance != null)
         {
             return;
             // renderList = PostProcessingManager.instance.playerController.GetTargetItemRendererList(target);

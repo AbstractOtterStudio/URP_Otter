@@ -2,9 +2,8 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class AnimatorManager : MonoBehaviour
+public class AnimatorManager : Singleton<AnimatorManager>
 {
-    public static AnimatorManager instance { get; private set; }
 
     [SerializeField]
     private Animator m_playerAnimator;
@@ -13,18 +12,18 @@ public class AnimatorManager : MonoBehaviour
     public Animator playerAnimator { get => m_playerAnimator; set => m_playerAnimator = value; }
     private bool m_HasNPCSleep;
 
-    void Start()
+    protected override void Awake()
     {
-        if (playerAnimator == null) {
+        base.Awake();
+        if (playerAnimator == null)
+        {
             playerAnimator = FindObjectOfType<PlayerController>().GetComponent<Animator>();
         }
 
-        if (stateController == null) {
+        if (stateController == null)
+        {
             stateController = FindObjectOfType<PlayerStateController>();
         }
-
-        if (instance == null) { instance = this; }
-        
     }
 
     // Update is called once per frame
@@ -36,32 +35,36 @@ public class AnimatorManager : MonoBehaviour
         //DetectDiveOrFloatAniPlay();
     }
 
-    private void DetectInteractAniPlay() 
+    private void DetectInteractAniPlay()
     {
-        switch (stateController.PlayerAniState) {
+        switch (stateController.PlayerAniState)
+        {
             case PlayerInteractAniState.Idle:
-                playerAnimator.SetBool(ValueShortcut.anim_SleepOver,true);
-                return; 
+                playerAnimator.SetBool(ValueShortcut.anim_SleepOver, true);
+                return;
 
             case PlayerInteractAniState.Eat:
-                if (!stateController.IsStateLocked) {
+                if (!stateController.IsStateLocked)
+                {
                     stateController.StateOnLock();
                     playerAnimator.SetTrigger(ValueShortcut.anim_Eat);
                 }
                 break;
 
             case PlayerInteractAniState.Knock:
-                if (!stateController.IsStateLocked) {
+                if (!stateController.IsStateLocked)
+                {
                     stateController.StateOnLock();
                     playerAnimator.SetTrigger(ValueShortcut.anim_Knock);
-                }               
+                }
                 break;
-            
+
             case PlayerInteractAniState.Grab:
-                if (!stateController.IsStateLocked) {
+                if (!stateController.IsStateLocked)
+                {
                     stateController.StateOnLock();
                     playerAnimator.SetTrigger(ValueShortcut.anim_Grab);
-                }            
+                }
                 break;
 
             case PlayerInteractAniState.Release:
@@ -70,33 +73,35 @@ public class AnimatorManager : MonoBehaviour
                 break;
 
             case PlayerInteractAniState.Clean:
-                if (!stateController.IsStateLocked) 
+                if (!stateController.IsStateLocked)
                 {
                     stateController.StateOnLock();
-                    playerAnimator.SetInteger(ValueShortcut.anim_RandomInt,Random.Range(0,3));
+                    playerAnimator.SetInteger(ValueShortcut.anim_RandomInt, Random.Range(0, 3));
                     playerAnimator.SetTrigger(ValueShortcut.anim_Clean);
                 }
                 break;
 
             case PlayerInteractAniState.Sleep:
-                if (!stateController.IsStateLocked) {
+                if (!stateController.IsStateLocked)
+                {
                     stateController.StateOnLock();
                     if (m_HasNPCSleep)
                     {
-                        playerAnimator.SetBool(ValueShortcut.anim_HasNPCSleep,true);
+                        playerAnimator.SetBool(ValueShortcut.anim_HasNPCSleep, true);
                     }
                     else
                     {
-                        playerAnimator.SetBool(ValueShortcut.anim_HasNPCSleep,false);
+                        playerAnimator.SetBool(ValueShortcut.anim_HasNPCSleep, false);
                     }
                     playerAnimator.SetTrigger(ValueShortcut.anim_Sleep);
-                    playerAnimator.SetBool(ValueShortcut.anim_SleepOver,false);
-                    
+                    playerAnimator.SetBool(ValueShortcut.anim_SleepOver, false);
+
                 }
                 break;
 
             case PlayerInteractAniState.Celebrate:
-                if (!stateController.IsStateLocked) {
+                if (!stateController.IsStateLocked)
+                {
                     stateController.StateOnLock();
                     playerAnimator.SetTrigger(ValueShortcut.animName_Celebrate);
                 }
@@ -115,9 +120,9 @@ public class AnimatorManager : MonoBehaviour
         }
     }
 
-    private void DetectMoveAniPlay() 
+    private void DetectMoveAniPlay()
     {
-        switch (stateController.PlayerSpeedState) 
+        switch (stateController.PlayerSpeedState)
         {
             case PlayerSpeedState.Stop:
                 playerAnimator.SetBool(ValueShortcut.anim_isWalk, false);
@@ -125,12 +130,12 @@ public class AnimatorManager : MonoBehaviour
 
             case PlayerSpeedState.Normal:
                 playerAnimator.SetBool(ValueShortcut.anim_isWalk, true);
-                playerAnimator.SetBool(ValueShortcut.anim_FlipToBreast, false);                
+                playerAnimator.SetBool(ValueShortcut.anim_FlipToBreast, false);
                 break;
 
             case PlayerSpeedState.Fast:
                 playerAnimator.SetBool(ValueShortcut.anim_isWalk, true);
-                playerAnimator.SetBool(ValueShortcut.anim_FlipToBreast, true);          
+                playerAnimator.SetBool(ValueShortcut.anim_FlipToBreast, true);
                 break;
 
             default:
@@ -139,23 +144,26 @@ public class AnimatorManager : MonoBehaviour
 
     }
 
-    public void DetectDiveOrFloatAniPlay() 
+    public void DetectDiveOrFloatAniPlay()
     {
-        switch (stateController.PlayerPlaceState) {
-            case PlayerPlaceState.Dive :
-                    if (!stateController.IsStateLocked) {
-                        stateController.StateOnLock();
-                        playerAnimator.SetTrigger(ValueShortcut.anim_Dive);
-                        playerAnimator.SetBool(ValueShortcut.anim_UnderWater,true);
-                    }
+        switch (stateController.PlayerPlaceState)
+        {
+            case PlayerPlaceState.Dive:
+                if (!stateController.IsStateLocked)
+                {
+                    stateController.StateOnLock();
+                    playerAnimator.SetTrigger(ValueShortcut.anim_Dive);
+                    playerAnimator.SetBool(ValueShortcut.anim_UnderWater, true);
+                }
 
                 break;
-            
-            case PlayerPlaceState.Float :
-                if (!stateController.IsStateLocked) {
+
+            case PlayerPlaceState.Float:
+                if (!stateController.IsStateLocked)
+                {
                     stateController.StateOnLock();
                     playerAnimator.SetTrigger(ValueShortcut.anim_Float);
-                    playerAnimator.SetBool(ValueShortcut.anim_UnderWater,false);
+                    playerAnimator.SetBool(ValueShortcut.anim_UnderWater, false);
                 }
 
                 break;
@@ -170,22 +178,24 @@ public class AnimatorManager : MonoBehaviour
     /// </summary>
     private void ChangeKnockAnimState()
     {
-        if (stateController.IsKnocking) {
+        if (stateController.IsKnocking)
+        {
             playerAnimator.SetBool(ValueShortcut.anim_OnKnock, true);
         }
-        else {
+        else
+        {
             playerAnimator.SetBool(ValueShortcut.anim_OnKnock, false);
         }
     }
 
     public bool IsSpecifyAnimationPlaying(string animName)
-    {        
+    {
         bool playingAnim = playerAnimator.GetCurrentAnimatorStateInfo(0).IsName(animName);
         Debug.Log($"{animName} Playing State: {playingAnim}");
         return playingAnim;
     }
 
-    public void OffLockState() 
+    public void OffLockState()
     {
         stateController.StateOffLock();
         stateController.ChangeAniState(PlayerInteractAniState.Idle);

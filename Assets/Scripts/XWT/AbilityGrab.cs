@@ -85,7 +85,6 @@ public class AbilityGrab : MonoBehaviour
                 Debug.Log($"Grabbing nearest object: {nearest.gameObject.name}");
                 nearest.GetComponent<Rigidbody>().isKinematic = true;
                 nearest.GetComponent<Collider>().enabled = false;
-                nearest.GetComponent<KeepFloating>().isFloating = false;
                 nearest.transform.position = grabPoint.position;
                 nearest.transform.parent = grabPoint;
                 isGrabbing = true;
@@ -103,7 +102,6 @@ public class AbilityGrab : MonoBehaviour
         {
             nearest.GetComponent<Rigidbody>().isKinematic = false;
             nearest.GetComponent<Collider>().enabled = true;
-            nearest.GetComponent<KeepFloating>().isFloating = true;
 
             if (nearest.TryGetComponent<IGrabbable>(out IGrabbable grabbable))
             {

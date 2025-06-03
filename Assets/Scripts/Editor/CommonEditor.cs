@@ -48,6 +48,13 @@ public class CommonEditor : Editor
         // Draw the default inspector
         DrawDefaultInspector();
 
+        if (!EditorApplication.isPlaying)
+        {
+            EditorGUILayout.Separator();
+            EditorGUILayout.LabelField("Debugging Display is disabled outside of Play mode.");
+            return;
+        }
+
         EditorGUILayout.Separator();
         foldout = EditorGUILayout.BeginFoldoutHeaderGroup(foldout, new GUIContent("Debugging Display"));
         if (foldout)
