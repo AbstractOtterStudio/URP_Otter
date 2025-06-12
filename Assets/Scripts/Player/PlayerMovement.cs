@@ -159,6 +159,16 @@ public class PlayerMovement : MonoBehaviour
         rb.constraints = RigidbodyConstraints.FreezePositionY | RigidbodyConstraints.FreezeRotation;
     }
 
+    public void PlayerPause()
+    {
+        rb.constraints = RigidbodyConstraints.FreezeAll;
+    }
+
+    public void PlayerResume()
+    {
+        rb.constraints = RigidbodyConstraints.FreezePositionY | RigidbodyConstraints.FreezeRotation;
+    }
+
     /// <summary>
     /// 计算玩家输入方向，基于相机朝向（保持在 XZ 平面）
     /// </summary>

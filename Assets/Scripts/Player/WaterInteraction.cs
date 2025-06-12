@@ -59,5 +59,13 @@ public class WaterInteraction : MonoBehaviour
                 sphereWaterInteraction._weight = basePlayerWaterWeight + lastPlayerSpeed.Value * speedToWeightRatio;
             }
         }
+        else 
+        {
+            if (lastPlayerSpeed == null || !Mathf.Approximately(playerMovement.GetCurrentSpeed(), lastPlayerSpeed.Value))
+            {
+                lastPlayerSpeed = playerMovement.GetCurrentSpeed();
+                sphereWaterInteraction._weight = basePlayerWaterWeight + lastPlayerSpeed.Value * speedToWeightRatio;
+            }
+        }
     }
 }
