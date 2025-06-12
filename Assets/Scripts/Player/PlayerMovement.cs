@@ -60,9 +60,12 @@ public class PlayerMovement : MonoBehaviour
     private Coroutine _floatCoroutine = null;
     #endregion
 
+    private void Awake() {
+        rb = GetComponent<Rigidbody>();
+    }
+    
     private void Start()
     {
-        rb = GetComponent<Rigidbody>();
         stateController = GetComponent<PlayerStateController>();
         inputHandler = GetComponent<PlayerInputHandler>();
         animator = GetComponent<Animator>();
@@ -144,6 +147,16 @@ public class PlayerMovement : MonoBehaviour
         // 3) 更新刚体速度
         currentVelocity = desiredDirection.normalized * currentSpeed;
         rb.velocity = currentVelocity;
+    }
+
+    public void PlayerPause()
+    {
+        rb.constraints = RigidbodyConstraints.FreezeAll;
+    }
+
+    public void PlayerResume()
+    {
+        rb.constraints = RigidbodyConstraints.FreezePositionY | RigidbodyConstraints.FreezeRotation;
     }
 
     /// <summary>

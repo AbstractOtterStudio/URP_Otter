@@ -5,6 +5,8 @@ using UnityEngine;
 public class WaterPlayer : MonoBehaviour
 {
     /* ───────── Inspector ───────── */
+    public static bool isPaused = false;
+
     [Header("Team & Pitch refs")]
     public bool  isTeammate;
     public Goal  friendlyGoal;
@@ -16,8 +18,9 @@ public class WaterPlayer : MonoBehaviour
     [Header("Distances")]
     public float distPassMin  = 6f;
     public float distPassMax  = 25f;
-    public float shotMinDist  = 8f;   // 离门 ≤10m 必射
-    public float shotMaxDist  = 20f;   // 离门 >28m 不射
+    public float closeAutoShootDist = 3f;   // ★ 新增：≤3m 一定射门
+    public float shotMinDist  = 8f;         // ≤8m 强射（除非极端遮挡）
+    public float shotMaxDist  = 20f; 
     public float threatMax    = 2.2f;
 
     [Header("Rotation")]
@@ -36,6 +39,12 @@ public class WaterPlayer : MonoBehaviour
     [Tooltip("Only drop back when ball is within this distance from our goal (m)")]
     public float defendTriggerDist = 30f;
 
+    [Header("Model / Animation")]
+    public bool flipForward = true;
+    public Animator animator;
+    public float  maxSwimSpeed  = 5.0f;
+    private static readonly int BlendHash = Animator.StringToHash("Blend");
+
     /* ───────── Static per-team ball chaser ───────── */
     public static WaterPlayer[] BallChaser   = new WaterPlayer[2];
     private static float[]       chaserExpiry = { 0f, 0f };
@@ -50,20 +59,38 @@ public class WaterPlayer : MonoBehaviour
     private WAState    state;
     public  string     stateStr;
 
+    public void Pause()
+    {
+        rb.constraints = RigidbodyConstraints.FreezeAll;
+    }
+
+    public void Resume()
+    {
+        rb.constraints = RigidbodyConstraints.FreezeRotation | RigidbodyConstraints.FreezePositionY;
+    }
+
     /* ───────── Unity ───────── */
     private void Awake()
     {
         rb   = GetComponent<Rigidbody>();
         ball = FindObjectOfType<Ball>();
+        if (!animator) animator = GetComponentInChildren<Animator>();
     }
 
     private void Start()
     {
+        WaterPlayerManager.Register(this);
         Change(new WIdle(this));
+    }
+
+    private void FixedUpdate() {
+        if (isPaused) return;
     }
 
     private void Update()
     {
+        if (isPaused) return;
+
         state?.Update();
         stateStr = state.name;
 
@@ -71,6 +98,12 @@ public class WaterPlayer : MonoBehaviour
         if (BallChaser[TeamIdx] == this && Vector3.Distance(Pos, ball.Pos) > 2.5f)
             BallChaser[TeamIdx] = null;
     }
+
+    private void OnDestroy()
+    {
+        WaterPlayerManager.Unregister(this);
+    }
+
 
     /* ───────── FSM helpers ───────── */
     bool IsPlayerControlled(WaterPlayer p)
@@ -142,6 +175,7 @@ public class WaterPlayer : MonoBehaviour
         Vector3 dir = (enemyGoal.transform.position - Pos).normalized;
         dir = Quaternion.Euler(0, Random.Range(-30, 30), 0) * dir;
         ball.Kick(Pos + dir * 6f, 16f);
+        PlayShootAnim();
     }
 
     /* ───────── Helpers ───────── */
@@ -167,8 +201,14 @@ public class WaterPlayer : MonoBehaviour
     /* ───────── Movement ───────── */
     public void MoveTo(Vector3 target)
     {
+        if (isPaused) return;
+
         Vector3 dir = target - Pos; dir.y = 0;
-        if (dir.sqrMagnitude < 0.05f) return;
+        if (dir.sqrMagnitude < 0.05f)
+        {
+            if (animator) animator.SetFloat(BlendHash, 0f);
+            return;
+        }
         dir.Normalize();
 
         // Separation
@@ -185,14 +225,33 @@ public class WaterPlayer : MonoBehaviour
         float speed   = baseSpeed * (alwaysSprint ? sprintMultiplier : 1f);
         Vector3 horiz = new Vector3(rb.velocity.x, 0, rb.velocity.z);
         rb.AddForce(dir * speed - horiz, ForceMode.Acceleration);
-
+        Vector3 faceDir = flipForward ? -dir : dir;
         // Rotate model
-        Quaternion targetRot = Quaternion.LookRotation(dir, Vector3.up);
+        Quaternion targetRot = Quaternion.LookRotation(faceDir, Vector3.up);
         transform.rotation  = Quaternion.RotateTowards(transform.rotation, targetRot, turnSpeed * Time.deltaTime);
+
+        if (animator)
+        {
+            float horizSpeed = new Vector3(rb.velocity.x, 0, rb.velocity.z).magnitude;
+            float blendVal   = Mathf.Clamp01(horizSpeed / maxSwimSpeed); // 0-1
+            animator.SetFloat(BlendHash, blendVal, 0.15f, Time.deltaTime); // 平滑
+        }
     }
+
+    private void PlayShootAnim()
+    {
+        if (animator) 
+        {
+            animator.SetTrigger("Shoot");
+            Debug.Log("Shoot !!!!!!!!!!!!!!!!!!");
+        }
+    }
+
 
     public void MoveToBallPred(float leadFactor = 1.1f, float maxLead = 1.4f)
     {
+        if (isPaused) return;
+
         Vector3 v = ball.Rb.velocity; v.y = 0;
         float   d = Vector3.Distance(Pos, ball.Pos);
         float   t = Mathf.Clamp(d / (baseSpeed * leadFactor), 0, maxLead);
@@ -268,26 +327,76 @@ public class WaterPlayer : MonoBehaviour
         goal = enemyGoal.transform.position;
         float dist = Vector3.Distance(Pos, goal);
 
-        /* 射门阈值随距离分段 (需求 2) */
-        if (dist <= shotMinDist)      return true;      // 绝对要射
-        if (dist >= shotMaxDist)      return false;     // 绝不射
+        /* 1. 超近距离：必射（忽略遮挡） */
+        if (dist <= closeAutoShootDist) return true;
 
-        /* 中间距离：概率随距离线性下降 */
-        float t = 1f - (dist - shotMinDist) /
-                       (shotMaxDist - shotMinDist);     // 1 → 0
-        return Random.value < t;
+        /* 2. 长距离：直接否决 */
+        if (dist >= shotMaxDist) return false;
+
+        /* 3. 判断队友遮挡（放宽角度到 25°） */
+        Vector3 dirToGoal = (goal - Pos).normalized;
+        const float blockAngle = 25f;
+
+        bool blocked = false;
+        foreach (var mate in team)
+        {
+            if (mate == this) continue;
+            float ang = Vector3.Angle(dirToGoal, (mate.Pos - Pos).normalized);
+            if (ang < blockAngle &&
+                Vector3.Distance(Pos, mate.Pos) < dist)
+            {
+                blocked = true;
+                break;
+            }
+        }
+
+        /* 4. 如距门≤shotMinDist 且被堵，仍然允许射门*/
+        if (dist <= shotMinDist)
+        {
+            if (!blocked) return true;
+
+            /* 若敌方在 1m 内，强行射门 */
+            foreach (var opp in opponents)
+                if (Vector3.Distance(Pos, opp.Pos) < 1f)
+                    return true;
+
+            /* 否则给一次传球机会 */
+            return false;
+        }
+
+        /* 5. 中距离 (8-20m)：基于阻挡决定 */
+        return !blocked;
     }
 
     public void Pass(Vector3 tgt)
     {
         float pow = ball.FindPower(ball.Pos, tgt, 1.2f) * 1.15f;
         ball.Kick(tgt, pow);
+        PlayShootAnim();
     }
 
     public void Shoot(Vector3 tgt)
     {
         float pow = ball.FindPower(ball.Pos, tgt, 4f) * 1.1f;
         ball.Kick(tgt, pow);
+        PlayShootAnim();
+    }
+
+    /// <summary>把球朝场边清理</summary>
+    public void ClearToFlank()
+    {
+        // 场地长轴方向
+        Vector3 fieldDir = (enemyGoal.transform.position -
+                            friendlyGoal.transform.position).normalized;
+        // 场地横向（垂直长轴）
+        Vector3 flankDir = Vector3.Cross(Vector3.up, fieldDir).normalized;
+
+        // 本方朝左还是右：让防守方（无球方）把球踢向自己半场外侧
+        if (!isTeammate) flankDir = -flankDir;
+
+        Vector3 target = Pos + flankDir * 10f;   // 10 米侧边
+        ball.Kick(target, 14f);                  // 力度可调
+        PlayShootAnim();
     }
 
     /* ───────── Support spot ───────── */
@@ -309,5 +418,34 @@ public class WaterPlayer : MonoBehaviour
             opponents: opponents,
             mates: team
         );
+    }
+}
+
+public static class WaterPlayerManager
+{
+    private static List<WaterPlayer> allPlayers = new List<WaterPlayer>();
+    public static IReadOnlyList<WaterPlayer> All => allPlayers;
+
+    public static void Register(WaterPlayer p)
+    {
+        if (!allPlayers.Contains(p))
+            allPlayers.Add(p);
+    }
+
+    public static void Unregister(WaterPlayer p)
+    {
+        allPlayers.Remove(p);
+    }
+
+    public static void PauseAll()
+    {
+        foreach (var p in allPlayers)
+            p.Pause();
+    }
+
+    public static void ResumeAll()
+    {
+        foreach (var p in allPlayers)
+            p.Resume();
     }
 }

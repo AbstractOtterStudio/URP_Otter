@@ -43,10 +43,21 @@ public class WaterInteraction : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (lastPlayerSpeed == null || !Mathf.Approximately(playerMovement.GetCurrentSpeed(), lastPlayerSpeed.Value))
+        if (playerMovement == null)
         {
-            lastPlayerSpeed = playerMovement.GetCurrentSpeed();
-            sphereWaterInteraction._weight = basePlayerWaterWeight + lastPlayerSpeed.Value * speedToWeightRatio;
+            if (lastPlayerSpeed == null || !Mathf.Approximately(playerRigidbody.velocity.magnitude, lastPlayerSpeed.Value))
+            {
+                lastPlayerSpeed = playerRigidbody.velocity.magnitude;
+                sphereWaterInteraction._weight = basePlayerWaterWeight + lastPlayerSpeed.Value * speedToWeightRatio;
+            }
+        }
+        else 
+        {
+            if (lastPlayerSpeed == null || !Mathf.Approximately(playerMovement.GetCurrentSpeed(), lastPlayerSpeed.Value))
+            {
+                lastPlayerSpeed = playerMovement.GetCurrentSpeed();
+                sphereWaterInteraction._weight = basePlayerWaterWeight + lastPlayerSpeed.Value * speedToWeightRatio;
+            }
         }
     }
 }

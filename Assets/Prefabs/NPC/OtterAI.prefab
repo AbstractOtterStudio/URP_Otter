@@ -3685,6 +3685,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 3922183435923687863}
   - {fileID: 1492462719549564939}
   - {fileID: 7825349560679618034}
   - {fileID: 2566607906442724296}
@@ -3773,11 +3774,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0acc763b15c7afa41968014f25dbf9d0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  IsTeammate: 0
-  swimSpeed: 2.8
-  sprintSpeed: 5
-  awarenessRadius: 6
-  sprintDuration: 0.8
+  isTeammate: 0
+  friendlyGoal: {fileID: 0}
+  enemyGoal: {fileID: 0}
+  team: []
+  opponents: []
+  spotManager: {fileID: 0}
+  distPassMin: 6
+  distPassMax: 25
+  shotMinDist: 8
+  shotMaxDist: 20
+  threatMax: 2.2
+  turnSpeed: 540
+  accuracy: 0.85
+  power: 0.9
+  baseSpeed: 3.7
+  sprintMultiplier: 1.9
+  alwaysSprint: 1
+  defendTriggerDist: 30
+  requestPass: 0
+  stateStr: 
 --- !u!1 &6017054722249017298
 GameObject:
   m_ObjectHideFlags: 0
@@ -5267,6 +5283,84 @@ Transform:
   - {fileID: 361866449995595480}
   m_Father: {fileID: 2432318862475045135}
   m_LocalEulerAnglesHint: {x: -1.4480438, y: 6.3701663, z: -0.8257739}
+--- !u!1 &8769632559488732482
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3922183435923687863}
+  - component: {fileID: 900829448611795923}
+  - component: {fileID: 1347933248068258677}
+  m_Layer: 6
+  m_Name: WaterInteraction
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3922183435923687863
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8769632559488732482}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -2.7599983, y: 0.18, z: 15.886995}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6512975785148146801}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &900829448611795923
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8769632559488732482}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cb6894b93c9cf014c92b311d89cd410b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _version: 0
+  _radius: 1.3
+  _weight: 12
+  _weightUpDownMul: 0.629
+  _innerSphereMultiplier: 1
+  _innerSphereOffset: 0
+  _velocityOffset: 0.04
+  _compensateForWaveMotion: 0.45
+  _boostLargeWaves: 1
+  _teleportSpeed: 500
+  _warnOnTeleport: 0
+  _maxSpeed: 100
+  _warnOnSpeedClamp: 0
+  _debugSubsteps: 0
+--- !u!114 &1347933248068258677
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8769632559488732482}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8940d2aba71610047b875cea30abbfce, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerMovement: {fileID: 0}
+  playerRigidbody: {fileID: 6766664510368678804}
+  speedToWeightRatio: 0.428
+  _objectWidth: 3
+  _buoyancyCoeff: 3
+  _raiseObject: 1
+  _maxDispSpeed: 0.4
 --- !u!1 &8813138812998647548
 GameObject:
   m_ObjectHideFlags: 0

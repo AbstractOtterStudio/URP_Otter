@@ -51,7 +51,7 @@ public class WIdle : WAState
         }
 
         bool enemyHas = BallUtils.IsEnemy(P.ball.Owner, P.isTeammate);
-
+    
         if (enemyHas)
         {
             // ───── 我方无球
@@ -73,6 +73,30 @@ public class WIdle : WAState
                 return;
             }
         }
+
+        /* --------- 卡球检测 → 侧边支援 --------- */
+        if (BallStuckDetector.BallCurrentlyStuck && !P.HasBall)
+        {
+            Debug.Log("卡主!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" + Time.time);
+            const float flankDist = 6f;
+
+            // 场地长轴方向
+            Vector3 fieldDir = (P.enemyGoal.transform.position -
+                                P.friendlyGoal.transform.position).normalized;
+            // 垂直方向
+            Vector3 flankDir = Vector3.Cross(Vector3.up, fieldDir).normalized;
+
+            // 蓝队走左侧，红队走右侧（可自行调整）
+            if (!P.isTeammate) flankDir = -flankDir;
+
+            Vector3 flankPos = P.ball.Pos + flankDir * flankDist;
+
+            P.MoveTo(flankPos);
+            P.AskForPass();
+            name = "FlankWait";
+            return;
+        }
+        /* ------------ 结束 --------------------- */
 
         // ───── 进攻或球在远处
         if (P.ShouldChaseBall())
@@ -186,6 +210,14 @@ public class WDecision : WAState
 
     private void Decide()
     {
+        if (BallStuckDetector.BallCurrentlyStuck && P.HasBall)
+        {
+            Debug.Log("卡主！！！！！！！！");
+            P.ClearToFlank();
+            name = "SideClear";
+            return;
+        }
+
         bool threatened = false;
         foreach (var opp in P.opponents)
         {

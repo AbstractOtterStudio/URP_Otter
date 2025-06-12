@@ -71,43 +71,43 @@ public class Ball : MonoBehaviour
         //UpdateMotionEffects(v);
     }
 
-    void UpdateMotionEffects(Vector3 velocity)
-    {
-        if (motionParticles == null || motionParticles.Length == 0) return;
+    // void UpdateMotionEffects(Vector3 velocity)
+    // {
+    //     if (motionParticles == null || motionParticles.Length == 0) return;
 
-        speed = velocity.magnitude;
-        bool show = speed > 4.5f;
-        Vector3 dir = velocity.normalized;
+    //     speed = velocity.magnitude;
+    //     bool show = speed > 4.5f;
+    //     Vector3 dir = velocity.normalized;
 
-        foreach (var ps in motionParticles)
-        {
-            if (!ps) continue;
+    //     foreach (var ps in motionParticles)
+    //     {
+    //         if (!ps) continue;
 
-            if (!show)
-            {
-                if (ps.isPlaying) ps.Stop();
-                continue;
-            }
-            else
-            {
-                if (!ps.isPlaying) ps.Play();
-            }
+    //         if (!show)
+    //         {
+    //             if (ps.isPlaying) ps.Stop();
+    //             continue;
+    //         }
+    //         else
+    //         {
+    //             if (!ps.isPlaying) ps.Play();
+    //         }
 
-            if (dir.sqrMagnitude > 0.01f)
-                ps.transform.rotation = Quaternion.LookRotation(-dir);
+    //         if (dir.sqrMagnitude > 0.01f)
+    //             ps.transform.rotation = Quaternion.LookRotation(-dir);
 
-            var main = ps.main;
+    //         var main = ps.main;
 
-            float normalizedSpeed = Mathf.Clamp01(speed / 10f);
-            float size = speedSize != null ? speedSize.Evaluate(normalizedSpeed) : 1f;
-            main.startSize = Mathf.Max(0.1f, size);
-            Debug.Log($"Speed: {speed} → Size: {size}");
+    //         float normalizedSpeed = Mathf.Clamp01(speed / 10f);
+    //         float size = speedSize != null ? speedSize.Evaluate(normalizedSpeed) : 1f;
+    //         main.startSize = Mathf.Max(0.1f, size);
+    //         Debug.Log($"Speed: {speed} → Size: {size}");
 
-            Color color = speedColor.Evaluate(normalizedSpeed);
-            main.startColor = color;
+    //         Color color = speedColor.Evaluate(normalizedSpeed);
+    //         main.startColor = color;
 
-        }
-    }
+    //     }
+    // }
 
 
     // ───────── Collision with players─────────

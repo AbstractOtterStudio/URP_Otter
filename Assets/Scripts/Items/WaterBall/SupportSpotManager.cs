@@ -22,6 +22,12 @@ public class SupportSpotManager:MonoBehaviour
     public float wBallDef  = 0.45f, wGoalDef  = 0.30f;
     public float wMateDist = 0.60f;
 
+    [Header("Spread Control")]
+    public bool preferWide = true;
+    public float fieldCenter = 0f;
+    public bool alongXAxis = false; // 球场沿 X 或 Z 放置
+    public float widthBias = 0.15f;
+
     public float minDistFromOpp = 0.6f;
     public float minDistFromMate = 6f;
 
@@ -88,6 +94,7 @@ public class SupportSpotManager:MonoBehaviour
             }
             if (unsafeOpp) continue;
 
+    
             // 5. 队友间距
             float nearestMate = float.MaxValue;
             foreach (var m in mates)
@@ -97,6 +104,14 @@ public class SupportSpotManager:MonoBehaviour
                                         Vector3.Distance(m.Pos, s.position));
             }
             if (nearestMate < minDistFromMate) continue;
+
+            // // 5b. 越靠边越好（拉开宽度）
+            // if (preferWide)
+            // {
+            //     float axis = alongXAxis ? s.position.z : s.position.x;
+            //     float distFromCenter = Mathf.Abs(axis - fieldCenter);
+            //     score += distFromCenter * widthBias;
+            // }
 
             score += (nearestMate / 10f) * wMateDist;
 
