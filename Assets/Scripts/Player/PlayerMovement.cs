@@ -66,11 +66,11 @@ public class PlayerMovement : MonoBehaviour
     
     private void Start()
     {
+        rb = GetComponent<Rigidbody>();
         stateController = GetComponent<PlayerStateController>();
         inputHandler = GetComponent<PlayerInputHandler>();
         animator = GetComponent<Animator>();
 
-        // 初始速度设为 0，或者设置为一个默认值也可以
         currentSpeed = 0f;
         currentVelocity = Vector3.zero;
 
@@ -93,7 +93,6 @@ public class PlayerMovement : MonoBehaviour
 
     private void FixedUpdate()
     {
-        // 在此处判断游戏是否可交互
         if (GameManager.Instance.GetGameAction())
         {
             MovePlayer();

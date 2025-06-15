@@ -3782,6 +3782,7 @@ MonoBehaviour:
   spotManager: {fileID: 0}
   distPassMin: 6
   distPassMax: 25
+  closeAutoShootDist: 3
   shotMinDist: 8
   shotMaxDist: 20
   threatMax: 2.2
@@ -3792,6 +3793,9 @@ MonoBehaviour:
   sprintMultiplier: 1.9
   alwaysSprint: 1
   defendTriggerDist: 30
+  flipForward: 1
+  animator: {fileID: 0}
+  maxSwimSpeed: 5
   requestPass: 0
   stateStr: 
 --- !u!1 &6017054722249017298
@@ -4414,14 +4418,14 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7235873456441754705}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.7071067, y: -0.000000030908616, z: 0.000000030908623, w: 0.7071068}
+  m_LocalRotation: {x: -0.7069834, y: 0, z: 0, w: 0.7072302}
   m_LocalPosition: {x: -0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 9184009763717010138}
   m_Father: {fileID: 6512975785148146801}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: -89.98, y: 0, z: 0}
 --- !u!1 &7290275268846908458
 GameObject:
   m_ObjectHideFlags: 0
