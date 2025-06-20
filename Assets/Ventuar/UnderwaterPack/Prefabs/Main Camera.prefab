@@ -11,10 +11,10 @@ GameObject:
   - component: {fileID: 49798921605526846}
   - component: {fileID: 49798921605526841}
   - component: {fileID: 49798921605526840}
-  - component: {fileID: 49798921605526844}
-  - component: {fileID: 49798921605526847}
   - component: {fileID: 49798921605526845}
+  - component: {fileID: 389439061758731624}
   - component: {fileID: 49798921605526834}
+  - component: {fileID: 7881941815369452156}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -32,6 +32,7 @@ Transform:
   m_LocalRotation: {x: 0.047111694, y: 0.7417751, z: -0.05236939, w: 0.6669391}
   m_LocalPosition: {x: -112.53982, y: -61.600407, z: 95.58545}
   m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 0
@@ -46,7 +47,7 @@ Camera:
   m_Enabled: 1
   serializedVersion: 2
   m_ClearFlags: 1
-  m_BackGroundColor: {r: 0.34509805, g: 0.37254903, b: 0.50980395, a: 1}
+  m_BackGroundColor: {r: 0.34901962, g: 0.38039216, b: 0.5058824, a: 1}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0
@@ -87,83 +88,6 @@ AudioListener:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 49798921605526843}
   m_Enabled: 1
---- !u!114 &49798921605526844
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 49798921605526843}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 948f4100a11a5c24981795d21301da5c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  volumeTrigger: {fileID: 49798921605526846}
-  volumeLayer:
-    serializedVersion: 2
-    m_Bits: 1
-  stopNaNPropagation: 1
-  finalBlitToCameraTarget: 0
-  antialiasingMode: 3
-  temporalAntialiasing:
-    jitterSpread: 0.8
-    sharpness: 0.1
-    stationaryBlending: 0.4
-    motionBlending: 0.4
-  subpixelMorphologicalAntialiasing:
-    quality: 2
-  fastApproximateAntialiasing:
-    fastMode: 0
-    keepAlpha: 1
-  fog:
-    enabled: 1
-    excludeSkybox: 1
-  debugLayer:
-    lightMeter:
-      width: 512
-      height: 256
-      showCurves: 1
-    histogram:
-      width: 512
-      height: 256
-      channel: 3
-    waveform:
-      exposure: 0.12
-      height: 256
-    vectorscope:
-      size: 256
-      exposure: 0.12
-    overlaySettings:
-      linearDepth: 0
-      motionColorIntensity: 4
-      motionGridSize: 64
-      colorBlindnessType: 0
-      colorBlindnessStrength: 1
-  m_Resources: {fileID: 11400000, guid: d82512f9c8e5d4a4d938b575d47f88d4, type: 2}
-  m_ShowToolkit: 0
-  m_ShowCustomSorter: 0
-  breakBeforeColorGrading: 0
-  m_BeforeTransparentBundles: []
-  m_BeforeStackBundles: []
-  m_AfterStackBundles: []
---- !u!114 &49798921605526847
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 49798921605526843}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8b9a305e18de0c04dbd257a21cd47087, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  sharedProfile: {fileID: 11400000, guid: 7ba2b06fb32e5274aad88925a5b8d3f5, type: 2}
-  isGlobal: 1
-  blendDistance: 0
-  weight: 1
-  priority: 0
 --- !u!114 &49798921605526845
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -204,6 +128,23 @@ MonoBehaviour:
     m_RotationOrder: 4
   rotationLerpTime: 0.8
   invertY: 0
+--- !u!114 &389439061758731624
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 49798921605526843}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 172515602e62fb746b5d573b38a5fe58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_IsGlobal: 1
+  priority: 0
+  blendDistance: 0
+  weight: 1
+  sharedProfile: {fileID: 11400000, guid: 970512a260b20bb48b7eb9057548671a, type: 2}
 --- !u!114 &49798921605526834
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -217,11 +158,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   waterDetectionOffset: {x: 0, y: -0.05, z: 0}
-  surfaceProfile: {fileID: 11400000, guid: 7ba2b06fb32e5274aad88925a5b8d3f5, type: 2}
-  underwaterProfile: {fileID: 11400000, guid: 59b3e0c9849f5de4aa4ff677d169950f, type: 2}
-  fogColor: {r: 0.34509805, g: 0.37254903, b: 0.50980395, a: 1}
+  underwaterProfile: {fileID: 11400000, guid: 12e62256183a735448c8ff031c452b9f, type: 2}
+  surfaceProfile: {fileID: 11400000, guid: 970512a260b20bb48b7eb9057548671a, type: 2}
+  fogColor: {r: 0.34901962, g: 0.38039216, b: 0.5058824, a: 1}
   modifySkyboxTint: 1
-  refractionMaterial: {fileID: 2100000, guid: e6f44b343b450e647bb658aa8ab8b399, type: 2}
+  refractionRendererFeature: {fileID: -4839966317808022980, guid: e016dc7c242750e46b7837507e641a07,
+    type: 2}
   isUnderwater: 0
   waterVerts:
   - {x: -375, y: 0, z: -375}
@@ -40625,3 +40567,36 @@ MonoBehaviour:
   - {x: 375, y: 0, z: 367.5}
   - {x: 375, y: 0, z: 371.25}
   - {x: 375, y: 0, z: 375}
+--- !u!114 &7881941815369452156
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 49798921605526843}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a79441f348de89743a2939f4d699eac1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_RenderShadows: 1
+  m_RequiresDepthTextureOption: 2
+  m_RequiresOpaqueTextureOption: 2
+  m_CameraType: 0
+  m_Cameras: []
+  m_RendererIndex: -1
+  m_VolumeLayerMask:
+    serializedVersion: 2
+    m_Bits: 1
+  m_VolumeTrigger: {fileID: 0}
+  m_VolumeFrameworkUpdateModeOption: 2
+  m_RenderPostProcessing: 1
+  m_Antialiasing: 2
+  m_AntialiasingQuality: 2
+  m_StopNaN: 0
+  m_Dithering: 0
+  m_ClearDepth: 1
+  m_AllowXRRendering: 1
+  m_RequiresDepthTexture: 0
+  m_RequiresColorTexture: 0
+  m_Version: 2

@@ -63,7 +63,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 1f2023dec3337a64f84f477214c16483, type: 2}
+  - {fileID: 2100000, guid: e0a3800e67b78f84db4c662d7ce8ee45, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -148,5 +148,5 @@ MonoBehaviour:
   noiseAmplitude: 3
   noiseSpeed: 1
   noiseScale: 1
-  surfaceParticleQueue: 1999
-  underwaterParticleQueue: 3001
+  underwaterParticles: []
+  defaultParticleQueue: 3000
