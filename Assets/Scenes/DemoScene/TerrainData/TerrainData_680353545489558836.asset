@@ -114,7 +114,7 @@ MonoBehaviour:
   rendering: {fileID: 3339593480532901861}
   foliage: {fileID: 2326226280266335267}
   mask: {fileID: 6366289695093559006}
-  geometryData: {fileID: 11400000, guid: 2a34c9964331f2e41956c8a7d3624211, type: 2}
+  geometryData: {fileID: 0}
 --- !u!114 &2326226280266335267
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3012,7 +3012,7 @@ MonoBehaviour:
   displacementSeed: 12345
   displacementStrength: 0
   albedoToVertexColorMode: 0
-  storageMode: 0
+  storageMode: 1
   allowTimeSlicedGeneration: 0
   smoothNormal: 0
   useSmoothNormalMask: 0
