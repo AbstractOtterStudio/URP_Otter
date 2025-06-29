@@ -319,8 +319,8 @@ namespace Pinwheel.Griffin
         private RenderTexture grassVectorFieldMap;
         private RenderTexture grassVectorFieldMapTmp;
 
-        private Dictionary<Camera, GTreeRenderer3> perCameraTreeRendererMap;
-        private Dictionary<Camera, GGrassRenderer3> perCameraGrassRendererMap;
+        private Dictionary<Camera, GTreeRenderer3> perCameraTreeRendererMap = new Dictionary<Camera, GTreeRenderer3>();
+        private Dictionary<Camera, GGrassRenderer3> perCameraGrassRendererMap = new Dictionary<Camera, GGrassRenderer3>();
 
         [SerializeField] private Vector3 lastPosition;
 
@@ -669,9 +669,6 @@ namespace Pinwheel.Griffin
 
         private void OnBeginCameraRendering(Camera cam)
         {
-            if (perCameraTreeRendererMap == null)
-                return;
-
             if (transform.position != lastPosition)
             {
                 if (TerrainData.Rendering.DrawTrees)
