@@ -251,7 +251,7 @@ namespace Pinwheel.Griffin
             get { return rightTerrainData; }
         }
 
-        [SerializeField] 
+        [SerializeField]
         private int groupId;
         /// <summary>
         /// The group that this terrain belongs to. Terrain tools can use this id to selectively modify terrains. This also be used in seam matching, only terrains in the same group match their seams.
@@ -262,7 +262,7 @@ namespace Pinwheel.Griffin
             set { groupId = Mathf.Max(0, value); }
         }
 
-        [SerializeField] 
+        [SerializeField]
         private bool autoConnect = true;
         /// <summary>
         /// If on, terrains in the same group will find their neighbors in some occasions.
@@ -274,7 +274,7 @@ namespace Pinwheel.Griffin
         }
 
         [ExcludeFromDoc]
-        [SerializeField] 
+        [SerializeField]
         public float geometryVersion;
         [ExcludeFromDoc]
         public const float GEOMETRY_VERSION_CHUNK_POSITION_AT_CHUNK_CENTER = 245;
@@ -669,6 +669,9 @@ namespace Pinwheel.Griffin
 
         private void OnBeginCameraRendering(Camera cam)
         {
+            if (perCameraTreeRendererMap == null)
+                return;
+
             if (transform.position != lastPosition)
             {
                 if (TerrainData.Rendering.DrawTrees)
