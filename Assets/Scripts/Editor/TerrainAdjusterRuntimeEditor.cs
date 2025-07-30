@@ -9,18 +9,13 @@ public class TerrainAdjusterRuntimeEditor : Editor
     public void OnEnable()
     {
         this.editor = this;
-
         TerrainAdjusterRuntime targetGameObject = (TerrainAdjusterRuntime)target;
-
-        // Save terrain height on editor load
         targetGameObject.SaveOriginalTerrainHeights();
     }
 
     void OnDisable()
     {
         TerrainAdjusterRuntime targetGameObject = (TerrainAdjusterRuntime)target;
-
-        // Clean up height data
         targetGameObject.CleanUp();
     }
 
@@ -39,7 +34,6 @@ public class TerrainAdjusterRuntimeEditor : Editor
 
         if (EditorGUI.EndChangeCheck())
         {
-            // Re-shape terrain when values change in inspector
             OnPathChanged();
         }
 
@@ -51,9 +45,12 @@ public class TerrainAdjusterRuntimeEditor : Editor
             OnPathChanged();
         }
 
-        if (GUILayout.Button("Flatten Entire Terrain"))
+        if (GUILayout.Button("Flatten All Terrains"))
         {
-            SetTerrainHeight(targetGameObject.terrain, 0f);
+            foreach (var terrain in targetGameObject.terrains)
+            {
+                SetTerrainHeight(terrain, 0f);
+            }
         }
 
         EditorGUILayout.EndVertical();
@@ -66,7 +63,6 @@ public class TerrainAdjusterRuntimeEditor : Editor
         TerrainData terrainData = terrain.terrainData;
         int w = terrainData.heightmapResolution;
         int h = terrainData.heightmapResolution;
-
         float[,] allHeights = new float[h, w];
 
         for (int x = 0; x < h; x++)
