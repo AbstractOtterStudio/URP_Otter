@@ -52,6 +52,10 @@ public class TerrainAdjusterRuntimeEditor : Editor
                 SetTerrainHeight(terrain, 0f);
             }
         }
+        if (GUILayout.Button("Restore Original Terrain"))
+        {
+            targetGameObject.RestoreTerrain();
+        }
 
         EditorGUILayout.EndVertical();
     }
