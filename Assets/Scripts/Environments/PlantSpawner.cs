@@ -17,32 +17,44 @@ public class PlantPrefabSettings
 
 public class PlantSpawner : MonoBehaviour
 {
+    [Header("Terrain & Layer")]
     public Terrain terrain;
     public string targetLayerName = "SeaGrass";
-    public Transform parentRoot;
+    [Range(0f, 1f)] public float alphaThreshold = 0.2f;
+
+    [Header("Prefab Setup")]
     public List<PlantPrefabSettings> plantPrefabs;
+    public Transform parentRoot;
+
+    [Header("Spawn Settings")]
     public int spawnCount = 100;
-    public float minDistance = 1.5f;
+    public float minDistance = 1.2f;
+    public int maxTrialsPerSpawn = 50;
 
     private List<Vector3> usedPositions = new();
     private Dictionary<GameObject, Transform> prefabParentCache = new();
 
     public void SpawnPlants()
     {
-        if (terrain == null || plantPrefabs.Count == 0) return;
+        if (terrain == null || plantPrefabs.Count == 0)
+        {
+            Debug.LogWarning("❌ Terrain or prefab list not assigned.");
+            return;
+        }
 
         TerrainData terrainData = terrain.terrainData;
         Vector3 terrainPos = terrain.transform.position;
         float[,,] alphaMaps = terrainData.GetAlphamaps(0, 0, terrainData.alphamapWidth, terrainData.alphamapHeight);
         int layerIndex = GetLayerIndex(targetLayerName, terrainData);
+
         if (layerIndex == -1)
         {
-            Debug.LogWarning("Layer not found: " + targetLayerName);
+            Debug.LogWarning("❌ Layer not found: " + targetLayerName);
             return;
         }
 
+        int maxTrials = spawnCount * maxTrialsPerSpawn;
         int trials = 0;
-        int maxTrials = spawnCount * 10;
         int spawned = 0;
         usedPositions.Clear();
         prefabParentCache.Clear();
@@ -52,8 +64,9 @@ public class PlantSpawner : MonoBehaviour
             trials++;
             int x = Random.Range(0, terrainData.alphamapWidth);
             int z = Random.Range(0, terrainData.alphamapHeight);
+
             float strength = alphaMaps[z, x, layerIndex];
-            if (strength < 0.5f) continue;
+            if (strength < alphaThreshold) continue;
 
             float normX = x / (float)terrainData.alphamapWidth;
             float normZ = z / (float)terrainData.alphamapHeight;
@@ -87,14 +100,18 @@ public class PlantSpawner : MonoBehaviour
             spawned++;
         }
 
-        Debug.Log($"✅ Spawned {spawned}/{spawnCount} plants.");
+        if (spawned < spawnCount)
+            Debug.LogWarning($"⚠️ Gave up after {trials} trials. Only {spawned}/{spawnCount} plants spawned.");
+        else
+            Debug.Log($"✅ Successfully spawned {spawned} plants.");
     }
 
     int GetLayerIndex(string name, TerrainData data)
     {
         for (int i = 0; i < data.terrainLayers.Length; i++)
         {
-            if (data.terrainLayers[i].name == name) return i;
+            if (data.terrainLayers[i].name == name)
+                return i;
         }
         return -1;
     }
@@ -137,20 +154,19 @@ public class PlantSpawner : MonoBehaviour
         string groupName = prefab.name;
         Transform group = null;
 
-        // Look for existing
         if (parentRoot != null)
         {
             Transform found = parentRoot.Find(groupName);
-            if (found != null) group = found;
+            if (found != null)
+                group = found;
         }
 
-        // Create new if not found
         if (group == null)
         {
             GameObject go = new GameObject(groupName);
             group = go.transform;
             if (parentRoot != null)
-                group.parent = parentRoot;
+                group.SetParent(parentRoot);
             group.localPosition = Vector3.zero;
         }
 

@@ -1,0 +1,159 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &1220763689807272814
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6256268546298666024}
+  m_Layer: 0
+  m_Name: Rock_12
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6256268546298666024
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1220763689807272814}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1414138090793488069}
+  - {fileID: 5242863171180391598}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &1981241912946673619
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6256268546298666024}
+    m_Modifications:
+    - target: {fileID: 639174817699137814, guid: f546b040cd581e04ab2541aa50b8adfb, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 639174817699137814, guid: f546b040cd581e04ab2541aa50b8adfb, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 639174817699137814, guid: f546b040cd581e04ab2541aa50b8adfb, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 639174817699137814, guid: f546b040cd581e04ab2541aa50b8adfb, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.9313406
+      objectReference: {fileID: 0}
+    - target: {fileID: 639174817699137814, guid: f546b040cd581e04ab2541aa50b8adfb, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0.000000020355133
+      objectReference: {fileID: 0}
+    - target: {fileID: 639174817699137814, guid: f546b040cd581e04ab2541aa50b8adfb, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0.36414933
+      objectReference: {fileID: 0}
+    - target: {fileID: 639174817699137814, guid: f546b040cd581e04ab2541aa50b8adfb, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0.000000007958739
+      objectReference: {fileID: 0}
+    - target: {fileID: 639174817699137814, guid: f546b040cd581e04ab2541aa50b8adfb, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 639174817699137814, guid: f546b040cd581e04ab2541aa50b8adfb, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: -42.711
+      objectReference: {fileID: 0}
+    - target: {fileID: 639174817699137814, guid: f546b040cd581e04ab2541aa50b8adfb, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3022266122476637748, guid: f546b040cd581e04ab2541aa50b8adfb, type: 3}
+      propertyPath: m_Name
+      value: Rock_Large_10_Atlased
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: f546b040cd581e04ab2541aa50b8adfb, type: 3}
+--- !u!4 &1414138090793488069 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 639174817699137814, guid: f546b040cd581e04ab2541aa50b8adfb, type: 3}
+  m_PrefabInstance: {fileID: 1981241912946673619}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1001 &5363572566963181989
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6256268546298666024}
+    m_Modifications:
+    - target: {fileID: 192907750398866699, guid: ceea58fac4cc3e741a24233283c8fc52, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 192907750398866699, guid: ceea58fac4cc3e741a24233283c8fc52, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 192907750398866699, guid: ceea58fac4cc3e741a24233283c8fc52, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 192907750398866699, guid: ceea58fac4cc3e741a24233283c8fc52, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.72667295
+      objectReference: {fileID: 0}
+    - target: {fileID: 192907750398866699, guid: ceea58fac4cc3e741a24233283c8fc52, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0.67833924
+      objectReference: {fileID: 0}
+    - target: {fileID: 192907750398866699, guid: ceea58fac4cc3e741a24233283c8fc52, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0.07413262
+      objectReference: {fileID: 0}
+    - target: {fileID: 192907750398866699, guid: ceea58fac4cc3e741a24233283c8fc52, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0.07941484
+      objectReference: {fileID: 0}
+    - target: {fileID: 192907750398866699, guid: ceea58fac4cc3e741a24233283c8fc52, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 76.928
+      objectReference: {fileID: 0}
+    - target: {fileID: 192907750398866699, guid: ceea58fac4cc3e741a24233283c8fc52, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: -72.312
+      objectReference: {fileID: 0}
+    - target: {fileID: 192907750398866699, guid: ceea58fac4cc3e741a24233283c8fc52, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: -72.742
+      objectReference: {fileID: 0}
+    - target: {fileID: 8711609059116167642, guid: ceea58fac4cc3e741a24233283c8fc52, type: 3}
+      propertyPath: m_Name
+      value: Rock_Large_06_Atlased
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: ceea58fac4cc3e741a24233283c8fc52, type: 3}
+--- !u!4 &5242863171180391598 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 192907750398866699, guid: ceea58fac4cc3e741a24233283c8fc52, type: 3}
+  m_PrefabInstance: {fileID: 5363572566963181989}
+  m_PrefabAsset: {fileID: 0}

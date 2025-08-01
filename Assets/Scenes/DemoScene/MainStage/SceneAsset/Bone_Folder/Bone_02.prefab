@@ -1,0 +1,222 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &8371604589060261829
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 766140369431825092}
+  m_Layer: 0
+  m_Name: Bone_02
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &766140369431825092
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8371604589060261829}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 3262496707682120097}
+  - {fileID: 1285613309332444021}
+  - {fileID: 8003874707960680232}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &1556911182838048854
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 766140369431825092}
+    m_Modifications:
+    - target: {fileID: 309666482808388387, guid: 3050113421ad767458ac38e082d3c1cc, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 309666482808388387, guid: 3050113421ad767458ac38e082d3c1cc, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.23
+      objectReference: {fileID: 0}
+    - target: {fileID: 309666482808388387, guid: 3050113421ad767458ac38e082d3c1cc, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 309666482808388387, guid: 3050113421ad767458ac38e082d3c1cc, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.566293
+      objectReference: {fileID: 0}
+    - target: {fileID: 309666482808388387, guid: 3050113421ad767458ac38e082d3c1cc, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0.000000012376739
+      objectReference: {fileID: 0}
+    - target: {fileID: 309666482808388387, guid: 3050113421ad767458ac38e082d3c1cc, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0.000000018013564
+      objectReference: {fileID: 0}
+    - target: {fileID: 309666482808388387, guid: 3050113421ad767458ac38e082d3c1cc, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0.824204
+      objectReference: {fileID: 0}
+    - target: {fileID: 309666482808388387, guid: 3050113421ad767458ac38e082d3c1cc, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 309666482808388387, guid: 3050113421ad767458ac38e082d3c1cc, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 309666482808388387, guid: 3050113421ad767458ac38e082d3c1cc, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 111.016
+      objectReference: {fileID: 0}
+    - target: {fileID: 2721732088599557475, guid: 3050113421ad767458ac38e082d3c1cc, type: 3}
+      propertyPath: m_Name
+      value: Prop_Bones_Beast_Rib_Enormous_Broken_03_Atlased (1)
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 3050113421ad767458ac38e082d3c1cc, type: 3}
+--- !u!4 &1285613309332444021 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 309666482808388387, guid: 3050113421ad767458ac38e082d3c1cc, type: 3}
+  m_PrefabInstance: {fileID: 1556911182838048854}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1001 &2957351472542861954
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 766140369431825092}
+    m_Modifications:
+    - target: {fileID: 309666482808388387, guid: 3050113421ad767458ac38e082d3c1cc, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0.67
+      objectReference: {fileID: 0}
+    - target: {fileID: 309666482808388387, guid: 3050113421ad767458ac38e082d3c1cc, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.17
+      objectReference: {fileID: 0}
+    - target: {fileID: 309666482808388387, guid: 3050113421ad767458ac38e082d3c1cc, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -1.18
+      objectReference: {fileID: 0}
+    - target: {fileID: 309666482808388387, guid: 3050113421ad767458ac38e082d3c1cc, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.60667026
+      objectReference: {fileID: 0}
+    - target: {fileID: 309666482808388387, guid: 3050113421ad767458ac38e082d3c1cc, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0.000000013259197
+      objectReference: {fileID: 0}
+    - target: {fileID: 309666482808388387, guid: 3050113421ad767458ac38e082d3c1cc, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0.000000017374296
+      objectReference: {fileID: 0}
+    - target: {fileID: 309666482808388387, guid: 3050113421ad767458ac38e082d3c1cc, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0.79495364
+      objectReference: {fileID: 0}
+    - target: {fileID: 309666482808388387, guid: 3050113421ad767458ac38e082d3c1cc, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 309666482808388387, guid: 3050113421ad767458ac38e082d3c1cc, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 309666482808388387, guid: 3050113421ad767458ac38e082d3c1cc, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 105.302
+      objectReference: {fileID: 0}
+    - target: {fileID: 2721732088599557475, guid: 3050113421ad767458ac38e082d3c1cc, type: 3}
+      propertyPath: m_Name
+      value: Prop_Bones_Beast_Rib_Enormous_Broken_03_Atlased
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 3050113421ad767458ac38e082d3c1cc, type: 3}
+--- !u!4 &3262496707682120097 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 309666482808388387, guid: 3050113421ad767458ac38e082d3c1cc, type: 3}
+  m_PrefabInstance: {fileID: 2957351472542861954}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1001 &8336585340892930786
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 766140369431825092}
+    m_Modifications:
+    - target: {fileID: 850017506664239959, guid: df0ed5f485077d543ae4bb3345351bb5, type: 3}
+      propertyPath: m_Name
+      value: Prop_Bones_Beast_Rib_Enormous_Broken_02_Atlased
+      objectReference: {fileID: 0}
+    - target: {fileID: 2063485981278612938, guid: df0ed5f485077d543ae4bb3345351bb5, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2063485981278612938, guid: df0ed5f485077d543ae4bb3345351bb5, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.32
+      objectReference: {fileID: 0}
+    - target: {fileID: 2063485981278612938, guid: df0ed5f485077d543ae4bb3345351bb5, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0.92
+      objectReference: {fileID: 0}
+    - target: {fileID: 2063485981278612938, guid: df0ed5f485077d543ae4bb3345351bb5, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2063485981278612938, guid: df0ed5f485077d543ae4bb3345351bb5, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0.000000021855694
+      objectReference: {fileID: 0}
+    - target: {fileID: 2063485981278612938, guid: df0ed5f485077d543ae4bb3345351bb5, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2063485981278612938, guid: df0ed5f485077d543ae4bb3345351bb5, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2063485981278612938, guid: df0ed5f485077d543ae4bb3345351bb5, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2063485981278612938, guid: df0ed5f485077d543ae4bb3345351bb5, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2063485981278612938, guid: df0ed5f485077d543ae4bb3345351bb5, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: df0ed5f485077d543ae4bb3345351bb5, type: 3}
+--- !u!4 &8003874707960680232 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2063485981278612938, guid: df0ed5f485077d543ae4bb3345351bb5, type: 3}
+  m_PrefabInstance: {fileID: 8336585340892930786}
+  m_PrefabAsset: {fileID: 0}
