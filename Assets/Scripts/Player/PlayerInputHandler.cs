@@ -29,6 +29,7 @@ public class PlayerInputHandler : MonoBehaviour
     private Plane dynPlane;
     private static readonly Vector3 Up = Vector3.up;
 
+    public bool ExternalBlockMovement { get; set; }
 
     private void Awake()
     {
@@ -43,6 +44,11 @@ public class PlayerInputHandler : MonoBehaviour
 
     private void Update()
     {
+        if (ExternalBlockMovement)
+        {
+            MovementInput = Vector3.zero;
+            return;
+        }
         CalcScreenDelta();
         CalcMovementInput();
         HandleActionInput();
