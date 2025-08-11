@@ -22,10 +22,9 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private float brakeSpeed = 1.0f;        // 刹车减速度
 
     [Header("==== Dive & Float Settings ====")]
-    [SerializeField] private float waterSamplingObjectWidth = 4.0f;
+    [SerializeField] private FloatingObject floatingObject;
     [SerializeField] private float idleWaterAdjustmentSpeed = 1.0f; // 静止时受水位影响的y坐标调整速度
     [SerializeField] private float movingWaterAdjustmentSpeedMultiplier = 0.2f; // 移动时水位影响调整的倍数，一般这个是<1，因为移动时候我们不想让玩家在y上面一直jitter
-    [SerializeField] private float minWaterAdjustmentDelta = 0.2f; // 超过这个delta我们才根据水位调整y坐标
     [SerializeField] private float diveDepth = 1.5f;
     [SerializeField] private float verticalSpeed = 3f;  // 用于上下浮潜速度
 
@@ -60,10 +59,11 @@ public class PlayerMovement : MonoBehaviour
     private Coroutine _floatCoroutine = null;
     #endregion
 
-    private void Awake() {
+    private void Awake()
+    {
         rb = GetComponent<Rigidbody>();
     }
-    
+
     private void Start()
     {
         rb = GetComponent<Rigidbody>();
@@ -103,7 +103,15 @@ public class PlayerMovement : MonoBehaviour
 
     private void MovePlayer()
     {
-        HandleWaterHeightAdjustment();
+        // 如果正在执行潜水或浮潜，则不进行水位调整
+        if (_diveCoroutine != null || _floatCoroutine != null)
+        {
+            floatingObject.AdjustmentSpeed = 0.0f;
+        }
+        else
+        {
+            floatingObject.AdjustmentSpeed = IsMoving ? idleWaterAdjustmentSpeed * movingWaterAdjustmentSpeedMultiplier : idleWaterAdjustmentSpeed;
+        }
 
         if (stateController.IsStateLocked && stateController.PlayerAniState != PlayerInteractAniState.Grab)
         {
@@ -249,31 +257,6 @@ public class PlayerMovement : MonoBehaviour
         {
             Quaternion targetRotation = Quaternion.LookRotation(-desiredDirection, Vector3.up);
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, turnSpeed * Time.deltaTime);
-        }
-    }
-
-    /// <summary>
-    /// 水位调整
-    /// </summary>
-    private void HandleWaterHeightAdjustment()
-    {
-        // 如果正在执行潜水或浮潜，则不进行水位调整
-        if (_diveCoroutine != null || _floatCoroutine != null)
-        {
-            return;
-        }
-
-        sampleHeightHelper.Init(transform.position, waterSamplingObjectWidth, true);
-        sampleHeightHelper.Sample(out Vector3 disp, out _, out _);
-
-        float waterAdjustmentSpeed = IsMoving ? idleWaterAdjustmentSpeed * movingWaterAdjustmentSpeedMultiplier : idleWaterAdjustmentSpeed;
-
-        if (Mathf.Abs(disp.y) > minWaterAdjustmentDelta)
-        {
-            float height = disp.y + Crest.OceanRenderer.Instance.SeaLevel;
-            var pos = transform.position;
-            pos.y = Mathf.MoveTowards(pos.y, height, waterAdjustmentSpeed * Time.deltaTime);
-            transform.position = pos;
         }
     }
 
