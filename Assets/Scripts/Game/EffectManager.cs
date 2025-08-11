@@ -121,4 +121,27 @@ public class EffectManager : Singleton<EffectManager>
         _fadeCoroutine = FadeCoroutine();
         StartCoroutine(_fadeCoroutine);
     }
+
+#if UNITY_EDITOR
+    static ShaderState s_initialShaderState = null;
+    public static void SetUnderwaterEffectImmediate(bool isUnderwater)
+    {
+        if (isUnderwater)
+        {
+            if (s_initialShaderState == null)
+            {
+                s_initialShaderState = new ShaderState(OceanRenderer.Instance);
+            }
+            new ShaderState(Instance._underwaterTargetFade, Instance._underwaterTargetFogDensity).Apply(OceanRenderer.Instance);
+        }
+        else
+        {
+            if (s_initialShaderState != null)
+            {
+                s_initialShaderState.Apply(OceanRenderer.Instance);
+                s_initialShaderState = null;
+            }
+        }
+    }
+#endif
 }
