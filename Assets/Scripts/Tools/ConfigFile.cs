@@ -46,7 +46,8 @@ public enum ButtonHintType
     Button_Z,
     Button_X,
     Button_Shift,
-    Button_Space
+    Button_Space,
+    CancelThrowOrDrop
 }
 [System.Serializable]
 public class ButtonHint
