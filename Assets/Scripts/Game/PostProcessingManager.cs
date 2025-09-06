@@ -7,8 +7,6 @@ public class PostProcessingManager : Singleton<PostProcessingManager>
 {
 
     #region PostProcessing
-    //Outline
-    public PlayerController playerController;
     [SerializeField] UniversalRendererData renderData;
     //DayNight
     Volume volume;
@@ -32,6 +30,9 @@ public class PostProcessingManager : Singleton<PostProcessingManager>
         base.Awake();
 
         volume = Camera.main.GetComponent<Volume>();
+
+        if (!volume) return;
+
         volume.profile.TryGet(out liftGammaGain);
 
         tempGamma.value = morningGamma;

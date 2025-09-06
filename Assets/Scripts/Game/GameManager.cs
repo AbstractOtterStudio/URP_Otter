@@ -15,12 +15,16 @@ public class GameManager : Singleton<GameManager>
     private DayState dayState;
 
     [SerializeField]
-    private PlayerStateController playerState;
-    [SerializeField]
     private bool isGameAction;
 
+    private PlayerStateController playerState;
     private float dayTime = GlobalSetting.dayTime;
     private float nightTime = GlobalSetting.nightTime;
+
+    void Start()
+    {
+        playerState = PlayerStateController.Instance;
+    }
 
     void Update()
     {

@@ -10,8 +10,11 @@ using UnityEngine;
 */
 public class FloatingObject : MonoBehaviour
 {
-    [SerializeField] private float minWaterAdjustmentDelta = 0.2f; // 超过这个delta我们才根据水位调整y坐标
-    [SerializeField] private float waterSamplingObjectWidth = 1.0f; // 水位采样宽度
+    [Tooltip("超过这个delta我们才根据水位调整y坐标")]
+    [SerializeField] private float minWaterAdjustmentDelta = 0.2f;
+
+    [Tooltip("水位采样宽度")]
+    [SerializeField] private float waterSamplingObjectWidth = 1.0f;
 
     public float AdjustmentSpeed { get; set; } = 1.0f; // 反应速度/调整速度
 

@@ -1,7 +1,7 @@
 using UnityEngine;
 using System;
 
-public class PlayerStateController : MonoBehaviour
+public class PlayerStateController : Singleton<PlayerStateController>
 {
     public PlayerPlaceState PlayerPlaceState { get; private set; } = PlayerPlaceState.Float;
     public PlayerSpeedState PlayerSpeedState { get; private set; } = PlayerSpeedState.Normal;
