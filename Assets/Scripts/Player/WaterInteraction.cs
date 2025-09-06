@@ -6,7 +6,6 @@ using Crest;
 /**
 * Responsible for:
 * 1. dynamically updating the weight of the player based on their speed.
-* 2. adjusting the Y position of the player based on the buoyancy force.
 */
 [RequireComponent(typeof(SphereWaterInteraction))]
 public class WaterInteraction : MonoBehaviour
@@ -26,7 +25,7 @@ public class WaterInteraction : MonoBehaviour
     [Tooltip("Maximum vertical displacement speed of the object in the water.")]
     [SerializeField] [UnityEngine.Range(0.1f, 1.0f)]
     private float _maxDispSpeed = 0.4f;
-
+    private float speed = 0;
 
     private float basePlayerWaterWeight = 10.0f;
     private float? lastPlayerSpeed = null;
@@ -47,10 +46,14 @@ public class WaterInteraction : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (lastPlayerSpeed == null || !Mathf.Approximately(playerMovement.GetCurrentSpeed(), lastPlayerSpeed.Value))
+        speed = playerMovement != null
+            ? playerMovement.GetCurrentSpeed()
+            : playerRigidbody.velocity.magnitude;
+
+        if (!lastPlayerSpeed.HasValue || !Mathf.Approximately(speed, lastPlayerSpeed.Value))
         {
-            lastPlayerSpeed = playerMovement.GetCurrentSpeed();
-            sphereWaterInteraction._weight = basePlayerWaterWeight + lastPlayerSpeed.Value * speedToWeightRatio;
+            lastPlayerSpeed = speed;
+            sphereWaterInteraction._weight = basePlayerWaterWeight + speed * speedToWeightRatio;
         }
     }
 

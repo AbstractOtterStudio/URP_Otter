@@ -1,0 +1,40 @@
+using System.Collections.Generic;
+using UnityEngine;
+
+[RequireComponent(typeof(Rigidbody), typeof(SphereCollider))]
+public class BallEdgeBounce : MonoBehaviour
+{
+    /* 若球在场地边缘被玩家碰到，则向内反弹 (需求 4) */
+
+    [Tooltip("场地长度 (X 方向) / 2")]
+    public float halfWidth  = 22f;
+
+    [Tooltip("场地宽度 (Z 方向) / 2")]
+    public float halfHeight = 15f;
+
+    public float bounceSpeed = 18f;
+
+    private Rigidbody rb;
+
+    private void Awake() =>
+        rb = GetComponent<Rigidbody>();
+
+    private void OnCollisionEnter(Collision col)
+    {
+        if (!col.collider.CompareTag("Player")) return;
+
+        Vector3 p = transform.position;
+
+        /* 判断是否在边缘 0.5m 内 */
+        bool edgeX = Mathf.Abs(p.x) > halfWidth  - 0.5f;
+        bool edgeZ = Mathf.Abs(p.z) > halfHeight - 0.5f;
+
+        if (edgeX || edgeZ)
+        {
+            // 反弹方向：朝向场地中心
+            Vector3 center = Vector3.zero;
+            Vector3 dir    = (center - p).normalized;
+            rb.velocity    = dir * bounceSpeed;
+        }
+    }
+}

@@ -12,7 +12,7 @@ public static class GlobalSetting
     public const KeyCode RightKey = KeyCode.RightArrow;
     public const KeyCode DiveKey = KeyCode.Space;
     public const KeyCode AddSpeedKey = KeyCode.LeftShift;
-    public const KeyCode InterectKey = KeyCode.Z;
+    public const KeyCode InterectKey = KeyCode.C;
     public const KeyCode EatOrKnockKey = KeyCode.X;
     #endregion
     

@@ -5,8 +5,8 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
-public class GameManager : SingletonBase<GameManager>
-{        
+public class GameManager : Singleton<GameManager>
+{
     [SerializeField]
     private float oneDayTime = GlobalSetting.oneDayTime;
     [SerializeField]
@@ -15,33 +15,31 @@ public class GameManager : SingletonBase<GameManager>
     private DayState dayState;
 
     [SerializeField]
-    private PlayerStateController playerState;
-    [SerializeField]
     private bool isGameAction;
 
+    private PlayerStateController playerState;
     private float dayTime = GlobalSetting.dayTime;
     private float nightTime = GlobalSetting.nightTime;
 
-
-    public void Init()
+    void Start()
     {
-        if(instance == null) { instance = this; }    
+        playerState = PlayerStateController.Instance;
     }
 
     void Update()
     {
         GameOverDetect();
         TimeLapse();
-        PostProcessingManager.instance.DayPassing(curTime);
+        PostProcessingManager.Instance.DayPassing(curTime);
     }
 
     #region Time Lapse
-    public float GetCurTime() 
+    public float GetCurTime()
     {
         return curTime;
     }
 
-    public DayState GetDayState() 
+    public DayState GetDayState()
     {
         return dayState;
     }
@@ -54,13 +52,13 @@ public class GameManager : SingletonBase<GameManager>
     /// <summary>
     /// Record Time Lapse and Change Day State
     /// </summary>
-    private void TimeLapse() 
+    private void TimeLapse()
     {
         if (curTime <= dayTime && dayState != DayState.Day)
         {
             dayState = DayState.Day;
         }
-        else if(curTime > dayTime && curTime < oneDayTime && dayState != DayState.Night)
+        else if (curTime > dayTime && curTime < oneDayTime && dayState != DayState.Night)
         {
             dayState = DayState.Night;
         }
@@ -74,17 +72,18 @@ public class GameManager : SingletonBase<GameManager>
         }
         curTime += Time.deltaTime;
 
-        if (curTime >= oneDayTime) {
+        if (curTime >= oneDayTime)
+        {
             // MapAnimalSpawner.RespawnAnimals();
             curTime = 0;
-        }        
+        }
     }
     #endregion
 
     #region Game Logic
-    private void GameOverDetect() 
+    private void GameOverDetect()
     {
-       
+
     }
     public void GameStart()
     {
@@ -101,10 +100,11 @@ public class GameManager : SingletonBase<GameManager>
     /// <summary>
     /// Game Over Logic
     /// </summary>
-    private void GameOver() {
+    private void GameOver()
+    {
         Debug.Log("Game Over !");
         isGameAction = false;
-        EventCenter.Broadcast(GameEvents.ShowDeathPage);        
+        EventCenter.Broadcast(GameEvents.ShowDeathPage);
         //Application.Quit();
     }
     #endregion

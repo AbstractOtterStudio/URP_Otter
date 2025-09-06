@@ -100,6 +100,7 @@ Material:
     m_Ints: []
     m_Floats:
     - _Albedo: 1
+    - _Alpha: 1
     - _ApplyFlowToNormals: 0
     - _ApplyNormalMapping: 1
     - _BumpAmt: 0.514
@@ -128,6 +129,7 @@ Material:
     - _DebugVisualiseShapeSample: 0
     - _DirectionalLightBoost: 7
     - _DirectionalLightFallOff: 275
+    - _Fade: 0
     - _Flow: 1
     - _Foam: 1
     - _Foam3DLighting: 0
@@ -196,7 +198,7 @@ Material:
     - _WaveFoamStart: 0
     - _WaveFoamStrength: 1
     m_Colors:
-    - _DepthFogDensity: {r: 0.3, g: 0.22, b: 0.3, a: 1}
+    - _DepthFogDensity: {r: 0.3, g: 0.22, b: 0.3, a: 0}
     - _Diffuse: {r: 0.30817604, g: 0.6988531, b: 1, a: 1}
     - _DiffuseGrazing: {r: 0.2916518, g: 0.3610425, b: 0.8207547, a: 1}
     - _DiffuseShadow: {r: 0.050980397, g: 0.07058824, b: 0.20000002, a: 1}

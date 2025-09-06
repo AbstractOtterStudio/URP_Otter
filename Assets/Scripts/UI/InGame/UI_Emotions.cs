@@ -54,50 +54,50 @@ public class UI_Emotions : UIBase
     void Update()
     {
         transform.forward = Camera.main.transform.forward;
-        if(Input.GetKeyDown(KeyCode.O)) { BecomeSleepy(); }
+        if (Input.GetKeyDown(KeyCode.O)) { BecomeSleepy(); }
     }
 
     #region Emotion Function
     void BecomeHappy()
-    {        
+    {
         happyEmotion.gameObject.SetActive(true);
         happyEmotion.Play(ValueShortcut.animName_OtterHappy);
-        AudioManager.instance.PlayLocalSFX(SFX_Name.Happy, transform.position);
+        AudioManager.Instance.PlayLocalSFX(SFX_Name.Happy, transform.position);
     }
 
     void BecomeConfuse()
     {
         confuseEmotion.gameObject.SetActive(true);
         confuseEmotion.Play(ValueShortcut.animName_OtterConfuse);
-        AudioManager.instance.PlayLocalSFX(SFX_Name.Wondering, transform.position);
+        AudioManager.Instance.PlayLocalSFX(SFX_Name.Wondering, transform.position);
     }
 
     void BecomeShock()
     {
         shockEmotion.gameObject.SetActive(true);
         shockEmotion.Play(ValueShortcut.animName_OtterShock);
-        AudioManager.instance.PlayLocalSFX(SFX_Name.Surprise, transform.position);
+        AudioManager.Instance.PlayLocalSFX(SFX_Name.Surprise, transform.position);
     }
 
     void BecomeGrowth()
     {
         growthEmotion.gameObject.SetActive(true);
         growthEmotion.Play(ValueShortcut.animName_OtterGrowth);
-        AudioManager.instance.PlayLocalSFX(SFX_Name.Growth, transform.position);
+        AudioManager.Instance.PlayLocalSFX(SFX_Name.Growth, transform.position);
     }
 
     void BecomeTired()
     {
         tiredEmotion.gameObject.SetActive(true);
         tiredEmotion.Play(ValueShortcut.animName_OtterTired);
-        AudioManager.instance.PlayLocalSFX(SFX_Name.Tired, transform.position);
+        AudioManager.Instance.PlayLocalSFX(SFX_Name.Tired, transform.position);
     }
-    
+
     void BecomeHungry()
     {
         hungryEmotion.gameObject.SetActive(true);
         hungryEmotion.Play(ValueShortcut.animName_OtterHungry);
-        AudioManager.instance.PlayLocalSFX(SFX_Name.Hungry, transform.position);
+        AudioManager.Instance.PlayLocalSFX(SFX_Name.Hungry, transform.position);
     }
 
     void BecomeSleepy()

@@ -36,7 +36,7 @@ public class ItemProperties : MonoBehaviour
     #endregion
 
     #region Prey Attr
-    [SerializeField] bool canCatch;
+    [SerializeField] public bool canCatch;
     protected Catchable catchAttr;
     public bool CanCatch { get { return canCatch; } }
     public bool IsCollection

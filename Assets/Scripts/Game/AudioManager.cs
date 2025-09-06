@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.Audio;
 
-public class AudioManager : SingletonBase<AudioManager>
+public class AudioManager : Singleton<AudioManager>
 {
 
     Dictionary<SFX_Name, AudioClip> sfxDict = new Dictionary<SFX_Name, AudioClip>();
@@ -14,11 +14,11 @@ public class AudioManager : SingletonBase<AudioManager>
     AudioMixer m_AudioMixer;
 
     [SerializeField] float lowpassCutoffUnderSea = 400f;
-    [SerializeField] float lowpassCutoffOnSea = 6500f;    
+    [SerializeField] float lowpassCutoffOnSea = 6500f;
 
-    public void Init()
-    {        
-        if(instance == null) { instance = this; }
+    protected override void Awake()
+    {
+        base.Awake();
         foreach (var sfx in ConfigFile.GetConfigFile().soundEffects)
         {
             sfxDict.Add(sfx.name, sfx.clip);
@@ -39,7 +39,7 @@ public class AudioManager : SingletonBase<AudioManager>
 
 
     public void PlayGlobalSFX(SFX_Name targetSFX, float volume = 1)
-    {        
+    {
         sfxAudioSource.PlayOneShot(sfxDict[targetSFX], volume);
     }
 
@@ -60,7 +60,7 @@ public class AudioManager : SingletonBase<AudioManager>
     }
 
     public void PlayBGM(BGM_Name targetBGM)
-    {        
+    {
         if (bgmAudioSource.isPlaying)
         {
             bgmAudioSource.Stop();
@@ -70,7 +70,7 @@ public class AudioManager : SingletonBase<AudioManager>
     }
 
     public void ChangeAudioLowpassCutoff(bool isUnderSea)
-    {        
+    {
         m_AudioMixer.SetFloat("LowpassCutoff", isUnderSea ? lowpassCutoffUnderSea : lowpassCutoffOnSea);
     }
 }

@@ -36,7 +36,7 @@ public class UI_Page_Title : UIBase
         Debug.Log("Title Showed");
         canvasGroup.blocksRaycasts = true;
         canvasGroup.alpha = 1;
-        canvasGroup.interactable = true;        
+        canvasGroup.interactable = true;
     }
 
     void HideTitle()
@@ -51,8 +51,8 @@ public class UI_Page_Title : UIBase
         HideTitle();
 
         //Fade out and prepare to start game        
-        Action startAction = GameManager.instance.GameStart;
-        EventCenter.Broadcast(GameEvents.FadeOut, startAction);                
+        Action startAction = GameManager.Instance.GameStart;
+        EventCenter.Broadcast(GameEvents.FadeOut, startAction);
     }
 
     void OnOptionBtnClicked()

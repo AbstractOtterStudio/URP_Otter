@@ -7054,6 +7054,7 @@ GameObject:
   - component: {fileID: 4451689675927843716}
   - component: {fileID: 4451689675927843717}
   - component: {fileID: 8545512959073987419}
+  - component: {fileID: 1246695560702865547}
   m_Layer: 6
   m_Name: Player
   m_TagString: Player
@@ -7344,6 +7345,9 @@ MonoBehaviour:
   maxTurningSpeed: 6
   brakeAngle: 150
   brakeSpeed: 90
+  floatingObject: {fileID: 1246695560702865547}
+  idleWaterAdjustmentSpeed: 2
+  movingWaterAdjustmentSpeedMultiplier: 0.2
   diveDepth: 1.5
   verticalSpeed: 3
   collisionReboundSpeed: 3
@@ -7360,6 +7364,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8b26001744554514cb3b476fa0ca270e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  IsStateLocked: 0
   playerFloatParticle: {fileID: 4987694229547912579}
   playerMaterial: {fileID: 0}
 --- !u!114 &4451689675927843717
@@ -7396,6 +7401,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c01d12e006d335b47b0eb6135fe8288f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &1246695560702865547
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3532790222733364957}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8c57e691dbacb104aa1929371a82cd2f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  minWaterAdjustmentDelta: 0.2
+  waterSamplingObjectWidth: 4
 --- !u!1 &3546193260082111051
 GameObject:
   m_ObjectHideFlags: 0
@@ -7662,7 +7681,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   playerMovement: {fileID: 4451689675927843719}
-  playerRigidbody: {fileID: 4451689675927843714}
+  playerRigidbody: {fileID: 0}
   speedToWeightRatio: 0.428
   _objectWidth: 3
   _buoyancyCoeff: 3
