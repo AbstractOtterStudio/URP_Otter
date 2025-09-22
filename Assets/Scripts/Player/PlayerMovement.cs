@@ -106,11 +106,11 @@ public class PlayerMovement : MonoBehaviour
         // 如果正在执行潜水或浮潜，则不进行水位调整
         if (_diveCoroutine != null || _floatCoroutine != null)
         {
-            floatingObject.AdjustmentSpeed = 0.0f;
+            floatingObject.VerticalAdjustmentSpeed = 0.0f;
         }
         else
         {
-            floatingObject.AdjustmentSpeed = IsMoving ? idleWaterAdjustmentSpeed * movingWaterAdjustmentSpeedMultiplier : idleWaterAdjustmentSpeed;
+            floatingObject.VerticalAdjustmentSpeed = IsMoving ? idleWaterAdjustmentSpeed * movingWaterAdjustmentSpeedMultiplier : idleWaterAdjustmentSpeed;
         }
 
         if (stateController.IsStateLocked && stateController.PlayerAniState != PlayerInteractAniState.Grab)
@@ -153,7 +153,7 @@ public class PlayerMovement : MonoBehaviour
 
         // 3) 更新刚体速度
         currentVelocity = desiredDirection.normalized * currentSpeed;
-        rb.velocity = currentVelocity;
+        rb.velocity = currentVelocity + floatingObject.CurrentFlowXZ;
     }
 
     public void PlayerPause()
