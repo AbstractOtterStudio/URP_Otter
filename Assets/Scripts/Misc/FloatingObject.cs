@@ -76,7 +76,7 @@ public class FloatingObject : MonoBehaviour
         sampleFlowHelper.Init(transform.position, waterSamplingObjectWidth);
         sampleFlowHelper.Sample(out Vector2 flow);
         currentFlowXZ = new Vector3(flow.x, 0f, flow.y) * flowAdjustmentScale;
-
+        
         if (flow.sqrMagnitude > 0.001f)
         {
             switch (flowAdjustmentType) // your enum
