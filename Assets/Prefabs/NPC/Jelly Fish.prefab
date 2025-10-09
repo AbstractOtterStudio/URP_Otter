@@ -13,8 +13,11 @@ GameObject:
   - component: {fileID: 1147874954651335241}
   - component: {fileID: 1101809184}
   - component: {fileID: 1101809186}
-  - component: {fileID: 1101809185}
-  m_Layer: 0
+  - component: {fileID: 8509229403942681365}
+  - component: {fileID: 6074358966929116225}
+  - component: {fileID: 5854179428842490475}
+  - component: {fileID: 2800908252061311778}
+  m_Layer: 8
   m_Name: Jelly Fish
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -28,12 +31,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1508404886815955868}
+  serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
   m_LocalPosition: {x: -21.968939, y: 55.216335, z: -11.601177}
   m_LocalScale: {x: 0.15000004, y: 0.15, z: 0.15000004}
+  m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 90, z: 0}
 --- !u!33 &2885370820960423555
 MeshFilter:
@@ -54,6 +58,7 @@ MeshRenderer:
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
@@ -93,9 +98,17 @@ BoxCollider:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1508404886815955868}
   m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
   m_IsTrigger: 1
+  m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 2
+  serializedVersion: 3
   m_Size: {x: 4.6636147, y: 4.5109525, z: 8.040135}
   m_Center: {x: 0.000000119209275, y: 0.00000035762784, z: -1.7852488}
 --- !u!54 &1101809186
@@ -105,16 +118,49 @@ Rigidbody:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1508404886815955868}
-  serializedVersion: 2
+  serializedVersion: 4
   m_Mass: 1
   m_Drag: 0
   m_AngularDrag: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
   m_UseGravity: 0
   m_IsKinematic: 0
   m_Interpolate: 0
   m_Constraints: 84
   m_CollisionDetection: 0
---- !u!114 &1101809185
+--- !u!195 &8509229403942681365
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1508404886815955868}
+  m_Enabled: 1
+  m_AgentTypeID: -1372625422
+  m_Radius: 4
+  m_Speed: 3.5
+  m_Acceleration: 8
+  avoidancePriority: 50
+  m_AngularSpeed: 120
+  m_StoppingDistance: 0
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 1
+  m_AutoRepath: 1
+  m_Height: 10
+  m_BaseOffset: 5
+  m_WalkableMask: 4294967295
+  m_ObstacleAvoidanceType: 4
+--- !u!114 &6074358966929116225
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -123,23 +169,64 @@ MonoBehaviour:
   m_GameObject: {fileID: 1508404886815955868}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6d6161a9f136264469aec5272f62bef2, type: 3}
+  m_Script: {fileID: 11500000, guid: 8d7b55c7ecdb49a4a89fa5e6f9022861, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  isActivated: 1
-  m_DetectPlayerRange: 5
-  m_FleeRange: 10
-  m_PlayerLayerMask:
-    serializedVersion: 2
-    m_Bits: 64
-  checkWallDistance: 0.5
-  wallLayer:
-    serializedVersion: 2
-    m_Bits: 128
-  wallAvoidingTime: 1.5
-  patrolPoints:
-  - {fileID: 0}
-  - {fileID: 0}
-  moveSpeed: 2
-  fleeVector: {x: 0, y: 0, z: 0}
-  escapeSpeedMultiplier: 1.5
+  startWhenEnabled: 1
+  asynchronousLoad: 0
+  pauseWhenDisabled: 0
+  restartWhenComplete: 1
+  logTaskChanges: 0
+  group: 0
+  resetValuesOnRestart: 0
+  externalBehavior: {fileID: 11400000, guid: ed69c90b538cdf54e86e916cd749076b, type: 2}
+  mBehaviorSource:
+    behaviorName: Behavior
+    behaviorDescription: 
+    mTaskData:
+      types: []
+      parentIndex: 
+      startIndex: 
+      variableStartIndex: 
+      JSONSerialization: '{"EntryTask":{"Type":"BehaviorDesigner.Runtime.Tasks.EntryTask","NodeData":{"Offset":"(1608.12463,498.990845)"},"ID":0,"Name":"Entry","Instant":true},"RootTask":{"Type":"BehaviorTreeNodes.Wander","NodeData":{"Offset":"(-1.87536621,118.990845)"},"ID":1,"Name":"Wander","Instant":true,"SingleWanderDist":20,"SingleWanderTimer":3},"Variables":[{"Type":"BehaviorTreeNodes.SharedTargetDesc","Name":"IncomingTarget","IsShared":true}]}'
+      fieldSerializationData:
+        typeName: []
+        fieldNameHash: 
+        startIndex: 
+        dataPosition: 
+        unityObjects: []
+        byteData: 
+        byteDataArray: 
+      Version: 1.7.12
+  gizmoViewMode: 2
+  showBehaviorDesignerGizmo: 1
+--- !u!114 &5854179428842490475
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1508404886815955868}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -638047543, guid: da41a8dd3b5ec434a802d9b5a2a0a777, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  updateInterval: 2
+  updateIntervalSeconds: 0
+  executionsPerTick: 0
+  maxTaskExecutionsPerTick: 100
+--- !u!114 &2800908252061311778
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1508404886815955868}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d42b1ab728a79144f9826ad14a6021e6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  WanderSpeed: 1
+  FleeSpeed: 2

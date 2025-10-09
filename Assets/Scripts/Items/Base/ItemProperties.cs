@@ -8,8 +8,7 @@ using UnityEngine;
 public class ItemProperties : MonoBehaviour
 {
     #region AI
-    [SerializeField] bool haveAI = false;
-    IAgent m_AiAgent;
+    NPCAgent m_AiAgent;
     #endregion
 
     #region Food Attr
@@ -22,11 +21,11 @@ public class ItemProperties : MonoBehaviour
     [SerializeField] bool canKnock;
     Knockable knockAttr;
     public bool CanKnock { get { return canKnock; } }
-    public bool IsBroken    
+    public bool IsBroken
     {
         get
         {
-            if(CanKnock)
+            if (CanKnock)
             {
                 return knockAttr.IsBroken;
             }
@@ -43,7 +42,7 @@ public class ItemProperties : MonoBehaviour
     {
         get
         {
-            if(CanCatch)
+            if (CanCatch)
             {
                 return catchAttr.IsCollection();
             }
@@ -58,17 +57,17 @@ public class ItemProperties : MonoBehaviour
 
     void Awake()
     {
-        if (haveAI) { m_AiAgent = GetComponent<IAgent>(); }
-        if (canEat) { eatAttr = gameObject.GetComponent<Eatable>(); }        
-        if (canKnock) { knockAttr = gameObject.GetComponent<Knockable>(); }        
-        if (canCatch) { catchAttr = gameObject.GetComponent<Catchable>(); }
+        TryGetComponent(out m_AiAgent);
 
+        if (canEat) { eatAttr = gameObject.GetComponent<Eatable>(); }
+        if (canKnock) { knockAttr = gameObject.GetComponent<Knockable>(); }
+        if (canCatch) { catchAttr = gameObject.GetComponent<Catchable>(); }
     }
 
     #region AI Method
     public void ActivateAI()
     {
-        if(haveAI)
+        if (m_AiAgent != null)
         {
             m_AiAgent.ActivateAI();
         }
@@ -81,7 +80,7 @@ public class ItemProperties : MonoBehaviour
         knockAttr.OnBreak();
     }
 
-    public void KnockWith(ItemProperties item) 
+    public void KnockWith(ItemProperties item)
     {
         if (IsBroken || !canKnock) { return; }
         Debug.Log($"Try To Break With: {item.gameObject.name}; Using {gameObject.name}");
@@ -90,7 +89,7 @@ public class ItemProperties : MonoBehaviour
     }
 
     public (float experience, float health) Eat()
-    {        
+    {
         if (!canEat || !knockAttr.IsBroken)
         {
             (float experience, float health) nutrition;
@@ -105,35 +104,35 @@ public class ItemProperties : MonoBehaviour
     {
         if (!canCatch) { return; }
         catchAttr.OnCatch(catcher);
-        if (haveAI)
+        if (m_AiAgent != null)
         {
-            GetComponent<EscaperAgent>().DeactivateAI();
+            m_AiAgent.DeactivateAI();
         }
     }
     public void Release()
     {
         if (!canCatch) { return; }
         catchAttr.OnRelease();
-        if (haveAI)
+        if (m_AiAgent != null)
         {
-            GetComponent<EscaperAgent>().ActivateAI();
+            m_AiAgent.ActivateAI();
         }
-    }  
+    }
     public void DeactivatePicker() { canCatch = false; }
 
     public void ResetProperties()
     {
-        if (!haveAI)
+        if (m_AiAgent == null)
         {
             transform.position = spawnPos;
             transform.rotation = spawnRot;
-        }        
+        }
         knockAttr.ResetKnockTime();
     }
 
     public void InitProperties()
     {
-        if (!haveAI)
+        if (m_AiAgent == null)
         {
             spawnPos = transform.position;
             spawnRot = transform.rotation;

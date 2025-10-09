@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b23f08d2ae4cba14087c1ed36193d82b, type: 3}
+  m_Name: Escaper
+  m_EditorClassIdentifier: 
+  mBehaviorSource:
+    behaviorName: Escaper
+    behaviorDescription: 
+    mTaskData:
+      types: []
+      parentIndex: 
+      startIndex: 
+      variableStartIndex: 
+      JSONSerialization: '{"EntryTask":{"Type":"BehaviorDesigner.Runtime.Tasks.EntryTask","NodeData":{"Offset":"(1671.6532,450.6474)"},"ID":0,"Name":"Entry","Instant":true},"RootTask":{"Type":"BehaviorDesigner.Runtime.Tasks.Selector","NodeData":{"Offset":"(1.56255913,129.249512)"},"ID":1,"Name":"Selector","Instant":true,"AbortTypeabortType":"None","Children":[{"Type":"BehaviorDesigner.Runtime.Tasks.Sequence","NodeData":{"Offset":"(-86.6665649,133.995209)"},"ID":2,"Name":"Sequence","Instant":true,"AbortTypeabortType":"LowerPriority","Children":[{"Type":"BehaviorTreeNodes.PlayerWithinDistance","NodeData":{"Offset":"(-83.17472,126.666908)"},"ID":3,"Name":"Player
+        Within Distance","Instant":true,"LayerMaskTargetLayerMask":64,"SharedTargetDescOutTarget":{"Type":"BehaviorTreeNodes.SharedTargetDesc","Name":"IncomingTarget","IsShared":true},"SingleDetectionRange":5},{"Type":"BehaviorTreeNodes.Flee","NodeData":{"Offset":"(89.6087646,134.7686)"},"ID":4,"Name":"Flee","Instant":true,"SharedTargetDescInTargetDesc":{"Type":"BehaviorTreeNodes.SharedTargetDesc","Name":"IncomingTarget","IsShared":true},"SingleSearchAngleStep":10,"SingleSafeDist":10,"SingleSearchAngle":45}]},{"Type":"BehaviorTreeNodes.Wander","NodeData":{"Offset":"(92.38093,131.111115)"},"ID":5,"Name":"Wander","Instant":true,"Vector2WanderDistRange":"(3,10)","Vector2WanderTimerRange":"(2,5)"}]},"Variables":[{"Type":"BehaviorTreeNodes.SharedTargetDesc","Name":"IncomingTarget","IsShared":true}]}'
+      fieldSerializationData:
+        typeName: []
+        fieldNameHash: 
+        startIndex: 
+        dataPosition: 
+        unityObjects: []
+        byteData: 
+        byteDataArray: 
+      Version: 1.7.12
