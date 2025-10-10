@@ -64,16 +64,6 @@ public class ItemProperties : MonoBehaviour
         if (canCatch) { catchAttr = gameObject.GetComponent<Catchable>(); }
     }
 
-    #region AI Method
-    public void ActivateAI()
-    {
-        if (m_AiAgent != null)
-        {
-            m_AiAgent.ActivateAI();
-        }
-    }
-    #endregion
-
     public void Knock()
     {
         if (!canKnock) { return; }

@@ -9,26 +9,47 @@ using BehaviorDesigner.Runtime;
 public class NPCAgent : MonoBehaviour
 {
     BehaviorManager BehaviorMgr;
-    protected NavMeshAgent m_NavMeshAgent;
-    protected Rigidbody m_Rigidbody;
+    protected NavMeshAgent navMeshAgent;
+    protected Rigidbody rb;
 
-    public NavMeshAgent NavMeshAgent { get { return m_NavMeshAgent; } }
-    public Rigidbody Rigidbody { get { return m_Rigidbody; } }
+    public NavMeshAgent NavMeshAgent { get { return navMeshAgent; } }
+    public Rigidbody Rigidbody { get { return rb; } }
+
+    bool isActive = true;
 
     protected virtual void Awake()
     {
-        m_Rigidbody = GetComponent<Rigidbody>();
-        m_NavMeshAgent = GetComponent<NavMeshAgent>();
+        rb = GetComponent<Rigidbody>();
+        navMeshAgent = GetComponent<NavMeshAgent>();
         BehaviorMgr = GetComponent<BehaviorManager>();
         BehaviorMgr.UpdateInterval = UpdateIntervalType.Manual;
     }
 
     protected virtual void Update()
     {
-        BehaviorMgr.Tick();
+        if (GameManager.Instance.GetGameAction() && isActive)
+        {
+            BehaviorMgr.Tick();
+        }
     }
 
-    public void ActivateAI() { }
-    public void DeactivateAI() { }
+    public void ActivateAI()
+    {
+        if (!isActive)
+        {
+            foreach (var tree in BehaviorMgr.BehaviorTrees)
+                BehaviorMgr.EnableBehavior(tree.behavior);
+        }
+        isActive = true;
+    }
+    public void DeactivateAI()
+    {
+        if (isActive)
+        {
+            foreach (var tree in BehaviorMgr.BehaviorTrees)
+                BehaviorMgr.DisableBehavior(tree.behavior); // pause is false -- the tree will end
+        }
+        isActive = false;
+    }
     public void ResetState() { }
 }
