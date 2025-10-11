@@ -20,6 +20,7 @@ namespace BehaviorTreeNodes
         NPCAgent agent;
         NavMeshAgent navMeshAgent;
         float originalSpeed;
+        float originalStoppingDist;
 
         IEnumerator updateCoroutine;
 
@@ -41,7 +42,10 @@ namespace BehaviorTreeNodes
         {
             updateCoroutine = OnUpdateCoroutine();
             originalSpeed = navMeshAgent.speed;
+            originalStoppingDist = navMeshAgent.stoppingDistance;
             navMeshAgent.speed = originalSpeed * SpeedMultiplier;
+            navMeshAgent.stoppingDistance = originalStoppingDist * 0.2f;
+            navMeshAgent.ResetPath();
         }
 
         public override TaskStatus OnUpdate()
@@ -76,24 +80,27 @@ namespace BehaviorTreeNodes
             Vector3 toTarget;
             while (!IsSafe(out toTarget))
             {
-                // Try to find a valid flee destination
-                Vector3 bestFleePoint;
-                if (!FindFleePoint(toTarget, out bestFleePoint))
+                // Try to find a new flee destination if the agent doesn't have one or we're slowing down
+                if (!navMeshAgent.hasPath || navMeshAgent.remainingDistance <= Mathf.Max(navMeshAgent.stoppingDistance * 2f, 0.5f))
                 {
-                    navMeshAgent.ResetPath();
+                    Vector3 bestFleePoint;
+                    if (!FindFleePoint(toTarget, out bestFleePoint))
+                    {
+                        navMeshAgent.ResetPath();
 
-                    // Randomly pick a point if we are cornered
-                    var navAgent = agent.NavMeshAgent;
-                    Vector3 randDirection = Random.insideUnitSphere * SafeDist;
-                    randDirection += Owner.transform.position;
+                        // Randomly pick a point if we are cornered
+                        var navAgent = agent.NavMeshAgent;
+                        Vector3 randDirection = Random.insideUnitSphere * SafeDist;
+                        randDirection += Owner.transform.position;
 
-                    NavMeshHit navHit;
-                    NavMesh.SamplePosition(randDirection, out navHit, SafeDist, -1);
-                    navAgent.SetDestination(navHit.position);
+                        NavMeshHit navHit;
+                        NavMesh.SamplePosition(randDirection, out navHit, SafeDist, -1);
+                        bestFleePoint = navHit.position;
+                    }
+
+                    // Move to flee point
+                    navMeshAgent.SetDestination(bestFleePoint);
                 }
-
-                // Move to flee point
-                navMeshAgent.SetDestination(bestFleePoint);
 
                 yield return null;
             }
@@ -167,6 +174,7 @@ namespace BehaviorTreeNodes
 
             updateCoroutine = null;
             navMeshAgent.speed = originalSpeed;
+            navMeshAgent.stoppingDistance = originalStoppingDist;
         }
 
         public override void OnPause(bool paused)
@@ -174,10 +182,12 @@ namespace BehaviorTreeNodes
             if (paused)
             {
                 navMeshAgent.speed = originalSpeed;
+                navMeshAgent.stoppingDistance = originalStoppingDist;
             }
             else
             {
                 navMeshAgent.speed = originalSpeed * SpeedMultiplier;
+                navMeshAgent.stoppingDistance = originalStoppingDist * 0.2f;
             }
         }
     }
