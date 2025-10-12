@@ -6,6 +6,8 @@ using UnityEngine.AI;
 
 namespace BehaviorTreeNodes
 {
+    [TaskCategory("NPCAgent")]
+    [TaskDescription("Makes the agent wander around randomly")]
     public class Wander : Action
     {
         public Vector2 WanderDistRange;

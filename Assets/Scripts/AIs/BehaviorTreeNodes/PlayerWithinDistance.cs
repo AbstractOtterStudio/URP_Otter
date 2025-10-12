@@ -5,6 +5,8 @@ using System;
 
 namespace BehaviorTreeNodes
 {
+    [TaskCategory("NPCAgent")]
+    [TaskDescription("Checks if the player is within a certain distance")]
     public class PlayerWithinDistance : Conditional
     {
         // The tag of the targets
@@ -12,7 +14,7 @@ namespace BehaviorTreeNodes
         public SharedTargetDesc OutTarget;
 
         [Range(.2f, 10f)]
-        public float DetectionRange;
+        public float DetectionRange = 5.0f;
 
         NPCAgent agent;
 

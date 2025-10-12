@@ -4,11 +4,14 @@ using BehaviorDesigner.Runtime;
 
 //AI控制器基类，本质是一个FSM，每个节点可以是一个behavior tree
 [RequireComponent(typeof(Rigidbody))]
+[RequireComponent(typeof(BehaviorTree))]
 [RequireComponent(typeof(BehaviorManager))]
 [RequireComponent(typeof(NavMeshAgent))]
 public class NPCAgent : MonoBehaviour
 {
-    BehaviorManager BehaviorMgr;
+    BehaviorTree[] behaviorTrees;
+    BehaviorManager behaviorManager;
+
     protected NavMeshAgent navMeshAgent;
     protected Rigidbody rb;
 
@@ -21,15 +24,16 @@ public class NPCAgent : MonoBehaviour
     {
         rb = GetComponent<Rigidbody>();
         navMeshAgent = GetComponent<NavMeshAgent>();
-        BehaviorMgr = GetComponent<BehaviorManager>();
-        BehaviorMgr.UpdateInterval = UpdateIntervalType.Manual;
+        behaviorTrees = GetComponents<BehaviorTree>();
+        behaviorManager = GetComponent<BehaviorManager>();
+        behaviorManager.UpdateInterval = UpdateIntervalType.Manual;
     }
 
     protected virtual void Update()
     {
         if (GameManager.Instance.GetGameAction() && isActive)
         {
-            BehaviorMgr.Tick();
+            behaviorManager.Tick();
         }
     }
 
@@ -37,8 +41,8 @@ public class NPCAgent : MonoBehaviour
     {
         if (!isActive)
         {
-            foreach (var tree in BehaviorMgr.BehaviorTrees)
-                BehaviorMgr.EnableBehavior(tree.behavior);
+            foreach (var tree in behaviorTrees)
+                tree.EnableBehavior();
         }
         isActive = true;
     }
@@ -46,8 +50,8 @@ public class NPCAgent : MonoBehaviour
     {
         if (isActive)
         {
-            foreach (var tree in BehaviorMgr.BehaviorTrees)
-                BehaviorMgr.DisableBehavior(tree.behavior); // pause is false -- the tree will end
+            foreach (var tree in behaviorTrees)
+                tree.DisableBehavior(); // pause is false -- the tree will end
         }
         isActive = false;
     }

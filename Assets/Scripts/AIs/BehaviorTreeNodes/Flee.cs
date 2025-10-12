@@ -4,14 +4,17 @@ using BehaviorDesigner.Runtime;
 using UnityEngine.AI;
 using System.Collections;
 using System.Collections.Generic;
+using TooltipAttribute = BehaviorDesigner.Runtime.Tasks.TooltipAttribute;
 
 namespace BehaviorTreeNodes
 {
+    [TaskCategory("NPCAgent")]
+    [TaskDescription("Makes the agent flee from a target until a safe distance is reached")]
     public class Flee : Action
     {
         public SharedTargetDesc InTargetDesc;
 
-        [BehaviorDesigner.Runtime.Tasks.Tooltip("The angle step for searching the flee point")]
+        [Tooltip("The angle step for searching the flee point")]
         public float SearchAngleStep = 10.0f;
         public float SafeDist = 5.0f;
         public float SearchAngle = 45;
@@ -40,6 +43,9 @@ namespace BehaviorTreeNodes
         }
         public override void OnStart()
         {
+            if (!navMeshAgent)
+                return;
+
             updateCoroutine = OnUpdateCoroutine();
             originalSpeed = navMeshAgent.speed;
             originalStoppingDist = navMeshAgent.stoppingDistance;
@@ -170,15 +176,21 @@ namespace BehaviorTreeNodes
         public override void OnEnd()
         {
             if (navMeshAgent != null)
+            {
                 navMeshAgent.ResetPath();
-
+                navMeshAgent.speed = originalSpeed;
+                navMeshAgent.stoppingDistance = originalStoppingDist;
+            }
             updateCoroutine = null;
-            navMeshAgent.speed = originalSpeed;
-            navMeshAgent.stoppingDistance = originalStoppingDist;
         }
 
         public override void OnPause(bool paused)
         {
+            if (!navMeshAgent)
+            {
+                return;
+            }
+
             if (paused)
             {
                 navMeshAgent.speed = originalSpeed;
