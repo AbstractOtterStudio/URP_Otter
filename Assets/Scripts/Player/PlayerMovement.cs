@@ -31,6 +31,9 @@ public class PlayerMovement : MonoBehaviour
     [Header("==== Collision Settings ====")]
     [SerializeField] private float collisionReboundSpeed = 3f;
 
+    [Header("Facing")]
+    [SerializeField] private bool flipModelForward = true;
+
     [Header("==== Debug ====")]
     [SerializeField] private float currentSpeed;  // 当前速度（标量）
     private float targetDiveDepth;
@@ -223,7 +226,8 @@ public class PlayerMovement : MonoBehaviour
     {
         if (desiredDirection.sqrMagnitude > 0.01f)
         {
-            transform.rotation = Quaternion.LookRotation(-desiredDirection, Vector3.up);
+            Vector3 face = flipModelForward ? -desiredDirection : desiredDirection;
+            transform.rotation = Quaternion.LookRotation(face, Vector3.up);
         }
     }
 
@@ -255,7 +259,8 @@ public class PlayerMovement : MonoBehaviour
     {
         if (desiredDirection.sqrMagnitude > 0.01f)
         {
-            Quaternion targetRotation = Quaternion.LookRotation(-desiredDirection, Vector3.up);
+            Vector3 face = flipModelForward ? -desiredDirection : desiredDirection;
+            Quaternion targetRotation = Quaternion.LookRotation(face, Vector3.up);
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, turnSpeed * Time.deltaTime);
         }
     }

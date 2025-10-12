@@ -186,6 +186,12 @@ public class WaterPlayer : MonoBehaviour
     public List<WaterPlayer> team = new();
     public List<WaterPlayer> opponents = new();
 
+    [Header("Human Receiver")]
+    public Transform human;                 // 指向玩家角色（PlayerMovement/PlayerController的transform）
+    [Range(0f, 1f)] public float humanPassBias = 0.25f;   // 只是保留参数位，当前方案用“优先通道”更简单直接
+    public float humanPassMaxDist = 28f;
+    public float humanOpenThresh = 0.55f;   // 通道安全阈值（0~1）
+
     /* ---------- Runtime ---------- */
     public Ball ball { get; private set; }
     Rigidbody rb;
@@ -381,24 +387,21 @@ public class WaterPlayer : MonoBehaviour
     {
         reason = null;
         if (!HasBall) return false;
-        // 1) 门后：强制回做
-        if (IsPastEnemyGoalLine(out Vector3 backT))
-        { PassOrKick(backT, preferPass: false); reason = "Cutback"; return true; }
 
-        // 2) Defender：偏“斜前/前传”；其余位置：受威胁/靠边优先传
+        if (IsPastEnemyGoalLine(out Vector3 backT)) { PassOrKick(backT, false); reason = "Cutback"; return true; }
+
+        // 0) 玩家优先
+        if (TryHumanPass(out var hT)) { Pass(hT); reason = "PassToHuman"; return true; }
+
+        // 1) 可射先射
+        if (CanShootSmart(out Vector3 g)) { Shoot(g); reason = "ShootFirst"; return true; }
+
+        // 2) 再考虑AI队友传球
         bool preferFwd = (role == RG_ROLE.Defender) || IsInAttackingHalf();
+        if (FindBestPassOption(out Vector3 tgt, out _, preferFwd)) { Pass(tgt); reason = "PassFirst"; return true; }
 
-        // 2.1 可射先射（路径可达）
-        if (CanShootSmart(out Vector3 g))
-        { Shoot(g); reason = "ShootFirst"; return true; }
-
-        // 2.2 再考虑传球
-        if (FindBestPassOption(out Vector3 tgt, out _, preferFwd))
-        { Pass(tgt); reason = "PassFirst"; return true; }
-
-        // 3) 贴墙/角落：CenterKick / 斜线清
-        if (TryBoundaryEscapeOrQuickRelease(out string why))
-        { reason = why; return true; }
+        // 3) 贴墙处理
+        if (TryBoundaryEscapeOrQuickRelease(out string why)) { reason = why; return true; }
 
         return false;
     }
@@ -675,6 +678,8 @@ public class WaterPlayer : MonoBehaviour
         bool nearWall = TryGetWallNormalRobust(out Vector3 wallN, out float wallDist);
         bool inWall = nearWall && (wallDist <= wallZoneWidth);
 
+        if ((inWall || threatened) && TryHumanPass(out var hT)) { Pass(hT); reason = "QuickPass(Human)"; return true; }
+
         // B) 贴墙：先传/可射就射
         if (inWall)
         {
@@ -772,21 +777,30 @@ public class WaterPlayer : MonoBehaviour
         goal = enemyGoal.transform.position;
         Vector3 a = ball ? ball.Pos : Pos;
         float dist = Vector3.Distance(a, goal);
+
         if (dist <= closeAutoShootDist) return true;
         if (dist > shotMaxDist) return false;
 
-        Vector3 dir = goal - a; dir.y = 0f; if (dir.sqrMagnitude < 1e-6f) return false; dir.Normalize();
+        Vector3 dir = goal - a; dir.y = 0f;
+        if (dir.sqrMagnitude < 1e-6f) return false; dir.Normalize();
 
-        // 路径可达：先命中不是墙（或者在撞墙前已经穿过球门口）
+        // 路径可达（先撞墙就不行；穿过球门口豁免）
         if (DirectionBlockedByBoundaryFirstHit(dir, wallBanLookahead)) return false;
 
-        // 概率（更激进一点）
-        float t = 1f - Mathf.Clamp01((dist - shotMinDist) / (shotMaxDist - shotMinDist));
-        float p = Mathf.Lerp(0.55f, 0.98f, t); // ★ 提高下限，确保能看到射门
-        if (TryGetWallNormalRobust(out _, out float dWall) && dWall < wallZoneWidth + 0.3f && IsInAttackingHalf())
-            p = Mathf.Min(1f, p + 0.1f);
+        // 额外软风险：靠边 → 向门射的可行度降低
+        float wallHz = ComputeWallHazard(dir, wallLookahead, out _, out bool hitGoal);
+        float tForward = Mathf.Clamp01(Vector3.Dot(dir, FieldForward) * 0.5f + 0.5f);  // 面向前场
+        float tAngle = Mathf.InverseLerp(goalToleranceDeg * 2f, 0f, Vector3.Angle(dir, (goal - a).normalized)); // 越准越高
+        float tDist = Mathf.InverseLerp(shotMaxDist, shotMinDist, dist); // 越近越高
+        float tSide = TryGetWallNormalRobust(out _, out float dWall) ? Mathf.InverseLerp(6f, 1f, Mathf.Clamp(dWall, 0f, 6f)) : 0f; // 越靠边越降权
 
-        return Random.value < p;
+        // 评分（去掉随机）
+        float score = 0.45f * tDist + 0.30f * tAngle + 0.15f * tForward - 0.25f * wallHz - 0.20f * tSide;
+
+        // 在对方半场，可稍微降低阈值
+        float need = IsInAttackingHalf() ? 0.48f : 0.58f;
+
+        return hitGoal || score >= need;
     }
 
 
@@ -1130,7 +1144,34 @@ public class WaterPlayer : MonoBehaviour
         return RayHitsSegment(ball ? ball.Pos : Pos, dir, L, R, tHit + 1e-3f, out _);
     }
 
+    bool TryHumanPass(out Vector3 target)
+    {
+        target = Vector3.zero;
+        if (!human || !ball) return false;
 
+        Vector3 hp = new Vector3(human.position.x, 0, human.position.z);
+        float dist = Vector3.Distance(ball.Pos, hp);
+        if (dist < distPassMin || dist > humanPassMaxDist) return false;
+
+        Vector3 dir = (hp - ball.Pos); dir.y = 0f;
+        if (dir.sqrMagnitude < 1e-6f) return false; dir.Normalize();
+
+        // 硬否决：墙/Beacon（允许穿过球门口的特例）
+        if ((DirectionBlockedByBoundaryFirstHit(dir, dist) && !AllowIfThroughGoalMouth(dir, dist)) ||
+            (beaconHardBan && DirectionBannedByBeacon(dir, dist, beaconBanRadiusPadding, out _)))
+            return false;
+
+        // 走廊安全：对手 + Beacon
+        float laneSafe = MinOpponentDistanceToSegment(ball.Pos, hp, out float minToLine);
+        float openScore = Mathf.InverseLerp(passOppClearRadius * 0.5f, passOppClearRadius * 2.0f, Mathf.Min(laneSafe, minToLine));
+        float beaconClear = MinBeaconClearanceOnSegment(ball.Pos, hp, out _);
+        if (beaconClear < passLaneHalfWidth) return false;
+
+        if (openScore < humanOpenThresh) return false;
+
+        target = hp;
+        return true;
+    }
     public bool TryGetWallNormalRobust(out Vector3 n, out float closest)
     {
         n = Vector3.zero; closest = float.MaxValue;

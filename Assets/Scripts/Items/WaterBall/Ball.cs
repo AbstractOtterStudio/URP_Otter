@@ -46,8 +46,8 @@ public class Ball : MonoBehaviour
     public bool alsoCheckPlayerComponents = true;
 
     [Header("Human Player Kick")]
-    public float playerKickBase = 10f;
-    public float playerKickVelFactor = 0.8f;
+    public float playerKickBase = 12f;
+    public float playerKickVelFactor = 0.35f;
     public float playerKickMax = 18f;
     public bool sanitizePlayerKick = true;
 
@@ -236,19 +236,12 @@ public class Ball : MonoBehaviour
 
     void KickFromHuman(Component player)
     {
-        Vector3 forward = Vector3.zero;
-        Transform t = player.transform;
-        if (t) { forward = t.forward; forward.y = 0f; }
+        Vector3 facing = -player.transform.forward;
+        facing.y = 0f;
+        if (facing.sqrMagnitude > 1e-6f) facing.Normalize();
+        else facing = FallbackCenterDir(null);
 
-        //if (forward.sqrMagnitude < 1e-6f)
-        //{
-        //    Vector3 away = (Pos - t.position); away.y = 0f;
-        //    forward = (away.sqrMagnitude > 1e-6f) ? away.normalized : FallbackCenterDir(null);
-        //}
-        //else 
-            forward.Normalize();
-
-        // 动量叠加：玩家水平速度
+        // 叠加玩家刚体水平速度（保留）
         float add = 0f;
         var prb = player.GetComponentInParent<Rigidbody>();
         if (prb)
@@ -256,20 +249,34 @@ public class Ball : MonoBehaviour
             Vector3 hv = new Vector3(prb.velocity.x, 0, prb.velocity.z);
             add = hv.magnitude * playerKickVelFactor;
         }
-
         float power = Mathf.Clamp(playerKickBase + add, 0f, playerKickMax);
 
-        //Vector3 dir = sanitizePlayerKick ? SanitizeKickDir(forward, null) : SafeNormalize(forward, FallbackCenterDir(null));
-        Vector3 dir = forward;
-        Rb.velocity = -dir * power;
+        // 温和纠偏（人类不要过度强行回中）
+        Vector3 dir = sanitizePlayerKick ? SanitizeKickDirForHuman(facing) : SafeNormalize(facing, FallbackCenterDir(null));
+        Rb.velocity = dir * power;
 
-        // 标记“最近一次非 AI 触球”，并在短时间内严禁 AI 抢回
         _lastNonAITouchAt = Time.time;
-        _lastNonAIToucher = t;
+        _lastNonAIToucher = player.transform;
         _ignoreWPUntil = Time.time + playerStealLock;
-
-        // 玩家触球不设置 Owner
         Owner = null;
+    }
+
+    Vector3 SanitizeKickDirForHuman(Vector3 raw)
+    {
+        Vector3 d = SafeNormalize(raw, FallbackCenterDir(null));
+        if (DirectionHitsBoundaryShortHorizon(d, 2f)) // 只看短视距
+        {
+            Vector3 center = FallbackCenterDir(null);
+            d = Vector3.Slerp(d, center, 0.35f).normalized; // 轻拉，不是强拉
+        }
+        return d;
+    }
+    bool DirectionHitsBoundaryShortHorizon(Vector3 dir, float lookaheadMeters)
+    {
+        dir.y = 0f; if (dir.sqrMagnitude < 1e-6f) return false; dir.Normalize();
+        Vector3 origin = Pos + Vector3.up * 0.2f;
+        int mask = boundaryMask;
+        return Physics.SphereCast(origin, wallBanProbeRadius, dir, out _, lookaheadMeters, mask, QueryTriggerInteraction.Ignore);
     }
 
     bool InPlayerKeepWindow() => (Time.time - _lastNonAITouchAt) <= playerKeepLock;
