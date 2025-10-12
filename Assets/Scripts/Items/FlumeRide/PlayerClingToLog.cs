@@ -51,13 +51,13 @@ public class PlayerClingToLog : MonoBehaviour
     {
         if (!log || !logAnchor || !playerHandPoint)
         {
-            Debug.LogError("[PlayerCling_TargetCoincide_Lerped] 请把 log / logAnchor / playerHandPoint 都拖上。");
+            Debug.LogError("[PlayerClingToLog] 请把 log / logAnchor / playerHandPoint 都拖上。");
             enabled = false; return;
         }
         if (playerHandPoint.parent != transform)
-            Debug.LogWarning("[PlayerCling_TargetCoincide_Lerped] 建议 playerHandPoint 是玩家根的直接子物体，以避免骨骼动画影响。");
+            Debug.LogWarning("[PlayerClingToLog] 建议 playerHandPoint 是玩家根的直接子物体，以避免骨骼动画影响。");
         if (transform.lossyScale != Vector3.one)
-            Debug.LogWarning("[PlayerCling_TargetCoincide_Lerped] 玩家根缩放不是(1,1,1)，可能导致对齐误差。");
+            Debug.LogWarning("[PlayerClingToLog] 玩家根缩放不是(1,1,1)，可能导致对齐误差。");
 
         // 记录手点相对玩家根的局部位移
         handLocalFromRoot = transform.InverseTransformPoint(playerHandPoint.position);
@@ -94,7 +94,7 @@ public class PlayerClingToLog : MonoBehaviour
 
     void FixedUpdate()
     {
-        if (!inited) return;
+        if (!inited || !enabled) return;
         float dt = Time.fixedDeltaTime;
         if (dt <= 0f) return;
 
@@ -142,6 +142,21 @@ public class PlayerClingToLog : MonoBehaviour
         prevTargetRoot = newPos;
     }
 
+    // ===== 新增：解除扒附 =====
+    /// <summary>
+    /// 解除与 Log 的所有绑定：停用本跟随脚本；可选恢复玩家自身刚体的重力。
+    /// </summary>
+    public void DetachFromLog(bool enablePlayerGravity = false)
+    {
+        // 停用本脚本即可断开跟随；可根据需求解除引用
+        // log = null; logAnchor = null; playerHandPoint = null;
+
+        //if (enablePlayerGravity && hasRb)
+        //    rb.useGravity = true;
+
+        enabled = false;
+    }
+
     // ====== 工具 ======
     Vector3 SafeUp(Vector3 up) => (up.sqrMagnitude > 1e-6f ? up.normalized : Vector3.up);
 
@@ -149,12 +164,7 @@ public class PlayerClingToLog : MonoBehaviour
     Vector3 ComputeForwardDir(Vector3 upN)
     {
         Vector3 f = Vector3.zero;
-        if (riverPath)
-        {
-            f = riverPath.GetFlowDirectionAt(log.position);
-            f = Vector3.ProjectOnPlane(f, upN).normalized;
-        }
-        if (f.sqrMagnitude < 1e-6f && log.TryGetComponent<Rigidbody>(out var lrb))
+        if (log && log.TryGetComponent<Rigidbody>(out var lrb))
         {
             Vector3 v = Vector3.ProjectOnPlane(lrb.velocity, upN);
             if (v.sqrMagnitude > 1e-6f) f = v.normalized;
