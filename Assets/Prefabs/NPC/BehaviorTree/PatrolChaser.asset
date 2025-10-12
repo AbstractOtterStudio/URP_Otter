@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b23f08d2ae4cba14087c1ed36193d82b, type: 3}
+  m_Name: PatrolChaser
+  m_EditorClassIdentifier: 
+  mBehaviorSource:
+    behaviorName: Behavior
+    behaviorDescription: "\u5728\u4E00\u4E9B\u70B9\u4E00\u76F4\u5DE1\u903B\uFF0C\u82E5\u53D1\u73B0\u73A9\u5BB6\uFF0C\u5219\u5F00\u59CB\u8FFD\u9010"
+    mTaskData:
+      types: []
+      parentIndex: 
+      startIndex: 
+      variableStartIndex: 
+      JSONSerialization: '{"EntryTask":{"Type":"BehaviorDesigner.Runtime.Tasks.EntryTask","NodeData":{"Offset":"(1664.835,479.511)"},"ID":0,"Name":"Entry","Instant":true},"RootTask":{"Type":"BehaviorDesigner.Runtime.Tasks.Selector","NodeData":{"Offset":"(4.858032,139.912735)"},"ID":1,"Name":"Selector","Instant":true,"AbortTypeabortType":"None","Children":[{"Type":"BehaviorDesigner.Runtime.Tasks.Sequence","NodeData":{"Offset":"(-106.117905,125.52256)"},"ID":2,"Name":"Sequence","Instant":true,"AbortTypeabortType":"Both","Children":[{"Type":"BehaviorTreeNodes.PlayerWithinDistance","NodeData":{"Offset":"(-107.524651,129.66272)"},"ID":3,"Name":"Player
+        Within Distance","Instant":true,"LayerMaskTargetLayerMask":64,"SharedTargetDescOutTarget":{"Type":"BehaviorTreeNodes.SharedTargetDesc","Name":"PlayerTargetDesc","IsShared":true},"SingleDetectionRange":5},{"Type":"BehaviorTreeNodes.Chase","NodeData":{"Offset":"(79.9283447,134.181381)"},"ID":4,"Name":"Chase","Instant":true,"SharedTargetDescInTargetDesc":{"Type":"BehaviorTreeNodes.SharedTargetDesc","Name":"PlayerTargetDesc","IsShared":true},"SingleTargetDistance":1,"SingleSpeedMultiplier":2}]},{"Type":"BehaviorTreeNodes.Patrol","NodeData":{"Offset":"(113.170807,127.804863)"},"ID":5,"Name":"Patrol","Instant":true,"SharedGameObjectListPatrolPoints":{"Type":"BehaviorDesigner.Runtime.SharedGameObjectList","Name":"PatrolPoints","IsShared":true,"List`1mValue":[]},"SharedBoolRandomPatrol":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":"RandomizePatrolPoints","IsShared":true,"BooleanmValue":false},"SingleArriveThreshold":0.5,"SingleWaitTime":1.5}]},"Variables":[{"Type":"BehaviorDesigner.Runtime.SharedGameObjectList","Name":"PatrolPoints","IsShared":true,"List`1mValue":[]},{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":"RandomizePatrolPoints","IsShared":true,"BooleanmValue":false},{"Type":"BehaviorTreeNodes.SharedTargetDesc","Name":"PlayerTargetDesc","IsShared":true}]}'
+      fieldSerializationData:
+        typeName: []
+        fieldNameHash: 
+        startIndex: 
+        dataPosition: 
+        unityObjects: []
+        byteData: 
+        byteDataArray: 
+      Version: 1.7.12
