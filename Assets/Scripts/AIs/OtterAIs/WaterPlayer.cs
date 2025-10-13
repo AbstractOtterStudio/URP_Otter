@@ -228,15 +228,8 @@ public class WaterPlayer : MonoBehaviour
     void Start()
     {
         Change(new WIdle(this), 0f);
-        CollectPitchWalls(); // ★ 自动收集边界墙
+        CollectPitchWalls();
     }
-
-#if UNITY_EDITOR
-    void OnValidate()
-    {
-        if (!Application.isPlaying) CollectPitchWalls();
-    }
-#endif
 
     void Update() { if (!IsPaused) { state?.Update(); stateStr = state.name; } }
     void FixedUpdate() { if (IsPaused) return; }
