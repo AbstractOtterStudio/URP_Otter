@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using UnityEngine;
-using static Codice.Client.Commands.WkTree.WorkspaceTreeNode;
 
 [RequireComponent(typeof(Rigidbody), typeof(SphereCollider))]
 public class Ball : MonoBehaviour
@@ -12,8 +11,8 @@ public class Ball : MonoBehaviour
     public float playerBounceSpeed = 18f;
 
     [Header("Boundary & Goal Bounce")]
-    public LayerMask boundaryMask;      // 实体边界墙
-    public LayerMask goalMask;          // 门框/门柱/球网
+    public LayerMask boundaryMask;
+    public LayerMask goalMask;
     public float bounceDetectRadius = 0.70f;
     public float bounceNearDist = 0.55f;
     [Range(0f, 1f)] public float bounceRestitution = 0.65f;
@@ -28,7 +27,7 @@ public class Ball : MonoBehaviour
     public float cornerInwardBoost = 2.6f;
     public float cornerMinSpeed = 2.2f;
 
-    /* ===== 出脚方向硬纠偏 ===== */
+    /* ===== 出脚方向硬纠偏（仍保留以兼容AI） ===== */
     [Header("Kick Direction Clamp")]
     public bool forceSanitizeKick = true;
     public float wallBanLookahead = 2f;
@@ -39,31 +38,29 @@ public class Ball : MonoBehaviour
     public float beaconBanPadding = 0.50f;
     public float beaconBanLookahead = 2f;
 
-    /* ===== 玩家识别与踢球 ===== */
+    /* ===== 玩家识别与踢球（已禁用碰撞触发） ===== */
     [Header("Human Player Detection")]
     public LayerMask playerMask;
     public bool alsoCheckPlayerTag = true;
     public bool alsoCheckPlayerComponents = true;
 
-    [Header("Human Player Kick")]
-    public float playerKickBase = 12f;
-    public float playerKickVelFactor = 0.35f;
+    [Header("Human Player Kick (LEGACY)")]
+    public float playerKickBase = 10f;
+    public float playerKickVelFactor = 0.8f;
     public float playerKickMax = 18f;
     public bool sanitizePlayerKick = true;
 
-    /* ===== 抢断/远距吸球防护 ===== */
+    [Header("Overhaul Compat")]
+    public bool disableHumanCollisionKick = true; // 取消“碰到就踢”
+    public BallPossessionController possession;   // 从 Ball 上同物体挂载
+
+    /* ===== 抢断/远距吸球防护（保留AI用） ===== */
     [Header("Anti Snap-back / AI Claim")]
-    [Tooltip("AI 必须在此半径内与球“近距离接触”才允许获得所有权")]
     public float aiClaimRadius = 1.9f;
-    [Tooltip("人类触球后的一段时间内，始终忽略一切 AI 重新拿球")]
     public float playerStealLock = 0.45f;
-    [Tooltip("人类触球后的占有缓冲时长，在此期间一般忽略 AI 干预")]
     public float playerKeepLock = 0.70f;
-    [Tooltip("占有缓冲期间，只要球仍在离最后触球的玩家该半径内，就继续忽略 AI")]
     public float playerKeepRadius = 3.0f;
-    [Tooltip("占有缓冲期间，如果球速 >= 此值，也忽略 AI 抢回")]
     public float aiReacquireMinSpeed = 0.6f;
-    [Tooltip("只要 Owner(=AI) 离球大于该距离，立即清空 Owner，防止远距离“吸球”")]
     public float clearOwnerIfFartherThan = 2.5f;
 
     private float _lastNonAITouchAt = -999f;
@@ -72,15 +69,14 @@ public class Ball : MonoBehaviour
 
     private float _nextBounceAt;
 
-    // pickup lock（AI队伍用）
     private bool pickupLockActive;
     private bool pickupLockTeam;
     private float pickupLockUntil;
 
     public Rigidbody Rb { get; private set; }
     public SphereCollider Col { get; private set; }
-    public WaterPlayer Owner;  // 只有 AI 才会成为 Owner
-    public bool LastTouchTeam;
+    public WaterPlayer Owner;  // 仅 AI 用；玩家持球时置空
+    public bool LastTouchTeam; // true 我方 / false 对方
 
     void Awake()
     {
@@ -88,16 +84,19 @@ public class Ball : MonoBehaviour
         Col = GetComponent<SphereCollider>();
         Rb.useGravity = false;
         Rb.constraints = RigidbodyConstraints.FreezeRotation | RigidbodyConstraints.FreezePositionY;
+
+        if (!possession) possession = GetComponent<BallPossessionController>();
+        
     }
 
     void FixedUpdate()
     {
-        // 地面阻力（水平）
+        // ground friction (horizontal)
         Vector3 v = Rb.velocity; v.y = 0f;
         if (v.sqrMagnitude > 0.01f)
             Rb.AddForce(-v.normalized * friction, ForceMode.Acceleration);
 
-        // 远距离 Owner 清理（防止“跨场吸球”）
+        // clear long-distance owner attraction
         if (Owner)
         {
             float d = Vector3.Distance(Owner.Pos, Pos);
@@ -107,19 +106,10 @@ public class Ball : MonoBehaviour
         BoundaryBounceStep();
     }
 
-    /* ====== Unity 碰撞回调 ====== */
+    void OnCollisionEnter(Collision col) { HandleHit(col.collider, col.GetContact(0).point); }
+    void OnCollisionStay(Collision col) { HandleHit(col.collider, col.GetContact(0).point); }
 
-    void OnCollisionEnter(Collision col)
-    {
-        HandleHit(col.collider, col.GetContact(0).point);
-    }
-
-    void OnCollisionStay(Collision col)
-    {
-        HandleHit(col.collider, col.GetContact(0).point);
-    }
-
-    /* ====== Public API ====== */
+    /* ===================== KICK API ===================== */
 
     public void Kick(Vector3 target, float power)
     {
@@ -131,10 +121,7 @@ public class Ball : MonoBehaviour
 
     public void Kick(Vector3 target, float power, WaterPlayer kicker)
     {
-        // ① 人类保护窗内，直接忽略任何 AI 出脚
         if (kicker && ShouldIgnoreWPReacquire()) return;
-
-        // ② 距离门槛：AI 离球太远就拒绝
         if (kicker && Vector3.Distance(kicker.Pos, Pos) > aiClaimRadius + 0.2f) return;
 
         Vector3 dirRaw = (target - Pos);
@@ -144,6 +131,30 @@ public class Ball : MonoBehaviour
         Owner = null;
 
         if (kicker) SetPickupLock(kicker.isTeammate, 0.35f);
+        LastTouchTeam = kicker ? kicker.isTeammate : LastTouchTeam;
+    }
+
+    // —— 新系统统一出脚：释放持球并按方向踢 —— //
+    public void KickOverhaul(Vector3 target, float power, WaterPlayer kicker)
+    {
+        Vector3 dir = (target - Pos); dir.y = 0f;
+        if (dir.sqrMagnitude < 1e-6f) return;
+
+        bool markTeam = kicker ? kicker.isTeammate : LastTouchTeam;
+
+        if (possession)
+        {
+            // 这里必须用“方向版”的 API，避免把方向当作坐标
+            possession.ReleaseAndKickDir(dir.normalized, power);
+        }
+        else
+        {
+            // 没有持球控制器时走旧逻辑
+            Kick(target, power, kicker);
+        }
+
+        Owner = null;
+        LastTouchTeam = markTeam;
     }
 
     public void SetPickupLock(bool team, float duration)
@@ -165,31 +176,26 @@ public class Ball : MonoBehaviour
     public float TimeToCover(Vector3 from, Vector3 to, float u)
         => Vector3.Distance(from, to) / Mathf.Max(u, 0.01f);
 
-    /* ====== 碰撞路由 ====== */
+    /* ===================== COLLISION HANDLING ===================== */
 
     void HandleHit(Component other, Vector3 contactPoint)
     {
         if (!other) return;
 
-        // 1) 人类玩家？
+        // Human player: legacy collision-kick disabled
         if (IsHumanPlayer(other))
         {
+            if (disableHumanCollisionKick) return;
             KickFromHuman(other);
-
             return;
         }
 
-        // 2) AI（WaterPlayer）？
+        // AI WaterPlayer：允许“弹走一下”但不强占玩家持球
         var wp = other.GetComponent<WaterPlayer>();
         if (wp)
         {
-            // 玩家占有缓冲 / 抢断锁：忽略 AI 抢回
             if (ShouldIgnoreWPReacquire()) return;
-
-            // 必须近距离接触才能“拿到球”
             if (Vector3.Distance(Pos, wp.Pos) > aiClaimRadius) return;
-
-            // pickup lock：同队暂时不能再拿回
             if (pickupLockActive && Time.time < pickupLockUntil && wp.isTeammate == pickupLockTeam)
                 return;
 
@@ -205,58 +211,36 @@ public class Ball : MonoBehaviour
             return;
         }
 
-        // 3) 其它物体：忽略
+        // others: ignore
     }
 
     bool IsHumanPlayer(Component c)
     {
         if (!c) return false;
-
-        // A) layer 检测
-        if (playerMask.value != 0)
-        {
-            if (((1 << c.gameObject.layer) & playerMask) != 0) return true;
-        }
-
-        // B) tag 检测
+        if (playerMask.value != 0) { if (((1 << c.gameObject.layer) & playerMask) != 0) return true; }
         if (alsoCheckPlayerTag && c.CompareTag("Player")) return true;
-
-        // C) 组件兜底
         if (alsoCheckPlayerComponents)
         {
             if (c.GetComponentInParent<PlayerController>() || c.GetComponentInParent<PlayerMovement>()) return true;
             if (c.GetComponent<PlayerController>() || c.GetComponent<PlayerMovement>()) return true;
         }
-
-        // D) 显式排除 AI
         if (c.GetComponentInParent<WaterPlayer>()) return false;
-
         return false;
     }
 
     void KickFromHuman(Component player)
     {
-        Vector3 facing = -player.transform.forward;
-        facing.y = 0f;
-        if (facing.sqrMagnitude > 1e-6f) facing.Normalize();
-        else facing = FallbackCenterDir(null);
-
-        // 叠加玩家刚体水平速度（保留）
-        float add = 0f;
-        var prb = player.GetComponentInParent<Rigidbody>();
-        if (prb)
-        {
-            Vector3 hv = new Vector3(prb.velocity.x, 0, prb.velocity.z);
-            add = hv.magnitude * playerKickVelFactor;
-        }
+        Vector3 forward = Vector3.zero;
+        Transform t = player.transform;
+        if (t) { forward = t.forward; forward.y = 0f; forward = forward.sqrMagnitude > 1e-6f ? forward.normalized : FallbackCenterDir(null); }
+        float add = 0f; var prb = player.GetComponentInParent<Rigidbody>();
+        if (prb) { Vector3 hv = new Vector3(prb.velocity.x, 0, prb.velocity.z); add = hv.magnitude * playerKickVelFactor; }
         float power = Mathf.Clamp(playerKickBase + add, 0f, playerKickMax);
-
-        // 温和纠偏（人类不要过度强行回中）
-        Vector3 dir = sanitizePlayerKick ? SanitizeKickDirForHuman(facing) : SafeNormalize(facing, FallbackCenterDir(null));
-        Rb.velocity = dir * power;
-
+        Vector3 dir = sanitizePlayerKick ? SanitizeKickDirForHuman(forward) : SafeNormalize(forward, FallbackCenterDir(null));
+        // 一些模型前后颠倒时需要反向；保持你项目里原来的反向处理
+        Rb.velocity = -dir * power;
         _lastNonAITouchAt = Time.time;
-        _lastNonAIToucher = player.transform;
+        _lastNonAIToucher = t;
         _ignoreWPUntil = Time.time + playerStealLock;
         Owner = null;
     }
@@ -264,10 +248,10 @@ public class Ball : MonoBehaviour
     Vector3 SanitizeKickDirForHuman(Vector3 raw)
     {
         Vector3 d = SafeNormalize(raw, FallbackCenterDir(null));
-        if (DirectionHitsBoundaryShortHorizon(d, 2f)) // 只看短视距
+        if (DirectionHitsBoundaryShortHorizon(d, 2f))
         {
             Vector3 center = FallbackCenterDir(null);
-            d = Vector3.Slerp(d, center, 0.35f).normalized; // 轻拉，不是强拉
+            d = Vector3.Slerp(d, center, 0.35f).normalized;
         }
         return d;
     }
@@ -283,9 +267,8 @@ public class Ball : MonoBehaviour
 
     bool ShouldIgnoreWPReacquire()
     {
-        if (Time.time < _ignoreWPUntil) return true; // 抢断锁最优先
+        if (Time.time < _ignoreWPUntil) return true;
         if (!InPlayerKeepWindow()) return false;
-
         if (_lastNonAIToucher)
         {
             if (Vector3.Distance(Pos, _lastNonAIToucher.position) <= playerKeepRadius)
@@ -293,35 +276,25 @@ public class Ball : MonoBehaviour
         }
         if (Rb && Rb.velocity.magnitude >= aiReacquireMinSpeed)
             return true;
-
-        // 占有缓冲期间，统一忽略更干脆
         return true;
     }
 
-    /* ====== 出脚方向硬纠偏 ====== */
+    /* ===================== DIR SANITIZE & HELPERS ===================== */
 
     Vector3 SanitizeKickDir(Vector3 rawDir, WaterPlayer kicker)
     {
         Vector3 centerDir = FallbackCenterDir(kicker);
         Vector3 d = SafeNormalize(rawDir, centerDir);
 
-        if (kicker != null && DirectionHitsBoundary(d))
-            d = centerDir;
-
-        if (beaconHardBan && DirectionHitsBeacon(d))
-            d = centerDir;
-
-        if (IsNearWall(out _))
-            d = Vector3.Slerp(d, centerDir, nearWallCenterSlerp).normalized;
-
+        if (kicker != null && DirectionHitsBoundary(d)) d = centerDir;
+        if (beaconHardBan && DirectionHitsBeacon(d)) d = centerDir;
+        if (IsNearWall(out _)) d = Vector3.Slerp(d, centerDir, nearWallCenterSlerp).normalized;
         return d;
     }
 
     Vector3 SafeNormalize(Vector3 v, Vector3 fallback)
     {
-        v.y = 0f;
-        if (v.sqrMagnitude < 1e-6f) return fallback;
-        return v.normalized;
+        v.y = 0f; if (v.sqrMagnitude < 1e-6f) return fallback; return v.normalized;
     }
 
     Vector3 FallbackCenterDir(WaterPlayer kicker)
@@ -355,18 +328,15 @@ public class Ball : MonoBehaviour
     {
         dir.y = 0f; if (dir.sqrMagnitude < 1e-6f) return false; dir.Normalize();
         Vector3 origin = Pos + Vector3.up * 0.2f;
-        int mask = boundaryMask; // 只看“墙”那一层
-        if (Physics.SphereCast(origin, wallBanProbeRadius, dir, out var hit,
-                               wallBanLookahead, mask, QueryTriggerInteraction.Ignore))
+        int mask = boundaryMask;
+        if (Physics.SphereCast(origin, wallBanProbeRadius, dir, out var hit, wallBanLookahead, mask, QueryTriggerInteraction.Ignore))
         {
             if (hit.collider.GetComponentInParent<WaterPlayer>() ||
                 hit.collider.GetComponentInParent<PlayerController>() ||
                 hit.collider.GetComponentInParent<PlayerMovement>())
                 return false;
-
             return true;
         }
-
         return Physics.SphereCast(origin, wallBanProbeRadius, dir, out _, wallBanLookahead, mask, QueryTriggerInteraction.Ignore);
     }
 
@@ -375,10 +345,8 @@ public class Ball : MonoBehaviour
         if (!beaconHardBan) return false;
         var list = (AvoidBeacon.All != null) ? AvoidBeacon.All : new List<AvoidBeacon>();
         if (list.Count == 0) return false;
-
         dir.y = 0f; if (dir.sqrMagnitude < 1e-6f) return false; dir.Normalize();
         Vector3 a = Pos;
-
         foreach (var b in list)
         {
             if (!b) continue;
@@ -386,7 +354,6 @@ public class Ball : MonoBehaviour
             Vector3 ap = c - a;
             float t = Mathf.Clamp(Vector3.Dot(ap, dir), 0f, beaconBanLookahead);
             Vector3 closest = a + dir * t;
-
             float r = Mathf.Max(0.01f, b.radius + beaconBanPadding);
             if (Vector3.Distance(closest, c) <= r) return true;
         }
@@ -399,7 +366,6 @@ public class Ball : MonoBehaviour
         int mask = boundaryMask;
         var hits = Physics.OverlapSphere(Pos + Vector3.up * 0.3f, nearWallDetect, mask, QueryTriggerInteraction.Ignore);
         if (hits == null || hits.Length == 0) return false;
-
         float best = float.MaxValue; Collider nearest = null;
         foreach (var c in hits)
         {
@@ -409,7 +375,6 @@ public class Ball : MonoBehaviour
             if (d < best) { best = d; nearest = c; }
         }
         if (!nearest) return false;
-
         if (Col && Physics.ComputePenetration(
             Col, Col.transform.position, Col.transform.rotation,
             nearest, nearest.transform.position, nearest.transform.rotation,
@@ -420,20 +385,17 @@ public class Ball : MonoBehaviour
         return true;
     }
 
-    /* ====== 反弹（原样） ====== */
+    /* ===================== WALL BOUNCE ===================== */
 
     void BoundaryBounceStep()
     {
         if (Time.time < _nextBounceAt) return;
-
         if (!TryGetAggregatedNormal(out Vector3 n, out float dist, out bool isCorner)) return;
         if (dist > bounceNearDist) return;
-
         Vector3 vAll = Rb.velocity;
         Vector3 v = new Vector3(vAll.x, 0f, vAll.z);
         float speed = v.magnitude;
         if (speed < 0.01f) return;
-
         float R = bounceRestitution;
         float inward = slideInwardBoost;
         float minS = minBounceSpeed;
@@ -443,11 +405,9 @@ public class Ball : MonoBehaviour
             inward = Mathf.Max(inward, cornerInwardBoost);
             minS = Mathf.Max(minS, cornerMinSpeed);
         }
-
         float vn = Vector3.Dot(v, n);
         Vector3 vt = v - vn * n;
         Vector3 vNew;
-
         if (speed < minS)
         {
             vNew = v + n * (inward * 0.6f);
@@ -465,7 +425,6 @@ public class Ball : MonoBehaviour
                 vNew = v + n * inward;
             }
         }
-
         Rb.velocity = new Vector3(vNew.x, vAll.y, vNew.z);
         _nextBounceAt = Time.time + bounceCooldown;
     }
@@ -475,38 +434,31 @@ public class Ball : MonoBehaviour
         n = Vector3.zero; closest = float.MaxValue; isCorner = false;
         Vector3 probe = Pos + Vector3.up * 0.3f;
         int mask = boundaryMask | goalMask;
-
         var hits = Physics.OverlapSphere(probe, bounceDetectRadius, mask, QueryTriggerInteraction.Ignore);
         if (hits == null || hits.Length == 0) return false;
-
         Vector3 avg = Vector3.zero; int used = 0; Vector3 firstN = Vector3.zero;
-
         foreach (var c in hits)
         {
             if (c.isTrigger) continue;
             if (c.GetComponentInParent<WaterPlayer>() ||
                c.GetComponentInParent<PlayerController>() ||
                c.GetComponentInParent<PlayerMovement>())
-                    continue;
+                continue;
             Vector3 cp = c.ClosestPoint(probe);
             Vector3 flat = new Vector3(cp.x, 0, cp.z);
             Vector3 v = (Pos - flat);
             float d = v.magnitude;
             if (d < closest) closest = d;
-
             Vector3 nn = (d > 1e-4f) ? (v / d) : Vector3.zero;
             if (nn == Vector3.zero) continue;
-
             if (used == 0) firstN = nn;
             else
             {
                 float ang = Vector3.Angle(firstN, nn);
                 if (ang >= cornerNormalAngleMin) isCorner = true;
             }
-
             avg += nn; used++;
         }
-
         if (used == 0) return false;
         avg.y = 0f;
         if (avg.sqrMagnitude < 1e-6f) return false;
