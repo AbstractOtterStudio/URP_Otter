@@ -1,295 +1,117 @@
 using UnityEngine;
 
-public static class BallUtils
-{
-    public static bool IsEnemy(Component owner, bool selfIsTeammate)
-    {
-        if (owner == null) return false;
-
-        if (owner.TryGetComponent<WaterPlayer>(out var wp))
-            return wp.isTeammate != selfIsTeammate;
-
-        // 明确检查 GameObject
-        if (owner.gameObject.CompareTag("Player"))
-            return !selfIsTeammate;
-
-        return false;
-    }
-
-    public static bool IsFriendly(Component owner, bool selfIsTeammate)
-    {
-        return !IsEnemy(owner, selfIsTeammate);
-    }
-}
-
-
-/* ---------- 基类 ---------- */
+/* 基类 */
 public abstract class WAState
 {
-    public string name;
+    public string name = "State";
     protected readonly WaterPlayer P;
-
     protected WAState(WaterPlayer p) { P = p; }
-
-    public virtual void Enter()  { }
+    public virtual void Enter() { }
     public virtual void Update() { }
 }
 
-/* ───────── Idle ───────── */
+/* Idle：无球 → 跑位；有球 → 决策；最近者 → 追球 */
 public class WIdle : WAState
 {
     public WIdle(WaterPlayer p) : base(p) { name = "Idle"; }
 
     public override void Update()
     {
-        // 1. 拿到球 → 进入决策
-        if (P.HasBall)
-        {
-            P.StartHold();
-            P.Change(new WDecision(P));
-            return;
-        }
+        if (WaterPlayer.isPaused) return;
 
-        bool enemyHas = BallUtils.IsEnemy(P.ball.Owner, P.isTeammate);
-    
-        if (enemyHas)
-        {
-            // ───── 我方无球
-            float danger = Vector3.Distance(P.ball.Pos, P.friendlyGoal.transform.position);
+        if (P.HasBall && P.CanChangeState) { P.StartHold(); P.Change(new WDecision(P), P.stateMinHold_Decision); return; }
+        if (P.ShouldChaseBall() && P.CanChangeState) { P.Change(new WChase(P), P.stateMinHold_Chase); return; }
 
-            if (danger <= P.defendTriggerDist)
-            {
-                // 球在警戒范围 → 回防 / 追球
-                if (P.ShouldChaseBall())
-                {
-                    P.Change(new WChase(P));
-                    return;
-                }
+        bool usHave = P.TeamHasBall || (!P.ball || P.ball.Owner == null && P.IsClosestToBallInTeam());
 
-                // 否则占位防守
-                Vector3 defendPos = Vector3.Lerp(P.ball.Pos, P.friendlyGoal.transform.position, 0.4f);
-                P.MoveTo(defendPos);
-                name = "Defend";
-                return;
-            }
-        }
+        // 先取角色锚点，再尝试支援点
+        Vector3 anchor = P.GetRoleAnchor(usHave);
+        var spot = P.GetSupportSpot();
+        Vector3 target = spot ? Vector3.Lerp(anchor, spot.position, 1f - P.anchorBias) : anchor;
 
-        /* --------- 卡球检测 → 侧边支援 --------- */
-        if (BallStuckDetector.BallCurrentlyStuck && !P.HasBall)
-        {
-            Debug.Log("卡主!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" + Time.time);
-            const float flankDist = 6f;
-
-            // 场地长轴方向
-            Vector3 fieldDir = (P.enemyGoal.transform.position -
-                                P.friendlyGoal.transform.position).normalized;
-            // 垂直方向
-            Vector3 flankDir = Vector3.Cross(Vector3.up, fieldDir).normalized;
-
-            // 蓝队走左侧，红队走右侧（可自行调整）
-            if (!P.isTeammate) flankDir = -flankDir;
-
-            Vector3 flankPos = P.ball.Pos + flankDir * flankDist;
-
-            P.MoveTo(flankPos);
-            P.AskForPass();
-            name = "FlankWait";
-            return;
-        }
-        /* ------------ 结束 --------------------- */
-
-        // ───── 进攻或球在远处
-        if (P.ShouldChaseBall())
-        {
-            P.Change(new WChase(P));
-            return;
-        }
-
-        Transform spot = P.GetSupportSpot();
-        if (spot && Vector3.Distance(P.Pos, spot.position) > 1f)
-        {
-            P.Change(new WSupport(P, spot));
-            return;
-        }
-
-        name = "Idle";
+        P.MoveTo(target);
+        name = spot ? "Support" : "RoleAnchor";
     }
 }
 
-/* ───────── Chase ───────── */
+/* Chase：预测抢球，接触到球切换 Decision */
 public class WChase : WAState
 {
     public WChase(WaterPlayer p) : base(p) { name = "Chase"; }
 
     public override void Update()
     {
-        if (!P.ShouldChaseBall() && !P.HasBall)
+        if (WaterPlayer.isPaused) return;
+        if (P.HasBall && P.CanChangeState) 
         {
-            P.Change(new WIdle(P));
+            P.StartHold();
+            P.Change(new WDecision(P), P.stateMinHold_Decision);
             return;
         }
+        if ((P.TeamHasBall && !P.HasBall) || !P.ShouldChaseBall())
+        { if (P.CanChangeState) P.Change(new WIdle(P), P.stateMinHold_Idle); return; }
 
         P.MoveToBallPred();
 
-        // 若更近队友呼叫则让球
-        foreach (var mate in P.team)
-        {
-            if (mate == P) continue;
-            if (mate.requestPass && Vector3.Distance(mate.Pos, P.ball.Pos) < 1.5f)
-            {
-                WaterPlayer.BallChaser[mate.TeamIdx] = mate;
-                break;
-            }
-        }
-
-        // 到球
-        if (Vector3.Distance(P.Pos, P.ball.Pos) < 1.1f)
-        {
-            P.StartHold();
-            P.Change(new WDecision(P));
-        }
+        if (P.ball && Vector3.Distance(P.Pos, P.ball.Pos) < 1.1f && P.CanChangeState)
+        { P.StartHold(); P.Change(new WDecision(P), P.stateMinHold_Decision); }
     }
 }
 
-/* ───────── Support ───────── */
-public class WSupport : WAState
-{
-    private readonly Transform target;
-
-    public WSupport(WaterPlayer p, Transform t) : base(p)
-    {
-        target = t;
-        name   = "Support";
-    }
-
-    public override void Update()
-    {
-        if (P.HasBall)
-        {
-            P.StartHold();
-            P.Change(new WDecision(P));
-            return;
-        }
-
-        if (P.ShouldChaseBall())
-        {
-            P.Change(new WChase(P));
-            return;
-        }
-
-        if (!target)
-        {
-            P.Change(new WIdle(P));
-            return;
-        }
-
-        P.MoveTo(target.position);
-
-        if (Vector3.Distance(P.Pos, target.position) < 1f)
-            P.Change(new WIdle(P));
-    }
-}
-
-/* ───────── Decision (with ball) ───────── */
+/* Decision：拿球后的完整行为树（先“能射必射”，再传，再解卡，最后带球） */
 public class WDecision : WAState
 {
-    private const float ThreatRadius = 4f; // 敌方靠近判定半径
+    Vector3 driveDir;
+    float nextDriveAt, nextTick;
+
     public WDecision(WaterPlayer p) : base(p) { name = "Decision"; }
 
-    public override void Enter() => Decide();
+    public override void Enter()
+    {
+        nextDriveAt = Time.time;
+        nextTick = Time.time + P.decisionTickRange.x;
+
+        // ★ 首帧就计算一次带球方向，避免 DribbleAlong 用到 0 向量的回退（导致朝前一脚）
+        driveDir = P.ComputeDriveDir();
+
+        // 拿球瞬间：先做合理动作（能射→射；能传→传；门后/贴墙→快处置）
+        if (P.FirstTouchPlay(out string why)) { name = "First:" + why; }
+    }
+
 
     public override void Update()
     {
-        if (!P.HasBall)
-        {
-            P.Change(new WIdle(P));
-            return;
-        }
-        Decide();
-    }
+        if (WaterPlayer.isPaused) return;
 
-    private void Decide()
-    {
-        if (BallStuckDetector.BallCurrentlyStuck && P.HasBall)
-        {
-            Debug.Log("卡主！！！！！！！！");
-            P.ClearToFlank();
-            name = "SideClear";
-            return;
-        }
+        if (!P.HasBall) { if (P.CanChangeState) P.Change(new WIdle(P), P.stateMinHold_Idle); return; }
 
-        bool threatened = false;
-        foreach (var opp in P.opponents)
+        // 0) 若路径可达且在射程 → 立即射门
+        if (P.CanShootSmart(out Vector3 g1)) { P.Shoot(g1); name = "Shoot"; return; }
+
+        // 1) 墙/门后等快速处理（传/回做/中路清）
+        if (P.TryBoundaryEscapeOrQuickRelease(out string why2)) { name = why2; return; }
+
+        // 2) 周期性：传球机会
+        if (Time.time >= nextTick)
         {
-            if (Vector3.Distance(opp.Pos, P.Pos) <= ThreatRadius)
-            {
-                threatened = true;
-                break;
-            }
+            bool preferForward = P.role != RG_ROLE.Mid ? true : P.IsInAttackingHalf();
+            if (P.FindBestPassOption(out Vector3 pass, out _, preferForward)) { P.Pass(pass); name = "PassTick"; return; }
+
+            float k = Mathf.Clamp01(1f - P.passAggression);
+            float dt = Mathf.Lerp(P.decisionTickRange.x, P.decisionTickRange.y, k);
+            nextTick = Time.time + dt;
         }
 
-        if (threatened)
+        // 3) 节流计算带球方向 + 平滑
+        if (Time.time >= nextDriveAt)
         {
-            if (P.CanShoot(out Vector3 goalDir))
-            {
-                P.Shoot(goalDir);
-                name = "QuickShoot";
-                return;
-            }
-            if (P.CanPass(out Vector3 tgt, out _))
-            {
-                P.Pass(tgt);
-                name = "QuickPass";
-                return;
-            }
-            // 无安全传球亦无法射门 → 清球
-            Vector3 dir = (P.enemyGoal.transform.position - P.Pos).normalized;
-            P.ball.Kick(P.Pos + dir * 6f, 12f);
-            name = "Clear";
-            return;
+            Vector3 fresh = P.ComputeDriveDir();
+            driveDir = (driveDir == Vector3.zero) ? fresh : Vector3.Slerp(driveDir, fresh, P.driveDirSmoothing);
+            nextDriveAt = Time.time + P.driveRecalcInterval;
         }
 
-        // 1. 刚得球先推
-        if (!P.HoldExceeded(0.5f))
-        {
-            Vector3 dir = (P.enemyGoal.transform.position - P.Pos).normalized;
-            P.MoveTo(P.Pos + dir * 8f);
-            name = "Drive";
-            return;
-        }
-
-        // 2. 传球
-        foreach (var mate in P.team)
-        {
-            if (mate == P) continue;
-            if (mate.requestPass)
-            {
-                P.Pass(mate.Pos);
-                name = "Pass";
-                return;
-            }
-        }
-
-        if (P.CanPass(out Vector3 tgtDir, out _))
-        {
-            P.Pass(tgtDir);
-            name = "Pass";
-            return;
-        }
-
-        // 3. 射门
-        if (P.CanShoot(out Vector3 goal))
-        {
-            P.Shoot(goal);
-            name = "Shoot";
-            return;
-        }
-
-        // 4. 继续带
-        Vector3 push = (P.enemyGoal.transform.position - P.Pos).normalized;
-        P.MoveTo(P.Pos + push * 8f);
+        // 4) 带球
+        P.DribbleAlong(driveDir);
         name = "Drive";
     }
 }
-
-

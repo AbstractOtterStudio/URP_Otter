@@ -1,129 +1,117 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class SupportSpotManager:MonoBehaviour
+public class SupportSpotManager : MonoBehaviour
 {
-    /* ───────── Inspector ───────── */
     [Header("Pitch Spots")]
     public List<Transform> spots;
 
     [Header("General Filters")]
-    public float forwardThreshold = 0.05f;  // 在球前方
-    public float skipRadius       = 3.5f;   // << 新增：屏蔽持球者周围点 (需求 1)
-
-    [Header("Distance Prefs")]
-    public float idealDist     = 12f;       // 偏好距球 12 m
+    [Range(0f, 1f)] public float forwardThreshold = 0.05f;
+    public float skipRadius = 3.5f;          // 持球者周围屏蔽半径
+    public float idealDist = 12f;
     public float maxLeadAttack = 14f;
     public float maxLeadDefend = 16f;
 
     [Header("Weights (attack / defend)")]
-    public float wBallAtk  = 0.65f, wGoalAtk  = 0.20f;
-    public float wBallDef  = 0.45f, wGoalDef  = 0.30f;
+    public float wBallAtk = 0.65f, wGoalAtk = 0.20f;
+    public float wBallDef = 0.45f, wGoalDef = 0.30f;
+
+    [Header("Neighbours")]
     public float wMateDist = 0.60f;
-
-    [Header("Spread Control")]
-    public bool preferWide = true;
-    public float fieldCenter = 0f;
-    public bool alongXAxis = false; // 球场沿 X 或 Z 放置
-    public float widthBias = 0.15f;
-
     public float minDistFromOpp = 0.6f;
     public float minDistFromMate = 6f;
 
-    /* ───────── 主要接口 ───────── */
-   public Transform GetBestSpot(
-    Vector3           ballPos,
-    Vector3           friendlyGoalPos,
-    Vector3           enemyGoalPos,
-    bool              possessionUs,
-    Vector3?          ballCarrierPos,
-    List<WaterPlayer> opponents,
-    List<WaterPlayer> mates)
+    public Transform GetBestSpot(
+        Vector3 ballPos,
+        Vector3 friendlyGoalPos,
+        Vector3 enemyGoalPos,
+        bool possessionUs,
+        Vector3? ballCarrierPos,    // 可为 null
+        List<WaterPlayer> opponents,
+        List<WaterPlayer> mates)
     {
-        float     bestScore = -1f;
-        Transform bestSpot  = null;
+        float bestScore = -1f;
+        Transform bestSpot = null;
 
-        // 1. 攻守方向根据“球权归属”
-        bool   attacking = possessionUs;
         Vector3 fieldFwd = (enemyGoalPos - friendlyGoalPos).normalized;
-        Vector3 refDir   = attacking ? fieldFwd : -fieldFwd;
-        float   maxLead  = attacking ? maxLeadAttack : maxLeadDefend;
-        float   wBall    = attacking ? wBallAtk     : wBallDef;
-        float   wGoal    = attacking ? wGoalAtk     : wGoalDef;
+        Vector3 refDir = possessionUs ? fieldFwd : -fieldFwd;
 
-        // 2. 遍历支援点
+        float wBall = possessionUs ? wBallAtk : wBallDef;
+        float wGoal = possessionUs ? wGoalAtk : wGoalDef;
+        float maxLead = possessionUs ? maxLeadAttack : maxLeadDefend;
+
         foreach (Transform s in spots)
         {
+            if (!s) continue;
+
             Vector3 toSpotDir = (s.position - ballPos).normalized;
-            float   forward   = Vector3.Dot(refDir, toSpotDir);
+            float forward = Vector3.Dot(refDir, toSpotDir);
             if (forward < forwardThreshold) continue;
 
             float distToBall = Vector3.Distance(ballPos, s.position);
             if (distToBall > maxLead) continue;
 
-            // 2a. 屏蔽持球者周围点
+            // ① 跳过离持球者过近的点（只有当 ballCarrierPos.HasValue 才生效）
             if (ballCarrierPos.HasValue &&
                 Vector3.Distance(ballCarrierPos.Value, s.position) < skipRadius)
                 continue;
 
-            // 2b. 禁止多人占用同一点（新增）
+            // ② 队友占位冲突
             bool occupied = false;
             foreach (var m in mates)
             {
                 if (m == null) continue;
                 if (Vector3.Distance(m.Pos, s.position) < 1.5f)
-                {
-                    occupied = true;
-                    break;
-                }
+                { occupied = true; break; }
             }
             if (occupied) continue;
 
-            // 3. 评分：距球 + 对门方向
-            float gauss = Mathf.Exp(-Mathf.Pow(distToBall - idealDist, 2) /
+            // ③ 基础评分：距球的高斯 + 朝向球门
+            float gauss = Mathf.Exp(-(distToBall - idealDist) * (distToBall - idealDist) /
                                     (2 * idealDist * idealDist));
             float score = gauss * wBall + forward * wGoal;
 
-            // 4. 排除危险点
+            // ④ 对手安全
             bool unsafeOpp = false;
             foreach (var opp in opponents)
             {
+                if (!opp) continue;
                 if (Vector3.Distance(opp.Pos, s.position) < minDistFromOpp)
                 { unsafeOpp = true; break; }
             }
             if (unsafeOpp) continue;
 
-    
-            // 5. 队友间距
+            // ⑤ 队友距离（保持宽度）
             float nearestMate = float.MaxValue;
             foreach (var m in mates)
             {
                 if (m == null) continue;
-                nearestMate = Mathf.Min(nearestMate,
-                                        Vector3.Distance(m.Pos, s.position));
+                nearestMate = Mathf.Min(nearestMate, Vector3.Distance(m.Pos, s.position));
             }
             if (nearestMate < minDistFromMate) continue;
-
-            // // 5b. 越靠边越好（拉开宽度）
-            // if (preferWide)
-            // {
-            //     float axis = alongXAxis ? s.position.z : s.position.x;
-            //     float distFromCenter = Mathf.Abs(axis - fieldCenter);
-            //     score += distFromCenter * widthBias;
-            // }
-
             score += (nearestMate / 10f) * wMateDist;
 
-            // 6. 择优
             if (score > bestScore)
             {
                 bestScore = score;
-                bestSpot  = s;
+                bestSpot = s;
             }
         }
 
         return bestSpot;
     }
 
+    // 兼容旧调用
+    public Transform GetBestSpot(
+        Vector3 ballPos,
+        Vector3 friendlyGoalPos,
+        Vector3 enemyGoalPos,
+        bool possessionUs,
+        List<WaterPlayer> opponents,
+        List<WaterPlayer> mates)
+    {
+        return GetBestSpot(ballPos, friendlyGoalPos, enemyGoalPos,
+                           possessionUs, null, opponents, mates);
+    }
 }

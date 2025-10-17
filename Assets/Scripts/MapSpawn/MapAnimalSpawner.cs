@@ -65,9 +65,9 @@ public class MapAnimalSpawner : Singleton<MapAnimalSpawner>
         if (respawnList.Count <= 0) { return; }
         for (int i = 0; i < respawnList.Count; i++)
         {
-            if (respawnList[i].GetComponent<EscaperAgent>())
+            if (respawnList[i].TryGetComponent(out NPCAgent npc))
             {
-                respawnList[i].GetComponent<EscaperAgent>().ResetState();
+                npc.ResetState();
             }
             respawnList[i].GetComponent<ItemProperties>().ResetProperties();
             respawnList[i].SetActive(true);
@@ -77,21 +77,6 @@ public class MapAnimalSpawner : Singleton<MapAnimalSpawner>
 
     static void SpawnHelper(AnimalPoolName animalType, Destinations[] destinations, int desIndex)
     {
-        //Take current Type single animal from pool
-        Transform spawnAnimal = ObjectPool.TakeFromPool(animalType.ToString());
-        //Init EscaperAgent
-        //Have Ai
-        if (spawnAnimal.GetComponent<EscaperAgent>())
-        {
-            EscaperAgent escaper = spawnAnimal.GetComponent<EscaperAgent>();
-            escaper.SetPatrolPoints(destinations[desIndex].destinations);
-        }
-        //Spawn Animal to its first patrol point
-        spawnAnimal.position = destinations[desIndex].destinations[0];
 
-        if (spawnAnimal.GetComponent<ItemProperties>())
-        {
-            spawnAnimal.GetComponent<ItemProperties>().InitProperties();
-        }
     }
 }
