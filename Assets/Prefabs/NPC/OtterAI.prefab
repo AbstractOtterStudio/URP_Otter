@@ -3689,6 +3689,7 @@ Transform:
   - {fileID: 1492462719549564939}
   - {fileID: 7825349560679618034}
   - {fileID: 2566607906442724296}
+  - {fileID: 296923491145961440}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 180, z: 0}
 --- !u!54 &6766664510368678804
@@ -3774,29 +3775,94 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0acc763b15c7afa41968014f25dbf9d0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  isTeammate: 0
-  friendlyGoal: {fileID: 0}
-  enemyGoal: {fileID: 0}
-  team: []
-  opponents: []
+  boundaryMask:
+    serializedVersion: 2
+    m_Bits: 0
+  goalMask:
+    serializedVersion: 2
+    m_Bits: 0
+  boundaryProbeRadius: 0.6
+  boundaryProbeAhead: 1.2
+  boundaryNearDistance: 1.1
+  boundaryEscapeMeters: 8
+  boundaryEscapePower: 13
+  wallLookahead: 10
+  hazardProbeRadius: 0.22
+  wallHazardVeto: 0.65
+  wallHazardRotate: 0.55
+  goalToleranceDeg: 18
+  wallDetectRadius: 1.6
+  wallNearThreshold: 1
+  wallKickCooldown: 0.4
+  wallZoneWidth: 1.6
+  centerKickAhead: 8
+  centerKickPower: 13
+  centerKickCooldown: 0.3
+  wallHardClampDist: 2
+  wallOutDotMin: 0.45
+  centerOverrideWeight: 0.7
+  wallTangentialVetoDist: 3
+  tangentialDotMin: 0.85
+  enemyBacklineReturn: {fileID: 0}
+  backlineDepth: 1
+  beaconLookahead: 12
+  beaconHazardWeight: 1
+  beaconPadding: 0.3
+  beaconHardBan: 1
+  beaconBanLookahead: 50
+  beaconBanRadiusPadding: 5
+  wallHardBan: 1
+  wallBanLookahead: 80
+  wallBanProbeRadius: 0.35
+  pitchBoundWalls: []
+  boundaryLayerName: Boundary
+  pitchMargin: 0.2
+  role: 1
   spotManager: {fileID: 0}
+  anchorBias: 0.45
+  searchRadius_Striker: 14
+  searchRadius_Mid: 11
+  searchRadius_Def: 10
   distPassMin: 6
   distPassMax: 25
   closeAutoShootDist: 3
   shotMinDist: 8
   shotMaxDist: 20
-  threatMax: 2.2
-  turnSpeed: 540
   accuracy: 0.85
   power: 0.9
   baseSpeed: 3.7
   sprintMultiplier: 1.9
   alwaysSprint: 1
-  defendTriggerDist: 30
-  flipForward: 1
+  turnSpeed: 540
   animator: {fileID: 0}
   maxSwimSpeed: 5
-  requestPass: 0
+  separationRadius: 3.5
+  separationWeight: 0.55
+  flipForward: 1
+  dribbleTapPower: 7
+  dribbleTapMeters: 3.5
+  dribbleTapCooldown: 0.18
+  quickFirstTouchWindow: 0.35
+  quickThreatRadius: 5.5
+  passAggression: 0.75
+  passMinScore: 0.26
+  passLaneHalfWidth: 0.9
+  passOppClearRadius: 2
+  passCooldown: 0.18
+  stateMinHold_Idle: 0.35
+  stateMinHold_Chase: 0.35
+  stateMinHold_Decision: 0.25
+  driveRecalcInterval: 0.18
+  driveDirSmoothing: 0.35
+  decisionTickRange: {x: 0.18, y: 0.35}
+  dropOwnerIfFar: 2.3
+  dropOwnerIfAngleDeg: 70
+  isTeammate: 0
+  friendlyGoal: {fileID: 0}
+  enemyGoal: {fileID: 0}
+  team: []
+  opponents: []
+  ballPC: {fileID: 0}
   stateStr: 
 --- !u!1 &6017054722249017298
 GameObject:
@@ -3959,6 +4025,37 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 4706820577205268509}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &6304474523752422176
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 296923491145961440}
+  m_Layer: 6
+  m_Name: ballAnchor
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &296923491145961440
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6304474523752422176}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: -2.34}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6512975785148146801}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &6403356483015922524
 GameObject:

@@ -1307,6 +1307,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 5848324702149918411, guid: 427287c9a08ce1a4ba71bed5d022f523, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1989839924}
+    - targetCorrespondingSourceObject: {fileID: 5848324702149918411, guid: 427287c9a08ce1a4ba71bed5d022f523, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1989839926}
   m_SourcePrefab: {fileID: 100100000, guid: 427287c9a08ce1a4ba71bed5d022f523, type: 3}
 --- !u!114 &195072824 stripped
 MonoBehaviour:
@@ -1322,6 +1325,11 @@ MonoBehaviour:
 --- !u!1 &195072825 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 5848324702149918411, guid: 427287c9a08ce1a4ba71bed5d022f523, type: 3}
+  m_PrefabInstance: {fileID: 195072823}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &195072826 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 296923491145961440, guid: 427287c9a08ce1a4ba71bed5d022f523, type: 3}
   m_PrefabInstance: {fileID: 195072823}
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &256688411
@@ -2604,6 +2612,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 5848324702149918411, guid: 427287c9a08ce1a4ba71bed5d022f523, type: 3}
       insertIndex: -1
       addedObject: {fileID: 462299839}
+    - targetCorrespondingSourceObject: {fileID: 5848324702149918411, guid: 427287c9a08ce1a4ba71bed5d022f523, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 462299841}
   m_SourcePrefab: {fileID: 100100000, guid: 427287c9a08ce1a4ba71bed5d022f523, type: 3}
 --- !u!114 &392883153 stripped
 MonoBehaviour:
@@ -2619,6 +2630,11 @@ MonoBehaviour:
 --- !u!1 &392883154 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 5848324702149918411, guid: 427287c9a08ce1a4ba71bed5d022f523, type: 3}
+  m_PrefabInstance: {fileID: 392883152}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &392883155 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 296923491145961440, guid: 427287c9a08ce1a4ba71bed5d022f523, type: 3}
   m_PrefabInstance: {fileID: 392883152}
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &397765572
@@ -4624,8 +4640,17 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 4201063857236382823, guid: 7a1690ab00f51034caf2bfb4191b0f69, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 677164253}
     m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3532790222733364957, guid: 7a1690ab00f51034caf2bfb4191b0f69, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 431130212}
+    - targetCorrespondingSourceObject: {fileID: 3532790222733364957, guid: 7a1690ab00f51034caf2bfb4191b0f69, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 431130213}
     - targetCorrespondingSourceObject: {fileID: 5091069298721798934, guid: 7a1690ab00f51034caf2bfb4191b0f69, type: 3}
       insertIndex: -1
       addedObject: {fileID: 431130211}
@@ -4633,6 +4658,11 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 1107951361}
   m_SourcePrefab: {fileID: 100100000, guid: 7a1690ab00f51034caf2bfb4191b0f69, type: 3}
+--- !u!1 &431130203 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3532790222733364957, guid: 7a1690ab00f51034caf2bfb4191b0f69, type: 3}
+  m_PrefabInstance: {fileID: 431130202}
+  m_PrefabAsset: {fileID: 0}
 --- !u!198 &431130204 stripped
 ParticleSystem:
   m_CorrespondingSourceObject: {fileID: 2695696747568652442, guid: 7a1690ab00f51034caf2bfb4191b0f69, type: 3}
@@ -4653,7 +4683,7 @@ MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 4451689675927843716, guid: 7a1690ab00f51034caf2bfb4191b0f69, type: 3}
   m_PrefabInstance: {fileID: 431130202}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
+  m_GameObject: {fileID: 431130203}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8b26001744554514cb3b476fa0ca270e, type: 3}
@@ -4685,6 +4715,54 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &431130212
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 431130203}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 452229ceb4c2a9f449ed5bdaab76f624, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ownerWP: {fileID: 0}
+  manualOwnerRoot: {fileID: 431130205}
+  manualIsTeammate: 1
+  dribbleAnchor: {fileID: 677164253}
+  radius: 3.5
+  ring: {fileID: 0}
+  ringSegments: 64
+  ringWidth: 0.1
+  colorIdle: {r: 1, g: 1, b: 1, a: 0.75}
+  colorCarrier: {r: 0.2, g: 1, b: 0.2, a: 0.95}
+  colorStealFlash: {r: 0.2, g: 1, b: 0.2, a: 1}
+  stealFlashDuration: 0.18
+  drawGizmo: 0
+--- !u!114 &431130213
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 431130203}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5737c9252cfff00429e65a770ca1196d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  actionKey: 122
+  quickKickPower: 12
+  chargeThreshold: 0.18
+  minChargePower: 10
+  maxChargePower: 22
+  maxChargeTime: 1.2
+  aimLine: {fileID: 0}
+  dashLength: 0.6
+  gapLength: 0.35
+  maxDashes: 20
+  ballPC: {fileID: 1802997617}
 --- !u!1 &433726521
 GameObject:
   m_ObjectHideFlags: 0
@@ -4932,6 +5010,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 5848324702149918411, guid: 427287c9a08ce1a4ba71bed5d022f523, type: 3}
       insertIndex: -1
       addedObject: {fileID: 981187344}
+    - targetCorrespondingSourceObject: {fileID: 5848324702149918411, guid: 427287c9a08ce1a4ba71bed5d022f523, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 981187346}
   m_SourcePrefab: {fileID: 100100000, guid: 427287c9a08ce1a4ba71bed5d022f523, type: 3}
 --- !u!114 &438007130 stripped
 MonoBehaviour:
@@ -4947,6 +5028,11 @@ MonoBehaviour:
 --- !u!1 &438007131 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 5848324702149918411, guid: 427287c9a08ce1a4ba71bed5d022f523, type: 3}
+  m_PrefabInstance: {fileID: 438007129}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &438007132 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 296923491145961440, guid: 427287c9a08ce1a4ba71bed5d022f523, type: 3}
   m_PrefabInstance: {fileID: 438007129}
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &443696615
@@ -5169,6 +5255,31 @@ Animator:
   m_CorrespondingSourceObject: {fileID: 6766664510368678805, guid: 427287c9a08ce1a4ba71bed5d022f523, type: 3}
   m_PrefabInstance: {fileID: 392883152}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &462299841
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 392883154}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 452229ceb4c2a9f449ed5bdaab76f624, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ownerWP: {fileID: 392883153}
+  manualOwnerRoot: {fileID: 0}
+  manualIsTeammate: 1
+  dribbleAnchor: {fileID: 392883155}
+  radius: 2
+  ring: {fileID: 0}
+  ringSegments: 64
+  ringWidth: 0.1
+  colorIdle: {r: 1, g: 1, b: 1, a: 0.75}
+  colorCarrier: {r: 0.2, g: 1, b: 0.2, a: 0.95}
+  colorStealFlash: {r: 0.2, g: 1, b: 0.2, a: 1}
+  stealFlashDuration: 0.18
+  drawGizmo: 0
 --- !u!1 &477483447
 GameObject:
   m_ObjectHideFlags: 0
@@ -6429,6 +6540,37 @@ SphereCollider:
   serializedVersion: 3
   m_Radius: 0.5
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!1 &677164252
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 677164253}
+  m_Layer: 6
+  m_Name: ballAnchor
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &677164253
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 677164252}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: -2.5}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 431130205}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &692360187
 GameObject:
   m_ObjectHideFlags: 0
@@ -7463,6 +7605,31 @@ Animator:
   m_CorrespondingSourceObject: {fileID: 6766664510368678805, guid: 427287c9a08ce1a4ba71bed5d022f523, type: 3}
   m_PrefabInstance: {fileID: 438007129}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &981187346
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 438007131}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 452229ceb4c2a9f449ed5bdaab76f624, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ownerWP: {fileID: 438007130}
+  manualOwnerRoot: {fileID: 0}
+  manualIsTeammate: 1
+  dribbleAnchor: {fileID: 438007132}
+  radius: 2
+  ring: {fileID: 0}
+  ringSegments: 64
+  ringWidth: 0.1
+  colorIdle: {r: 1, g: 1, b: 1, a: 0.75}
+  colorCarrier: {r: 0.2, g: 1, b: 0.2, a: 0.95}
+  colorStealFlash: {r: 0.2, g: 1, b: 0.2, a: 1}
+  stealFlashDuration: 0.18
+  drawGizmo: 0
 --- !u!1 &1001414512
 GameObject:
   m_ObjectHideFlags: 0
@@ -9614,6 +9781,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 5848324702149918411, guid: 427287c9a08ce1a4ba71bed5d022f523, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1237379201}
+    - targetCorrespondingSourceObject: {fileID: 5848324702149918411, guid: 427287c9a08ce1a4ba71bed5d022f523, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1237379203}
   m_SourcePrefab: {fileID: 100100000, guid: 427287c9a08ce1a4ba71bed5d022f523, type: 3}
 --- !u!114 &1237379196 stripped
 MonoBehaviour:
@@ -9629,6 +9799,11 @@ MonoBehaviour:
 --- !u!1 &1237379197 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 5848324702149918411, guid: 427287c9a08ce1a4ba71bed5d022f523, type: 3}
+  m_PrefabInstance: {fileID: 1237379195}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &1237379198 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 296923491145961440, guid: 427287c9a08ce1a4ba71bed5d022f523, type: 3}
   m_PrefabInstance: {fileID: 1237379195}
   m_PrefabAsset: {fileID: 0}
 --- !u!4 &1237379200 stripped
@@ -9667,6 +9842,31 @@ Animator:
   m_CorrespondingSourceObject: {fileID: 6766664510368678805, guid: 427287c9a08ce1a4ba71bed5d022f523, type: 3}
   m_PrefabInstance: {fileID: 1237379195}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1237379203
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1237379197}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 452229ceb4c2a9f449ed5bdaab76f624, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ownerWP: {fileID: 1237379196}
+  manualOwnerRoot: {fileID: 0}
+  manualIsTeammate: 1
+  dribbleAnchor: {fileID: 1237379198}
+  radius: 2
+  ring: {fileID: 0}
+  ringSegments: 64
+  ringWidth: 0.1
+  colorIdle: {r: 1, g: 1, b: 1, a: 0.75}
+  colorCarrier: {r: 0.2, g: 1, b: 0.2, a: 0.95}
+  colorStealFlash: {r: 0.2, g: 1, b: 0.2, a: 1}
+  stealFlashDuration: 0.18
+  drawGizmo: 0
 --- !u!1001 &1247109096
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -12925,6 +13125,7 @@ GameObject:
   - component: {fileID: 1802997612}
   - component: {fileID: 1802997615}
   - component: {fileID: 1802997616}
+  - component: {fileID: 1802997617}
   m_Layer: 0
   m_Name: WaterBall
   m_TagString: Ball
@@ -12997,6 +13198,8 @@ MonoBehaviour:
   playerKickVelFactor: 0.8
   playerKickMax: 18
   sanitizePlayerKick: 1
+  disableHumanCollisionKick: 1
+  possession: {fileID: 1802997617}
   aiClaimRadius: 1.9
   playerStealLock: 0.25
   playerKeepLock: 0.7
@@ -13104,6 +13307,28 @@ MonoBehaviour:
   _maxSpeed: 100
   _warnOnSpeedClamp: 0
   _debugSubsteps: 1
+--- !u!114 &1802997617
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1802997610}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 973bc8f091771444d91092e7081c1f15, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ball: {fileID: 0}
+  allZones: []
+  followLerp: 18
+  followMaxDistBreak: 2.8
+  disableBallCollisionsWhileOwned: 1
+  freeBallSnapRange: 1.6
+  stealCooldown: 0.5
+  postStealImmunity: 1
+  stealAggression: 1
+  showInfo: 0
 --- !u!1 &1816313169
 GameObject:
   m_ObjectHideFlags: 0
@@ -14080,6 +14305,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 5848324702149918411, guid: 427287c9a08ce1a4ba71bed5d022f523, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1905437543}
+    - targetCorrespondingSourceObject: {fileID: 5848324702149918411, guid: 427287c9a08ce1a4ba71bed5d022f523, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1905437545}
   m_SourcePrefab: {fileID: 100100000, guid: 427287c9a08ce1a4ba71bed5d022f523, type: 3}
 --- !u!114 &1905437538 stripped
 MonoBehaviour:
@@ -14095,6 +14323,11 @@ MonoBehaviour:
 --- !u!1 &1905437539 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 5848324702149918411, guid: 427287c9a08ce1a4ba71bed5d022f523, type: 3}
+  m_PrefabInstance: {fileID: 1905437537}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &1905437540 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 296923491145961440, guid: 427287c9a08ce1a4ba71bed5d022f523, type: 3}
   m_PrefabInstance: {fileID: 1905437537}
   m_PrefabAsset: {fileID: 0}
 --- !u!4 &1905437542 stripped
@@ -14133,6 +14366,31 @@ Animator:
   m_CorrespondingSourceObject: {fileID: 6766664510368678805, guid: 427287c9a08ce1a4ba71bed5d022f523, type: 3}
   m_PrefabInstance: {fileID: 1905437537}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1905437545
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1905437539}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 452229ceb4c2a9f449ed5bdaab76f624, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ownerWP: {fileID: 1905437538}
+  manualOwnerRoot: {fileID: 0}
+  manualIsTeammate: 1
+  dribbleAnchor: {fileID: 1905437540}
+  radius: 2
+  ring: {fileID: 0}
+  ringSegments: 64
+  ringWidth: 0.1
+  colorIdle: {r: 1, g: 1, b: 1, a: 0.75}
+  colorCarrier: {r: 0.2, g: 1, b: 0.2, a: 0.95}
+  colorStealFlash: {r: 0.2, g: 1, b: 0.2, a: 1}
+  stealFlashDuration: 0.18
+  drawGizmo: 0
 --- !u!1 &1910726186
 GameObject:
   m_ObjectHideFlags: 0
@@ -14806,6 +15064,31 @@ Animator:
   m_CorrespondingSourceObject: {fileID: 6766664510368678805, guid: 427287c9a08ce1a4ba71bed5d022f523, type: 3}
   m_PrefabInstance: {fileID: 195072823}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1989839926
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 195072825}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 452229ceb4c2a9f449ed5bdaab76f624, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ownerWP: {fileID: 195072824}
+  manualOwnerRoot: {fileID: 0}
+  manualIsTeammate: 1
+  dribbleAnchor: {fileID: 195072826}
+  radius: 2
+  ring: {fileID: 0}
+  ringSegments: 64
+  ringWidth: 0.1
+  colorIdle: {r: 1, g: 1, b: 1, a: 0.75}
+  colorCarrier: {r: 0.2, g: 1, b: 0.2, a: 0.95}
+  colorStealFlash: {r: 0.2, g: 1, b: 0.2, a: 1}
+  stealFlashDuration: 0.18
+  drawGizmo: 0
 --- !u!1001 &2002834247
 PrefabInstance:
   m_ObjectHideFlags: 0
