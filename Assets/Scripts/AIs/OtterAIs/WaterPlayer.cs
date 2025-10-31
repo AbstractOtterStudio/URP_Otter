@@ -215,6 +215,10 @@ public class WaterPlayer : MonoBehaviour
 
             // 持球时持续做“射 or 传”的评估
             if (HasBall) EvaluateWhileCarrying();
+            else
+            {
+                AttemptStealTick();
+            }
         }
     }
 
@@ -269,6 +273,34 @@ public class WaterPlayer : MonoBehaviour
         }
         return false;
     }
+
+    void AttemptStealTick()
+    {
+        if (!ballPC) return;
+
+        // 我自己的圈
+        var myZone = GetComponentInChildren<DribbleZone>();
+        if (!myZone) return;
+
+        // 必须是“对方持球”
+        var hz = ballPC.holderZone;
+        if (hz == null || hz.isTeammate == isTeammate) return;
+
+        // 两圈有重叠时再发起（减少无谓调用）
+        Vector3 a = myZone.transform.position;
+        Vector3 b = hz.transform.position;
+        float d = Vector3.Distance(a, b);
+        if (d > myZone.radius + hz.radius) return;
+
+        // 调用显式抢断
+        ballPC.TrySteal(myZone);
+        ballPC.TrySteal(myZone);
+        myZone.StartLocalCooldown(); // ✅ 给自己的圈加本地CD，失败也会短红，便于调试/视觉反馈
+        if (animator) animator.SetFloat(_grab, 0f);
+
+        if (animator) animator.SetFloat(_grab, 0f);
+    }
+
 
     public void MoveTo(Vector3 target)
     {
@@ -632,23 +664,42 @@ public class WaterPlayer : MonoBehaviour
     public void Pass(Vector3 tgt)
     {
         if (!HasBall || !ball) return;
-        Vector3 d = ResolveKickDirection((tgt - ball.Pos).normalized, wallBanLookahead);
-        Vector3 adj = ball.Pos + d * Vector3.Distance(ball.Pos, tgt);
-        float pow = ball.FindPower(ball.Pos, adj, 1.2f) * 1.15f;
-        ball.KickOverhaul(adj, pow, this);
+        Vector3 dir = (tgt - ball.Pos); dir.y = 0f;
+        if (dir.sqrMagnitude < 1e-6f) return;
+        float dist = dir.magnitude;
+        dir /= Mathf.Max(0.01f, dist);
+
+        // 方向修正（避墙/避锥形硬禁）
+        dir = ResolveKickDirection(dir, Mathf.Max(dist, wallBanLookahead));
+        float pow = ball.FindPower(ball.Pos, ball.Pos + dir * dist, 1.2f) * 1.15f;
+
+        // ✅ 通过持球系统出脚
+        if (ballPC) ballPC.ReleaseAndKick(dir, pow, this);
+        else        ball.KickOverhaul(ball.Pos + dir * dist, pow, this);
+
         if (animator) animator.SetTrigger(_shoot);
         _nextPassAt = Time.time + passCooldown;
+        SfxBus.Instance?.PlayKick(false, 0.55f, ball ? (Vector3?)ball.Pos : null);
     }
 
     public void Shoot(Vector3 tgt)
     {
         if (!HasBall || !ball) return;
-        if (ball.Owner != this && !(ballPC && ballPC.IsPossessed && ballPC.holderZone != null && ballPC.holderZone.ownerWP == this)) return;
-        Vector3 d = ResolveKickDirection((tgt - ball.Pos).normalized, wallBanLookahead);
-        Vector3 adj = ball.Pos + d * Vector3.Distance(ball.Pos, tgt);
-        float pow = ball.FindPower(ball.Pos, adj, 4f) * 1.1f;
-        ball.KickOverhaul(adj, pow, this);
+
+        Vector3 dir = (tgt - ball.Pos); dir.y = 0f;
+        if (dir.sqrMagnitude < 1e-6f) return;
+        float dist = dir.magnitude;
+        dir /= Mathf.Max(0.01f, dist);
+
+        dir = ResolveKickDirection(dir, Mathf.Max(dist, wallBanLookahead));
+        float pow = ball.FindPower(ball.Pos, ball.Pos + dir * dist, 4f) * 1.1f;
+
+        // ✅ 通过持球系统出脚（带 kicker，能正确标记 LastTouch 和 no-pickup）
+        if (ballPC) ballPC.ReleaseAndKick(dir, pow, this);
+        else        ball.KickOverhaul(ball.Pos + dir * dist, pow, this);
+
         if (animator) animator.SetTrigger(_shoot);
+        SfxBus.Instance?.PlayKick(true, 0.85f, ball ? (Vector3?)ball.Pos : null);
     }
 
     public bool CanShootSmart(out Vector3 goal)
@@ -657,25 +708,31 @@ public class WaterPlayer : MonoBehaviour
         Vector3 a = ball ? ball.Pos : Pos;
         float dist = Vector3.Distance(a, goal);
 
-        // 非常近直接射
+        // 很近就直接射
         if (dist <= Mathf.Min(closeAutoShootDist, 4.5f)) return true;
 
-        // 远到离谱就不射
+        // 太远不射
         if (dist > shotMaxDist) return false;
 
-        // 方向修正：命中球门线则允许
+        // 朝向
         Vector3 dir = goal - a; dir.y = 0f;
         if (dir.sqrMagnitude < 1e-6f) return false;
         dir.Normalize();
 
-        // 如果不是明显被墙挡住就射
-        bool blocked = DirectionBlockedByBoundaryFirstHit(dir, shotMaxDist) && !AllowIfThroughGoalMouth(dir, shotMaxDist);
-        if (!blocked && dist <= Mathf.Max(shotMinDist, 7f)) return true;
+        // 不被墙“第一个命中点”挡住 或 明确穿过球门口
+        bool blocked = DirectionBlockedByBoundaryFirstHit(dir, Mathf.Min(shotMaxDist, dist));
+        bool throughMouth = AllowIfThroughGoalMouth(dir, Mathf.Min(shotMaxDist, dist));
+        if (!blocked || throughMouth)
+        {
+            // 略加“近距离必射”的果断
+            if (dist <= Mathf.Max(shotMinDist, 7f)) return true;
+        }
 
-        // 距离越近概率越高（去掉随机抖动，更果断）
+        // 距离越近概率越高（进攻半场略增益）
         float t = Mathf.InverseLerp(shotMaxDist, shotMinDist, dist);
-        float p = Mathf.Lerp(0.70f, 0.98f, t);
+        float p = Mathf.Lerp(0.80f, 0.98f, t);
         if (IsInAttackingHalf()) p = Mathf.Min(1f, p + 0.10f);
+
         return Random.value < p;
     }
     float _nextCarryDecisionAt;
@@ -696,97 +753,124 @@ public class WaterPlayer : MonoBehaviour
         if (FindBestPassOption(out Vector3 tgt, out _, preferFwd)) { Pass(tgt); return; }
 
         // ③ 否则保持带球（让状态机继续驱动前进）
+        // —— 超时兜底（拿球超过 1.6s 还没动作：向门或中路强力踢）
+        const float carryTimeout = 1.6f;
+        if (Time.time - holdStart >= carryTimeout)
+        {
+            Vector3 target = enemyGoal ? enemyGoal.transform.position : (Pos + FieldForward * 12f);
+            if (!CanShootSmart(out _)) // 方向被否决就走中路
+                target = Pos + ToCenterDir() * 10f;
+            Shoot(target);
+            return;
+        }
     }
 
 
     public bool FindBestPassOption(out Vector3 target, out WaterPlayer recv, bool preferForward)
+{
+    target = Vector3.zero; recv = null;
+    if (Time.time < _nextPassAt || ballPC == null || ball == null) return false;
+
+    float best = float.NegativeInfinity;
+    Vector3 toC = ToCenterDir();
+
+    // 收集玩家候选（我方、无 WaterPlayer 的 DribbleZone）
+    DribbleZone humanZone = null;
+    foreach (var z in ballPC.allZones)
     {
-        target = Vector3.zero; recv = null;
-        if (Time.time < _nextPassAt || team == null || team.Count == 0 || ball == null) return false;
+        if (!z) continue;
+        if (z.ownerWP != null) continue; // 有 WP 的当作 AI 队友，不是“玩家”
+        if (z.isTeammate == isTeammate) { humanZone = z; break; }
+    }
 
-        float best = float.NegativeInfinity;
-        Vector3 toC = ToCenterDir();
+    // 评估 AI 队友
+    WaterPlayer bestMate = null;
+    foreach (var m in team)
+    {
+        if (!m || m == this) continue;
 
-        // —— 找玩家（有 PlayerMovement/PlayerController 组件的视为玩家）——
-        WaterPlayer human = null;
-        foreach (var m in team)
+        Vector3 seg = m.Pos - ball.Pos; seg.y = 0f;
+        float dist = seg.magnitude;
+        if (dist < distPassMin || dist > distPassMax) continue;
+
+        Vector3 dir = seg / Mathf.Max(0.01f, dist);
+
+        // 硬禁：墙线/Beacon（保留你原逻辑）
+        if ((DirectionBlockedByBoundaryFirstHit(dir, dist) && !AllowIfThroughGoalMouth(dir, dist)) ||
+            (beaconHardBan && DirectionBannedByBeacon(dir, dist, beaconBanRadiusPadding, out _)))
+            continue;
+
+        float progress = Mathf.Clamp01(Vector3.Dot(dir, FieldForward) * 0.5f + 0.5f);
+        float centric = Mathf.Clamp01(Vector3.Dot(dir, toC) * 0.5f + 0.5f);
+
+        float laneSafe = MinOpponentDistanceToSegment(ball.Pos, m.Pos, out float minToLine);
+        float openScore = Mathf.InverseLerp(passOppClearRadius * 0.5f,
+                                            passOppClearRadius * 2.2f,
+                                            Mathf.Min(laneSafe, minToLine));
+
+        float beaconClear = MinBeaconClearanceOnSegment(ball.Pos, m.Pos, out _);
+        if (beaconClear < passLaneHalfWidth) continue;
+
+        float ideal = Mathf.Lerp(distPassMin, distPassMax, 0.45f);
+        float distScore = Mathf.Exp(-Mathf.Pow((dist - ideal) / (0.55f * ideal), 2f));
+
+        float wFwd = preferForward ? 0.45f : 0.25f;
+        float score = wFwd * progress + 0.20f * centric + 0.24f * openScore + 0.15f * distScore;
+
+        if (score > best && score >= passMinScore)
+        { best = score; target = m.Pos; recv = m; bestMate = m; }
+    }
+
+    // 评估“玩家”（DribbleZone）
+    if (humanZone != null && humanZone.dribbleAnchor != null)
+    {
+        Vector3 hp = humanZone.OwnerPosXZ; // 玩家主体位置
+        Vector3 seg = hp - ball.Pos; seg.y = 0f;
+        float dist = seg.magnitude;
+
+        if (dist >= distPassMin && dist <= distPassMax)
         {
-            if (!m || m == this) continue;
-            if (m.GetComponent<PlayerMovement>() || m.GetComponent<PlayerController>())
-            { human = m; break; }
-        }
-
-        foreach (var m in team)
-        {
-            if (!m || m == this) continue;
-
-            Vector3 seg = m.Pos - ball.Pos; seg.y = 0f;
-            float dist = seg.magnitude;
-            if (dist < distPassMin || dist > distPassMax) continue;
-
             Vector3 dir = seg / Mathf.Max(0.01f, dist);
 
-            // 硬禁：墙线或 Beacon
-            if ((DirectionBlockedByBoundaryFirstHit(dir, dist) && !AllowIfThroughGoalMouth(dir, dist)) ||
-                (beaconHardBan && DirectionBannedByBeacon(dir, dist, beaconBanRadiusPadding, out _)))
-                continue;
-
-            float progress = Mathf.Clamp01(Vector3.Dot(dir, FieldForward) * 0.5f + 0.5f);
-            float centric = Mathf.Clamp01(Vector3.Dot(dir, toC) * 0.5f + 0.5f);
-
-            // 走廊安全（对手/Beacon）
-            float laneSafe = MinOpponentDistanceToSegment(ball.Pos, m.Pos, out float minToLine);
-            float openScore = Mathf.InverseLerp(passOppClearRadius * 0.5f,
-                                                passOppClearRadius * 2.2f,
-                                                Mathf.Min(laneSafe, minToLine));
-
-            float beaconClear = MinBeaconClearanceOnSegment(ball.Pos, m.Pos, out _);
-            if (beaconClear < passLaneHalfWidth) continue;
-
-            // 距离理想分
-            float ideal = Mathf.Lerp(distPassMin, distPassMax, 0.45f);
-            float distScore = Mathf.Exp(-Mathf.Pow((dist - ideal) / (0.55f * ideal), 2f));
-
-            float wFwd = preferForward ? 0.45f : 0.25f;
-            float score = wFwd * progress + 0.20f * centric + 0.24f * openScore + 0.15f * distScore;
-
-            // —— 对“玩家”目标的强力加权 —— //
-            if (human != null && m == human)
+            bool blocked = (DirectionBlockedByBoundaryFirstHit(dir, dist) && !AllowIfThroughGoalMouth(dir, dist)) ||
+                           (beaconHardBan && DirectionBannedByBeacon(dir, dist, beaconBanRadiusPadding, out _));
+            if (!blocked)
             {
-                float nearBonus = Mathf.InverseLerp(distPassMax, distPassMin, dist);
-                score += 0.35f + 0.25f * nearBonus; // 0.35~0.60 的额外加分
-            }
-
-            // 轻微惩罚后传
-            if (progress < 0.45f) score -= 0.08f * (0.45f - progress);
-
-            // 全局传球偏置
-            float passBias = (0.85f + 0.30f * passAggression); // 0.85~1.15
-            if (score > best && score >= passMinScore * passBias)
-            { best = score; target = m.Pos; recv = m; }
-        }
-
-        // —— 兜底优先传玩家 —— //
-        if (recv == null && human != null)
-        {
-            Vector3 seg = human.Pos - ball.Pos; seg.y = 0f;
-            float dist = seg.magnitude;
-            if (dist >= distPassMin && dist <= distPassMax)
-            {
-                Vector3 dir = seg / Mathf.Max(0.01f, dist);
-                if (!(DirectionBlockedByBoundaryFirstHit(dir, dist) && !AllowIfThroughGoalMouth(dir, dist)) &&
-                    !(beaconHardBan && DirectionBannedByBeacon(dir, dist, beaconBanRadiusPadding, out _)))
+                float beaconClear = MinBeaconClearanceOnSegment(ball.Pos, hp, out _);
+                if (beaconClear >= passLaneHalfWidth)
                 {
-                    float beaconClear = MinBeaconClearanceOnSegment(ball.Pos, human.Pos, out _);
-                    if (beaconClear >= passLaneHalfWidth)
+                    float progress = Mathf.Clamp01(Vector3.Dot(dir, FieldForward) * 0.5f + 0.5f);
+                    float centric = Mathf.Clamp01(Vector3.Dot(dir, toC) * 0.5f + 0.5f);
+
+                    float laneSafe = MinOpponentDistanceToSegment(ball.Pos, hp, out float minToLine);
+                    float openScore = Mathf.InverseLerp(passOppClearRadius * 0.5f,
+                                                        passOppClearRadius * 2.2f,
+                                                        Mathf.Min(laneSafe, minToLine));
+                    float ideal = Mathf.Lerp(distPassMin, distPassMax, 0.45f);
+                    float distScore = Mathf.Exp(-Mathf.Pow((dist - ideal) / (0.55f * ideal), 2f));
+
+                    float wFwd = preferForward ? 0.45f : 0.25f;
+                    float score = wFwd * progress + 0.20f * centric + 0.24f * openScore + 0.15f * distScore;
+
+                    // —— 强化对“玩家”的倾向（强力 Bonus）——
+                    float nearBonus = Mathf.InverseLerp(distPassMax, distPassMin, dist);
+                    score += 0.60f + 0.30f * nearBonus; // 0.60~0.90 的额外加分
+
+                    if (score > best && score >= passMinScore * 0.85f) // 对玩家放宽阈值
                     {
-                        target = human.Pos; recv = human;
+                        best = score;
+                        target = hp;
+                        recv = null; // 接收者是“玩家”（没有 WaterPlayer）
                     }
                 }
             }
         }
-        return recv != null;
     }
+
+    bool ok = best > float.NegativeInfinity;
+    if (ok) _nextPassAt = Time.time + passCooldown;
+    return ok;
+}
 
 
     float MinOpponentDistanceToSegment(Vector3 a, Vector3 b, out float minToLine)
@@ -1064,6 +1148,7 @@ public class WaterPlayer : MonoBehaviour
 
     static readonly int _blend = Animator.StringToHash("Blend");
     static readonly int _shoot = Animator.StringToHash("Shoot");
+    static readonly int _grab = Animator.StringToHash("Grab");
 
     void OnDrawGizmosSelected()
     {

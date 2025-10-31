@@ -17,7 +17,7 @@ public class WaterBallGameManager : MonoBehaviour
     public WaterPlayer[] redTeam;
     public GameObject pauseMenu;
 
-    [Header("UI")]
+    [Header("UI (Legacy)")]
     public Text scoreText;
     public Text timerText;
     public Text countdownText;
@@ -46,6 +46,11 @@ public class WaterBallGameManager : MonoBehaviour
     private bool goalEnabled = true;  // 只在真正“重新开球”前置为 true
     private Coroutine celebrateCo;
 
+    // —— 新增：用于边框颜色的持球权轮询 —— //
+    BallPossessionController pc;
+    DribbleZone localZone;         // 人类玩家的 DribbleZone（ownerWP==null）
+    bool localTeam = true;         // 玩家队伍（由 localZone.isTeammate 决定）
+
     void Start()
     {
         timer = matchTime;
@@ -66,18 +71,29 @@ public class WaterBallGameManager : MonoBehaviour
             spawnPos[p] = p.transform.position;
         }
 
-        var pc = FindObjectOfType<PlayerController>();
-        if (pc)
+        var pcHuman = FindObjectOfType<PlayerController>();
+        if (pcHuman)
         {
-            player = pc;
-            spawnPos[player] = pc.transform.position;
+            player = pcHuman;
+            spawnPos[player] = pcHuman.transform.position;
         }
         if (player) player.gameObject.GetComponent<PlayerMovement>().PlayerPause();
 
         if (pauseMenu) pauseMenu.SetActive(false);
         if (gameOverPanel) gameOverPanel.SetActive(false);
 
-        UpdateUI();
+        // —— 新增：引用持球控制器 & 本地玩家圈（用于边框颜色） —— //
+        if (!pc && ball) pc = ball.GetComponent<BallPossessionController>();
+        if (!pc) pc = FindObjectOfType<BallPossessionController>();
+        foreach (var z in FindObjectsOfType<DribbleZone>())
+        {
+            if (z && z.ownerWP == null) { localZone = z; break; }
+        }
+        if (localZone) localTeam = localZone.isTeammate;
+
+        UpdateUI();                        // 旧 UI
+        PushUIToNewHUD();                  // 新 HUD（GameUIController）
+
         StartCoroutine(StartMatchCountdown());
     }
 
@@ -92,14 +108,28 @@ public class WaterBallGameManager : MonoBehaviour
         if (!gamePaused && gameRunning)
         {
             BallStuckDetector.UpdateStuckState(ball, WaterPlayerManager.All);
+
             timer -= Time.deltaTime;
-            UpdateUI();
+            UpdateUI();            // 旧 UI
+            PushUIToNewHUD();     // 新 HUD（时间脉动）
 
             if (timer <= 0)
             {
                 EndGame(scoreBlue == scoreRed ? "Draw" : (scoreBlue > scoreRed ? "Blue Wins!" : "Red Wins!"));
             }
         }
+
+        // —— 持球权 → 边框颜色（1=对方红，-1=我方绿，0=无） —— //
+        UpdateBorderByPossession();
+    }
+
+    void UpdateBorderByPossession()
+    {
+        if (!pc) { GameUIController.I?.SetBorderByPossession(0); return; }
+        var hz = pc.holderZone;
+        if (hz == null) { GameUIController.I?.SetBorderByPossession(0); return; }
+        int poss = (hz.isTeammate == localTeam) ? -1 : 1;
+        GameUIController.I?.SetBorderByPossession(poss);
     }
 
     public void GoalScored(string team)
@@ -124,7 +154,9 @@ public class WaterBallGameManager : MonoBehaviour
         // 计分
         if (team == "Blue") scoreBlue++;
         else scoreRed++;
-        UpdateUI();
+
+        UpdateUI();           // 老 UI
+        PushUIToNewHUD();     // 新 HUD（比分 Punch）
 
         // 终局？
         if (scoreBlue >= maxScore || scoreRed >= maxScore)
@@ -147,7 +179,6 @@ public class WaterBallGameManager : MonoBehaviour
             foreach (var p in winners)
             {
                 if (!p || !p.animator) continue;
-                // 防止上一帧还留着其它trigger
                 p.animator.ResetTrigger(celebrateTriggerName);
                 p.animator.SetTrigger(celebrateTriggerName);
             }
@@ -225,7 +256,6 @@ public class WaterBallGameManager : MonoBehaviour
             p.transform.position = spawnPos[p];
             var rb = p.GetComponent<Rigidbody>();
             if (rb) rb.velocity = Vector3.zero;
-            // 防御：AI 主动放掉球（见②小补丁）
             p.SafeDropBallOwnership();
         }
 
@@ -254,12 +284,27 @@ public class WaterBallGameManager : MonoBehaviour
 
         // 复位阶段不允许进球
         goalEnabled = false;
+
+        // 清掉边框（无人持球）
+        GameUIController.I?.SetBorderByPossession(0);
     }
 
     void UpdateUI()
     {
         if (scoreText) scoreText.text = $"{scoreBlue} : {scoreRed}";
         if (timerText) timerText.text = Mathf.CeilToInt(timer).ToString("00");
+    }
+
+    // —— 新：把分数/时间同步到新的 HUD（带动效）—— //
+    void PushUIToNewHUD()
+    {
+        // 假设 localTeam == 蓝队：把“我方分数/对方分数”按本地视角写入
+        // 如果你想固定“左=蓝右=红”，把 my/opp 替换成 scoreBlue/scoreRed 即可
+        int my = localTeam ? scoreBlue : scoreRed;
+        int opp = localTeam ? scoreRed : scoreBlue;
+
+        GameUIController.I?.SetScore(my, opp);
+        GameUIController.I?.SetTime(timer);
     }
 
     void EndGame(string result)
@@ -271,6 +316,8 @@ public class WaterBallGameManager : MonoBehaviour
             gameOverPanel.SetActive(true);
             if (gameOverText) gameOverText.text = result;
         }
+        // 终局清掉边框
+        GameUIController.I?.SetBorderByPossession(0);
     }
 
     public void PauseGame()

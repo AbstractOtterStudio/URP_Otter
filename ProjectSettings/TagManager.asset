@@ -15,7 +15,7 @@ TagManager:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - TestUI
   - Water
   - UI
   - Player
@@ -45,9 +45,9 @@ TagManager:
   - POLARIS RAYCAST
   - POLARIS SPLINE
   m_SortingLayers:
-  - name: Default
-    uniqueID: 0
-    locked: 0
   - name: HUD
     uniqueID: 498593341
+    locked: 0
+  - name: Default
+    uniqueID: 0
     locked: 0

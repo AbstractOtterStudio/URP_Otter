@@ -52,7 +52,7 @@ public class Ball : MonoBehaviour
 
     [Header("Overhaul Compat")]
     public bool disableHumanCollisionKick = true; // 取消“碰到就踢”
-    public BallPossessionController possession;   // 从 Ball 上同物体挂载
+    public BallPossessionController possession;   // 关联吸附控制
 
     /* ===== 抢断/远距吸球防护（保留AI用） ===== */
     [Header("Anti Snap-back / AI Claim")]
@@ -75,8 +75,8 @@ public class Ball : MonoBehaviour
 
     public Rigidbody Rb { get; private set; }
     public SphereCollider Col { get; private set; }
-    public WaterPlayer Owner;  // 仅 AI 用；玩家持球时置空
-    public bool LastTouchTeam; // true 我方 / false 对方
+    public WaterPlayer Owner;  // AI owner only
+    public bool LastTouchTeam;
 
     void Awake()
     {
@@ -86,17 +86,26 @@ public class Ball : MonoBehaviour
         Rb.constraints = RigidbodyConstraints.FreezeRotation | RigidbodyConstraints.FreezePositionY;
 
         if (!possession) possession = GetComponent<BallPossessionController>();
-        
+        // 不做 legacyBall 之类的兼容绑定，改造后不需要
     }
 
     void FixedUpdate()
     {
-        // ground friction (horizontal)
-        Vector3 v = Rb.velocity; v.y = 0f;
-        if (v.sqrMagnitude > 0.01f)
-            Rb.AddForce(-v.normalized * friction, ForceMode.Acceleration);
+        // ====== 被持球：完全交给 BallPossessionController 控制 ======
+        if (possession && possession.IsPossessed)
+        {
+            // 保险：把水平速度清零，避免其它力干扰
+            Vector3 v = Rb.velocity;
+            Rb.velocity = new Vector3(0f, v.y, 0f);
+            return;
+        }
 
-        // clear long-distance owner attraction
+        // ====== 自由球物理 ======
+        Vector3 hv = new Vector3(Rb.velocity.x, 0, Rb.velocity.z);
+        if (hv.sqrMagnitude > 0.01f)
+            Rb.AddForce(-hv.normalized * friction, ForceMode.Acceleration);
+
+        // 超远距离时清掉AI Owner
         if (Owner)
         {
             float d = Vector3.Distance(Owner.Pos, Pos);
@@ -107,10 +116,9 @@ public class Ball : MonoBehaviour
     }
 
     void OnCollisionEnter(Collision col) { HandleHit(col.collider, col.GetContact(0).point); }
-    void OnCollisionStay(Collision col) { HandleHit(col.collider, col.GetContact(0).point); }
+    void OnCollisionStay (Collision col) { HandleHit(col.collider, col.GetContact(0).point); }
 
-    /* ===================== KICK API ===================== */
-
+    // —— 出脚 —— //
     public void Kick(Vector3 target, float power)
     {
         Vector3 dirRaw = (target - Pos);
@@ -131,30 +139,23 @@ public class Ball : MonoBehaviour
         Owner = null;
 
         if (kicker) SetPickupLock(kicker.isTeammate, 0.35f);
-        LastTouchTeam = kicker ? kicker.isTeammate : LastTouchTeam;
     }
 
-    // —— 新系统统一出脚：释放持球并按方向踢 —— //
+    // Overhaul 统一入口（若 possession 存在就让控制器来清空所有权与免吸附）
     public void KickOverhaul(Vector3 target, float power, WaterPlayer kicker)
     {
         Vector3 dir = (target - Pos); dir.y = 0f;
         if (dir.sqrMagnitude < 1e-6f) return;
 
-        bool markTeam = kicker ? kicker.isTeammate : LastTouchTeam;
-
         if (possession)
         {
-            // 这里必须用“方向版”的 API，避免把方向当作坐标
-            possession.ReleaseAndKickDir(dir.normalized, power);
+            possession.ReleaseAndKick(dir.normalized, power, kicker);
         }
         else
         {
-            // 没有持球控制器时走旧逻辑
             Kick(target, power, kicker);
         }
-
         Owner = null;
-        LastTouchTeam = markTeam;
     }
 
     public void SetPickupLock(bool team, float duration)
@@ -164,6 +165,7 @@ public class Ball : MonoBehaviour
         pickupLockUntil = Time.time + duration;
     }
 
+    // —— 工具属性 —— //
     public Vector3 Pos
     {
         get => new Vector3(transform.position.x, 0, transform.position.z);
@@ -176,13 +178,12 @@ public class Ball : MonoBehaviour
     public float TimeToCover(Vector3 from, Vector3 to, float u)
         => Vector3.Distance(from, to) / Mathf.Max(u, 0.01f);
 
-    /* ===================== COLLISION HANDLING ===================== */
-
+    // —— 碰撞处理（AI、人类、边界） —— //
     void HandleHit(Component other, Vector3 contactPoint)
     {
         if (!other) return;
 
-        // Human player: legacy collision-kick disabled
+        // Human player（已禁用碰撞踢）
         if (IsHumanPlayer(other))
         {
             if (disableHumanCollisionKick) return;
@@ -190,7 +191,7 @@ public class Ball : MonoBehaviour
             return;
         }
 
-        // AI WaterPlayer：允许“弹走一下”但不强占玩家持球
+        // AI WaterPlayer
         var wp = other.GetComponent<WaterPlayer>();
         if (wp)
         {
@@ -211,7 +212,7 @@ public class Ball : MonoBehaviour
             return;
         }
 
-        // others: ignore
+        // 其它忽略
     }
 
     bool IsHumanPlayer(Component c)
@@ -237,8 +238,8 @@ public class Ball : MonoBehaviour
         if (prb) { Vector3 hv = new Vector3(prb.velocity.x, 0, prb.velocity.z); add = hv.magnitude * playerKickVelFactor; }
         float power = Mathf.Clamp(playerKickBase + add, 0f, playerKickMax);
         Vector3 dir = sanitizePlayerKick ? SanitizeKickDirForHuman(forward) : SafeNormalize(forward, FallbackCenterDir(null));
-        // 一些模型前后颠倒时需要反向；保持你项目里原来的反向处理
-        Rb.velocity = -dir * power;
+        // player 的模型 forward 若相反，你可以在外部踢球时用 -forward；这里保持正向
+        Rb.velocity = dir * power;
         _lastNonAITouchAt = Time.time;
         _lastNonAIToucher = t;
         _ignoreWPUntil = Time.time + playerStealLock;
@@ -279,8 +280,7 @@ public class Ball : MonoBehaviour
         return true;
     }
 
-    /* ===================== DIR SANITIZE & HELPERS ===================== */
-
+    // —— 出脚方向清洗/辅助 —— //
     Vector3 SanitizeKickDir(Vector3 rawDir, WaterPlayer kicker)
     {
         Vector3 centerDir = FallbackCenterDir(kicker);
@@ -385,49 +385,88 @@ public class Ball : MonoBehaviour
         return true;
     }
 
-    /* ===================== WALL BOUNCE ===================== */
-
+    // —— 边界/球门弹墙 —— //
     void BoundaryBounceStep()
     {
         if (Time.time < _nextBounceAt) return;
+
+        // 聚合法线 & 最近距离；isCorner 由法线夹角判断
         if (!TryGetAggregatedNormal(out Vector3 n, out float dist, out bool isCorner)) return;
         if (dist > bounceNearDist) return;
+
+        // 当前水平速度
         Vector3 vAll = Rb.velocity;
         Vector3 v = new Vector3(vAll.x, 0f, vAll.z);
         float speed = v.magnitude;
         if (speed < 0.01f) return;
-        float R = bounceRestitution;
-        float inward = slideInwardBoost;
-        float minS = minBounceSpeed;
-        if (isCorner)
-        {
-            R = Mathf.Max(R, cornerRestitution);
-            inward = Mathf.Max(inward, cornerInwardBoost);
-            minS = Mathf.Max(minS, cornerMinSpeed);
-        }
-        float vn = Vector3.Dot(v, n);
-        Vector3 vt = v - vn * n;
+
+        // —— 侧墙识别：法线接近 ±X，且 Z 分量不大（你也可以改成标签判断）
+        bool sideWall = Mathf.Abs(n.x) >= 0.90f && Mathf.Abs(n.z) <= 0.35f;
+
+        // 分解速度
+        float vn = Vector3.Dot(v, n);         // 法向分量（朝墙为负）
+        Vector3 vt = v - vn * n;              // 切向分量
+
         Vector3 vNew;
-        if (speed < minS)
+
+        if (sideWall)
         {
-            vNew = v + n * (inward * 0.6f);
+            // ★ 侧墙强力反弹：几乎镜面 + 额外沿法线轻推，确保“弹开”
+            float Rstrong = 0.95f;            // 近乎完全弹回
+            float push = 2.2f;                // 额外法线推力
+            float minS = Mathf.Max(3.5f, minBounceSpeed);
+
+            float vnAfter = -vn * Rstrong;    // 镜面
+            vNew = vnAfter * n + vt * 0.98f + n * push;
+
+            // 速度太小再抬一手，避免“贴墙慢滑”
+            float sp = vNew.magnitude;
+            if (sp < minS && sp > 1e-6f) vNew = vNew.normalized * minS;
+            else if (sp <= 1e-6f) vNew = n * minS;
         }
         else
         {
-            if (vn < 0f)
+            // —— 普通反弹：沿用你原有的参数（角落提升）——
+            float R = bounceRestitution;
+            float inward = slideInwardBoost;
+            float minS = minBounceSpeed;
+
+            if (isCorner)
             {
-                float vnAfter = -vn * R;
-                Vector3 vtAfter = vt * (1f - bounceTangentDamping);
-                vNew = vnAfter * n + vtAfter;
+                R      = Mathf.Max(R, cornerRestitution);
+                inward = Mathf.Max(inward, cornerInwardBoost);
+                minS   = Mathf.Max(minS, cornerMinSpeed);
+            }
+
+            if (speed < minS)
+            {
+                // 速度很慢：向场内推一点
+                vNew = v + n * (inward * 0.6f);
             }
             else
             {
-                vNew = v + n * inward;
+                if (vn < 0f)
+                {
+                    // 正常撞墙：法向翻转 + 切向衰减
+                    float vnAfter   = -vn * R;
+                    Vector3 vtAfter = vt * (1f - bounceTangentDamping);
+                    vNew = vnAfter * n + vtAfter;
+                }
+                else
+                {
+                    // 贴着墙滑：向里推一点
+                    vNew = v + n * inward;
+                }
             }
         }
+
+        // 应用速度（保持原来的竖直分量）
         Rb.velocity = new Vector3(vNew.x, vAll.y, vNew.z);
+
+        // 弹跳节流
         _nextBounceAt = Time.time + bounceCooldown;
     }
+
 
     bool TryGetAggregatedNormal(out Vector3 n, out float closest, out bool isCorner)
     {
@@ -436,21 +475,25 @@ public class Ball : MonoBehaviour
         int mask = boundaryMask | goalMask;
         var hits = Physics.OverlapSphere(probe, bounceDetectRadius, mask, QueryTriggerInteraction.Ignore);
         if (hits == null || hits.Length == 0) return false;
+
         Vector3 avg = Vector3.zero; int used = 0; Vector3 firstN = Vector3.zero;
         foreach (var c in hits)
         {
             if (c.isTrigger) continue;
             if (c.GetComponentInParent<WaterPlayer>() ||
-               c.GetComponentInParent<PlayerController>() ||
-               c.GetComponentInParent<PlayerMovement>())
+                c.GetComponentInParent<PlayerController>() ||
+                c.GetComponentInParent<PlayerMovement>())
                 continue;
+
             Vector3 cp = c.ClosestPoint(probe);
             Vector3 flat = new Vector3(cp.x, 0, cp.z);
             Vector3 v = (Pos - flat);
             float d = v.magnitude;
             if (d < closest) closest = d;
+
             Vector3 nn = (d > 1e-4f) ? (v / d) : Vector3.zero;
             if (nn == Vector3.zero) continue;
+
             if (used == 0) firstN = nn;
             else
             {
@@ -459,6 +502,7 @@ public class Ball : MonoBehaviour
             }
             avg += nn; used++;
         }
+
         if (used == 0) return false;
         avg.y = 0f;
         if (avg.sqrMagnitude < 1e-6f) return false;
