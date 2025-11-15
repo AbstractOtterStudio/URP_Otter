@@ -2433,6 +2433,15 @@ PrefabInstance:
       propertyPath: m_Size.z
       value: 0.7
       objectReference: {fileID: 0}
+    - target: {fileID: 8784266923138783828, guid: 96a65cca774f4d54a8fb0141afaac721, type: 3}
+      propertyPath: mBehaviorSource.mTaskData.Version
+      value: 1.7.12
+      objectReference: {fileID: 0}
+    - target: {fileID: 8784266923138783828, guid: 96a65cca774f4d54a8fb0141afaac721, type: 3}
+      propertyPath: mBehaviorSource.mTaskData.JSONSerialization
+      value: '{"Variables":[{"Type":"BehaviorTreeNodes.SharedTargetDesc","Name":"IncomingTarget","IsShared":true},{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":"AllowUnderwater","IsShared":true,"Tooltip":"Whether
+        to allow underwater paths","BooleanmValue":true}]}'
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects:
