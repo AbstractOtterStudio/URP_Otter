@@ -3,24 +3,25 @@ using BehaviorDesigner.Runtime.Tasks;
 using BehaviorDesigner.Runtime;
 using UnityEngine;
 using UnityEngine.AI;
+using System.Collections;
 
 namespace BehaviorTreeNodes
 {
     [TaskCategory("NPCAgent")]
     [TaskDescription("Makes the agent wander around randomly")]
-    public class Wander : Action
+    public class Wander : CoroutineAction
     {
         public Vector2 WanderDistRange;
         public Vector2 WanderTimerRange;
-
-
+        public SharedBool AllowUnderwater;
         NPCAgent agent;
         NavMeshAgent navMeshAgent;
-        float timer = 0.0f;
-        float wanderTimer;
+        bool isUnderwaterInitial = false;
 
         public override void OnStart()
         {
+            base.OnStart();
+
             if (!Owner.TryGetComponent(out agent))
             {
                 Debug.LogError("NPCAgent is required for wander Action");
@@ -33,40 +34,63 @@ namespace BehaviorTreeNodes
                 return;
             }
 
-            wanderTimer = Random.Range(WanderTimerRange.x, WanderTimerRange.y);
+            isUnderwaterInitial = agent.IsUnderwater;
         }
 
-        public override TaskStatus OnUpdate()
+        public override IEnumerator OnUpdateCoroutine()
         {
             if (navMeshAgent == null)
             {
-                return TaskStatus.Failure;
+                yield return TaskStatus.Failure;
             }
 
-            timer += Time.deltaTime;
-
-            // If time to choose a new destination
-            if (timer >= wanderTimer)
+            float wanderTimer = Random.Range(WanderTimerRange.x, WanderTimerRange.y);
+            float timer = 0.0f;
+            while (true)
             {
-                wanderTimer = Random.Range(WanderTimerRange.x, WanderTimerRange.y);
-                var wanderDist = Random.Range(WanderDistRange.x, WanderDistRange.y);
+                timer += Time.deltaTime;
+                if (timer >= wanderTimer)
+                {
+                    wanderTimer = Random.Range(WanderTimerRange.x, WanderTimerRange.y);
+                    var wanderDist = Random.Range(WanderDistRange.x, WanderDistRange.y);
 
-                Vector3 randDirection = Random.insideUnitSphere * wanderDist;
-                randDirection += Owner.transform.position;
+                    if (AllowUnderwater.Value)
+                    {
+                        bool shouldSwitch = Random.value < 0.5f;
+                        if (shouldSwitch)
+                        {
+                            agent.SetUnderwater(!agent.IsUnderwater);
 
-                NavMeshHit navHit;
-                NavMesh.SamplePosition(randDirection, out navHit, wanderDist, -1);
-                navMeshAgent.SetDestination(navHit.position);
+                            while (agent.IsSwitchingUnderwater)
+                            {
+                                yield return null;
+                            }
+                        }
+                    }
 
-                timer = 0;
+                    Vector3 randDirection = Random.insideUnitSphere * wanderDist;
+                    randDirection += Owner.transform.position;
+
+                    NavMeshHit navHit;
+                    if (NavMesh.SamplePosition(randDirection, out navHit, wanderDist, agent.GetLayerMask()))
+                    {
+                        navMeshAgent.SetDestination(navHit.position);
+                    }
+                    else
+                    {
+                        Debug.LogError("Failed to sample position for wander");
+                    }
+
+                    timer = 0;
+                }
+
+                yield return null;
             }
-
-            return TaskStatus.Running;
         }
 
         public override void OnEnd()
         {
-            timer = 0;
+            base.OnEnd();
             navMeshAgent.ResetPath();
         }
     }

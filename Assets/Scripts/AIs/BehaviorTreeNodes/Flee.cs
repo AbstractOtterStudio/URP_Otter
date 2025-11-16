@@ -10,7 +10,7 @@ namespace BehaviorTreeNodes
 {
     [TaskCategory("NPCAgent")]
     [TaskDescription("Makes the agent flee from a target until a safe distance is reached")]
-    public class Flee : Action
+    public class Flee : CoroutineAction
     {
         public SharedTargetDesc InTargetDesc;
 
@@ -24,8 +24,6 @@ namespace BehaviorTreeNodes
         NavMeshAgent navMeshAgent;
         float originalSpeed;
         float originalStoppingDist;
-
-        IEnumerator updateCoroutine;
 
         public override void OnAwake()
         {
@@ -43,10 +41,10 @@ namespace BehaviorTreeNodes
         }
         public override void OnStart()
         {
+            base.OnStart();
             if (!navMeshAgent)
                 return;
 
-            updateCoroutine = OnUpdateCoroutine();
             originalSpeed = navMeshAgent.speed;
             originalStoppingDist = navMeshAgent.stoppingDistance;
             navMeshAgent.speed = originalSpeed * SpeedMultiplier;
@@ -54,19 +52,7 @@ namespace BehaviorTreeNodes
             navMeshAgent.ResetPath();
         }
 
-        public override TaskStatus OnUpdate()
-        {
-            if (updateCoroutine == null || !updateCoroutine.MoveNext())
-                return TaskStatus.Success;
-
-            // If the coroutine yielded a TaskStatus, use it
-            if (updateCoroutine.Current is TaskStatus status)
-                return status;
-
-            return TaskStatus.Running;
-        }
-
-        private IEnumerator OnUpdateCoroutine()
+        public override IEnumerator OnUpdateCoroutine()
         {
             if (InTargetDesc == null || InTargetDesc.Value == null || InTargetDesc.Value.Target == null)
             {
@@ -175,13 +161,13 @@ namespace BehaviorTreeNodes
 
         public override void OnEnd()
         {
+            base.OnEnd();
             if (navMeshAgent != null)
             {
                 navMeshAgent.ResetPath();
                 navMeshAgent.speed = originalSpeed;
                 navMeshAgent.stoppingDistance = originalStoppingDist;
             }
-            updateCoroutine = null;
         }
 
         public override void OnPause(bool paused)
