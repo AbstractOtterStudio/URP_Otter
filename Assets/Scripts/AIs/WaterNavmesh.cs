@@ -28,14 +28,8 @@ public class WaterNavmesh : MonoBehaviour
         ? OceanRenderer.Instance.SeaLevel
         : transform.position.y;
 
-    public static int UnderwaterLayerMask = NavMesh.AllAreas;
-    public static int WaterSurfaceLayerMask = NavMesh.AllAreas;
-
-    void Awake()
-    {
-        UnderwaterLayerMask = 1 << NavMesh.GetAreaFromName("Underwater");
-        WaterSurfaceLayerMask = 1 << NavMesh.GetAreaFromName("Walkable");
-    }
+    public static int UnderwaterLayerMask { get => 1 << NavMesh.GetAreaFromName("Underwater"); }
+    public static int WaterSurfaceLayerMask { get => 1 << NavMesh.GetAreaFromName("Walkable"); }
 
     void OnValidate()
     {
