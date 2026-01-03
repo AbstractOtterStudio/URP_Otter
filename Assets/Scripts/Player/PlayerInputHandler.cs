@@ -24,10 +24,11 @@ public class PlayerInputHandler : MonoBehaviour
 
     [Header("Movement Smoothing (sec)")]
     [Range(0f,0.3f)] public float moveSmoothTime = 0.05f;
-    private Vector3 moveVel; 
-    private Vector3 smoothDir; 
+    private Vector3 moveVel;
+    private Vector3 smoothDir;
     private Plane dynPlane;
     private static readonly Vector3 Up = Vector3.up;
+    private bool isMouseInDeadZone;
 
     public bool ExternalBlockMovement { get; set; }
 
@@ -64,6 +65,32 @@ public class PlayerInputHandler : MonoBehaviour
     // Δ → 强度，Δ → 世界方向
     private void CalcMovementInput()
     {
+        float enterRadius = Mathf.Max(0f, innerRadiusPx);
+        if (enterRadius > 0f)
+        {
+            float exitRadius = Mathf.Max(outerRadiusPx, enterRadius + 1f)/4; // exit threshold must be larger to avoid jitter
+            float sqrEnter = enterRadius * enterRadius/16;
+            float sqrExit = exitRadius * exitRadius;
+            float sqrDist = ScreenDelta.sqrMagnitude;
+
+            if (isMouseInDeadZone)
+            {
+                if (sqrDist < sqrExit)
+                {
+                    ResetMovementInput();
+                    return;
+                }
+
+                isMouseInDeadZone = false;
+            }
+
+            if (!isMouseInDeadZone && sqrDist <= sqrEnter)
+            {
+                isMouseInDeadZone = true;
+                ResetMovementInput();
+                return;
+            }
+        }
         // ── 1. 用射线把鼠标投到“角色所处水平面” ─────────────
         dynPlane.distance = -transform.position.y;      // 让平面通过角色
         Ray ray = cam.ScreenPointToRay(Input.mousePosition);
@@ -100,6 +127,13 @@ public class PlayerInputHandler : MonoBehaviour
         MovementInput = smoothDir; // 大小恒为 1（或 0）
     }
 
+
+    private void ResetMovementInput()
+    {
+        MovementInput = Vector3.zero;
+        smoothDir = Vector3.zero;
+        moveVel = Vector3.zero;
+    }
 
     // private void HandleMovementInput()
     // {
