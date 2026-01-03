@@ -85,7 +85,7 @@ namespace BehaviorTreeNodes
         {
             waiting = false;
             waitTimer = 0f;
-            navMeshAgent.ResetPath();
+            agent.StopMovement();
         }
 
         private void SetDestinationToCurrentPoint()
@@ -95,7 +95,7 @@ namespace BehaviorTreeNodes
 
             var point = PatrolPoints.Value[currentIndex];
             if (point != null)
-                navMeshAgent.SetDestination(point.transform.position);
+                agent.MoveTo(point.transform.position);
         }
 
         private void NextPatrolPoint()

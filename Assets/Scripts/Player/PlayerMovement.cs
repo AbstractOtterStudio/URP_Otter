@@ -44,9 +44,6 @@ public class PlayerMovement : MonoBehaviour
     private PlayerInputHandler inputHandler;
     private Animator animator;
 
-    // 水位sampler
-    private Crest.SampleHeightHelper sampleHeightHelper = new Crest.SampleHeightHelper();
-
     // 用于记录玩家的输入方向（平面）
     private Vector3 movementInput;
     private Vector3 currentVelocity;  // 用于保存实际的运动向量
