@@ -136,24 +136,15 @@ public class PlayerStateController : Singleton<PlayerStateController>
 
         if (PlayerFullState != PlayerFullState.Strong && health > hungerThreshold)
         {
-            if (PlayerFullState == PlayerFullState.Agony)
-            {
-                playerMovement.ModifyCurrentSpeed(1 - playerProperty.Status.AgonySpeedRatio, false);
-            }
             PlayerFullState = PlayerFullState.Strong;
         }
         else if (PlayerFullState != PlayerFullState.Hungry && health <= hungerThreshold && health > agonyThreshold)
         {
-            if (PlayerFullState == PlayerFullState.Agony)
-            {
-                playerMovement.ModifyCurrentSpeed(1 - playerProperty.Status.AgonySpeedRatio, false);
-            }
             PlayerFullState = PlayerFullState.Hungry;
             EventCenter.Broadcast(GameEvents.BecomeHungry);
         }
         else if (PlayerFullState != PlayerFullState.Agony && health <= agonyThreshold)
         {
-            playerMovement.ModifyCurrentSpeed(1 - playerProperty.Status.AgonySpeedRatio, true);
             PlayerFullState = PlayerFullState.Agony;
             EventCenter.Broadcast(GameEvents.BecomeHungry);
         }
@@ -278,7 +269,6 @@ public class PlayerStateController : Singleton<PlayerStateController>
 
     private void ResetCleanStateEffects()
     {
-        playerMovement.ModifyCurrentSpeed(1 - playerProperty.Status.DirtySpeedRatio, false);
         playerMaterial.SetFloat("Dirt1_Lerp", 0);
         playerMaterial.SetFloat("Dirt2_Lerp", 0);
         playerMaterial.SetFloat("Dirt3_Lerp", 0);
@@ -289,25 +279,23 @@ public class PlayerStateController : Singleton<PlayerStateController>
         switch (newState)
         {
             case PlayerCleanState.Dirty:
-                playerMovement.ModifyCurrentSpeed(1 - playerProperty.Status.DirtySpeedRatio, true);
                 playerMaterial.SetFloat("Dirt1_Lerp", 1);
                 playerMaterial.SetFloat("Dirt2_Lerp", 0);
                 playerMaterial.SetFloat("Dirt3_Lerp", 0);
                 break;
             case PlayerCleanState.TwiceDirty:
-                playerMovement.ModifyCurrentSpeed(1 - playerProperty.Status.DirtySpeedRatio * 2, true);
                 playerMaterial.SetFloat("Dirt1_Lerp", 1);
                 playerMaterial.SetFloat("Dirt2_Lerp", 1);
                 playerMaterial.SetFloat("Dirt3_Lerp", 0);
                 break;
             case PlayerCleanState.Weak:
-                playerMovement.ModifyCurrentSpeed(1 - playerProperty.Status.DangerSpeedRatio, true);
                 playerMaterial.SetFloat("Dirt1_Lerp", 1);
                 playerMaterial.SetFloat("Dirt2_Lerp", 1);
                 playerMaterial.SetFloat("Dirt3_Lerp", 1);
                 break;
         }
     }
+
 
     #endregion
 

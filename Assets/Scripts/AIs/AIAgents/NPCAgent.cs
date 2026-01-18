@@ -127,4 +127,28 @@ public class NPCAgent : MonoBehaviour
     {
         return IsUnderwater ? WaterNavmesh.UnderwaterLayerMask : WaterNavmesh.WaterSurfaceLayerMask;
     }
+
+    /**
+     * Moves the NPC to a destination. This method should be used for all NPC movement
+     * to allow for water influence and other movement modifications.
+     * @param destination The target position to move to
+     */
+    public void MoveTo(Vector3 destination)
+    {
+        if (navMeshAgent != null && navMeshAgent.enabled)
+        {
+            navMeshAgent.SetDestination(destination);
+        }
+    }
+
+    /**
+     * Stops the NPC's current movement and clears the path.
+     */
+    public void StopMovement()
+    {
+        if (navMeshAgent != null && navMeshAgent.enabled)
+        {
+            navMeshAgent.ResetPath();
+        }
+    }
 }

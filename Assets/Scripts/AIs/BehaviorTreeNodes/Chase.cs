@@ -59,7 +59,7 @@ namespace BehaviorTreeNodes
                 return TaskStatus.Failure;
             }
 
-            navMeshAgent.SetDestination(InTargetDesc.Value.Target.position);
+            agent.MoveTo(InTargetDesc.Value.Target.position);
             return TaskStatus.Running;
         }
 
@@ -69,7 +69,7 @@ namespace BehaviorTreeNodes
                 return;
 
             navMeshAgent.stoppingDistance = originalStoppingDistance;
-            navMeshAgent.ResetPath();
+            agent.StopMovement();
         }
     }
 }

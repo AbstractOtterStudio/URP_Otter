@@ -134,7 +134,7 @@ public class PlayerController : MonoBehaviour
         CreateAimRing();
         CreateBallisticLine();
 
-        if (trajectoryLine != null)
+        if (trajectoryLine != null && trajectoryLine.gameObject.activeSelf && trajectoryLine.enabled)
             trajectoryLine.SetColor(Color.white);
     }
 

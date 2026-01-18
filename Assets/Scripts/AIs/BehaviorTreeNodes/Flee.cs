@@ -49,7 +49,7 @@ namespace BehaviorTreeNodes
             originalStoppingDist = navMeshAgent.stoppingDistance;
             navMeshAgent.speed = originalSpeed * SpeedMultiplier;
             navMeshAgent.stoppingDistance = originalStoppingDist * 0.2f;
-            navMeshAgent.ResetPath();
+            agent.StopMovement();
         }
 
         public override IEnumerator OnUpdateCoroutine()
@@ -78,7 +78,7 @@ namespace BehaviorTreeNodes
                     Vector3 bestFleePoint;
                     if (!FindFleePoint(toTarget, out bestFleePoint))
                     {
-                        navMeshAgent.ResetPath();
+                        agent.StopMovement();
 
                         // Randomly pick a point if we are cornered
                         var navAgent = agent.NavMeshAgent;
@@ -91,7 +91,7 @@ namespace BehaviorTreeNodes
                     }
 
                     // Move to flee point
-                    navMeshAgent.SetDestination(bestFleePoint);
+                    agent.MoveTo(bestFleePoint);
                 }
 
                 yield return null;
@@ -164,7 +164,7 @@ namespace BehaviorTreeNodes
             base.OnEnd();
             if (navMeshAgent != null)
             {
-                navMeshAgent.ResetPath();
+                agent.StopMovement();
                 navMeshAgent.speed = originalSpeed;
                 navMeshAgent.stoppingDistance = originalStoppingDist;
             }

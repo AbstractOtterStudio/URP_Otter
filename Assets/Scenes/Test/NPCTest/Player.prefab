@@ -189,7 +189,7 @@ Transform:
   m_GameObject: {fileID: 307772251927016519}
   serializedVersion: 2
   m_LocalRotation: {x: -0.7071067, y: -0.000000030908616, z: 0.000000030908623, w: 0.7071068}
-  m_LocalPosition: {x: -0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0.3, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -7054,7 +7054,6 @@ GameObject:
   - component: {fileID: 4451689675927843716}
   - component: {fileID: 4451689675927843717}
   - component: {fileID: 8545512959073987419}
-  - component: {fileID: 1246695560702865547}
   m_Layer: 6
   m_Name: Player
   m_TagString: Player
@@ -7076,11 +7075,12 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 8401987675115264029}
-  - {fileID: 8801840776437950405}
   - {fileID: 916104699229644260}
+  - {fileID: 8801840776437950405}
   - {fileID: 8308170557638214203}
   - {fileID: 5591389956810703864}
   - {fileID: 7151360455326743241}
+  - {fileID: 2914836409785566970}
   - {fileID: 7596901010560851600}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 180, z: 0}
@@ -7106,10 +7106,10 @@ Rigidbody:
     m_Bits: 0
   m_ImplicitCom: 1
   m_ImplicitTensor: 1
-  m_UseGravity: 0
+  m_UseGravity: 1
   m_IsKinematic: 0
   m_Interpolate: 0
-  m_Constraints: 116
+  m_Constraints: 0
   m_CollisionDetection: 1
 --- !u!136 &4451689675927843736
 CapsuleCollider:
@@ -7272,7 +7272,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_playerAnimator: {fileID: 0}
-  stateController: {fileID: 0}
+  stateController: {fileID: 4451689675927843716}
 --- !u!114 &4451689675927843713
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7336,22 +7336,89 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f7881f19c6ae0e847b170bc2c6914a16, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxSpeed: 8
-  acceleration: 10
-  fastMultiplier: 1.5
-  slowMultiplier: 0.5
-  diveSpeedMultiplier: 0.8
-  minTurningSpeed: 3
-  maxTurningSpeed: 6
-  brakeAngle: 150
-  brakeSpeed: 90
-  floatingObject: {fileID: 1246695560702865547}
-  idleWaterAdjustmentSpeed: 2
-  movingWaterAdjustmentSpeedMultiplier: 0.2
-  diveDepth: 1.5
-  verticalSpeed: 3
-  collisionReboundSpeed: 3
-  currentSpeed: 0
+  _maxSpeed: 5
+  _maxAccel: 3
+  _maxAngularSpeedDeg: 4
+  _responseCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.6849227
+      value: 0.3346347
+      inSlope: 1.0365102
+      outSlope: 1.0365102
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 2
+      outSlope: 2
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  _yawDeadzoneDeg: 0.1
+  _yawResponseCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 2
+      outSlope: 2
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.23647556
+      value: 0.5356157
+      inSlope: 1.3937155
+      outSlope: 1.3937155
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  _diveTransitionSpeed: 3
+  _diveDepth: 1.5
+  _collisionReboundImpulse: 3
+  _flipModelForward: 1
+  _waterSampleWidth: 2
+  _waterProbe: {fileID: 2914836409785566970}
+  _waterCheckTolerance: 0.5
+  _buoyancyCoeff: 5
+  _maximumBuoyancyForce: Infinity
+  _dragInWaterUp: 3
+  _buoyancyTorque: 11
+  _dragInWaterRotational: 3
+  _maxRollPitchDeg: 30
 --- !u!114 &4451689675927843716
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7366,7 +7433,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   IsStateLocked: 0
   playerFloatParticle: {fileID: 4987694229547912579}
-  playerMaterial: {fileID: 0}
+  playerMaterial: {fileID: 2100000, guid: 615dc3be4ba5a5f4abe917371aed827b, type: 2}
 --- !u!114 &4451689675927843717
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7424,22 +7491,6 @@ MonoBehaviour:
   outerRadiusPx: 200
   moveAngleBiasDeg: 0
   moveSmoothTime: 0.05
---- !u!114 &1246695560702865547
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3532790222733364957}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8c57e691dbacb104aa1929371a82cd2f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  minWaterAdjustmentDelta: 0.2
-  waterSamplingObjectWidth: 4
-  flowAdjustmentType: 2
-  flowAdjustmentScale: 1
 --- !u!1 &3546193260082111051
 GameObject:
   m_ObjectHideFlags: 0
@@ -7681,7 +7732,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _version: 0
   _radius: 1.3
-  _weight: 12
+  _weight: 2
   _weightUpDownMul: 0.629
   _innerSphereMultiplier: 1
   _innerSphereOffset: 0
@@ -7707,11 +7758,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playerMovement: {fileID: 4451689675927843719}
   playerRigidbody: {fileID: 0}
-  speedToWeightRatio: 0.428
-  _objectWidth: 3
-  _buoyancyCoeff: 3
-  _raiseObject: 1
-  _maxDispSpeed: 0.4
+  speedToWeightRatio: 0.5
 --- !u!1 &4103583427619234634
 GameObject:
   m_ObjectHideFlags: 0
@@ -8584,6 +8631,37 @@ Transform:
   - {fileID: 5826246619228174298}
   m_Father: {fileID: 1242828449652456285}
   m_LocalEulerAnglesHint: {x: 0.0000008300578, y: -0.00000215815, z: -0.0000006640461}
+--- !u!1 &5587397279135819339
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2914836409785566970}
+  m_Layer: 6
+  m_Name: WaterProbe
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2914836409785566970
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5587397279135819339}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: -0.719, z: -0.212}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4201063857236382823}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &5612898922932058030
 GameObject:
   m_ObjectHideFlags: 0
@@ -9619,7 +9697,7 @@ Transform:
   m_GameObject: {fileID: 7465657076298664577}
   serializedVersion: 2
   m_LocalRotation: {x: -0.7071067, y: -0.000000030908616, z: 0.000000030908623, w: 0.7071068}
-  m_LocalPosition: {x: -0, y: 0.02736069, z: -0.3859463}
+  m_LocalPosition: {x: 0, y: 0, z: -0.38594818}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -10871,6 +10949,10 @@ PrefabInstance:
     - target: {fileID: 303403145576225740, guid: a19382d4dcfc7624da901b65d4ee0e33, type: 3}
       propertyPath: m_Name
       value: TrajectoryPreview
+      objectReference: {fileID: 0}
+    - target: {fileID: 303403145576225740, guid: a19382d4dcfc7624da901b65d4ee0e33, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5080805989865228513, guid: a19382d4dcfc7624da901b65d4ee0e33, type: 3}
       propertyPath: m_RootOrder

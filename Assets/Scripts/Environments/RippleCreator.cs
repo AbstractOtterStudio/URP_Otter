@@ -22,7 +22,7 @@ public class RippleCreator : MonoBehaviour
     private int reuseIndex = 0;
     void Start()
     {
-        if(rippleParticle == null)
+        if (rippleParticle == null)
         {
             Debug.LogError($"No RippleParticle On {gameObject.name} !");
         }
@@ -32,7 +32,7 @@ public class RippleCreator : MonoBehaviour
             playerStateController = GetComponent<PlayerStateController>();
         }
 
-        if(GetComponent<PlayerMovement>())
+        if (GetComponent<PlayerMovement>())
         {
             playerMovement = GetComponent<PlayerMovement>();
         }
@@ -46,15 +46,15 @@ public class RippleCreator : MonoBehaviour
     void Update()
     {
         createTimer += Time.deltaTime;
-        createGapTimeWithMove = createGapTime / Mathf.Max(1, playerMovement.GetCurrentSpeed()/playerOriSpeed);
+        createGapTimeWithMove = createGapTime / Mathf.Max(1, playerMovement.GetCurrentSpeed() / playerOriSpeed);
         if (createTimer > createGapTimeWithMove)
         {
             createTimer = 0;
-            if(minCreateDist < Vector3.Distance(transform.position, rippleInitPos))
+            if (minCreateDist < Vector3.Distance(transform.position, rippleInitPos))
             {
                 if (playerStateController != null && playerStateController.PlayerPlaceState != PlayerPlaceState.Dive)
                 {
-                    if(!hasCreateParent)
+                    if (!hasCreateParent)
                     {
                         hasCreateParent = true;
                         rippleParent = new GameObject("Ripple List");

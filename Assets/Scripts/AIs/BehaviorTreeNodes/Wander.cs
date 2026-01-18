@@ -15,7 +15,6 @@ namespace BehaviorTreeNodes
         public Vector2 WanderTimerRange;
         public SharedBool AllowUnderwater;
         NPCAgent agent;
-        NavMeshAgent navMeshAgent;
         bool isUnderwaterInitial = false;
 
         public override void OnStart()
@@ -27,19 +26,13 @@ namespace BehaviorTreeNodes
                 Debug.LogError("NPCAgent is required for wander Action");
                 return;
             }
-            navMeshAgent = agent.NavMeshAgent;
-            if (navMeshAgent == null)
-            {
-                Debug.LogError("Navmesh Agent is required for wander Action");
-                return;
-            }
 
             isUnderwaterInitial = agent.IsUnderwater;
         }
 
         public override IEnumerator OnUpdateCoroutine()
         {
-            if (navMeshAgent == null)
+            if (agent == null)
             {
                 yield return TaskStatus.Failure;
             }
@@ -74,7 +67,7 @@ namespace BehaviorTreeNodes
                     NavMeshHit navHit;
                     if (NavMesh.SamplePosition(randDirection, out navHit, wanderDist, agent.GetLayerMask()))
                     {
-                        navMeshAgent.SetDestination(navHit.position);
+                        agent.MoveTo(navHit.position);
                     }
                     else
                     {
@@ -91,7 +84,7 @@ namespace BehaviorTreeNodes
         public override void OnEnd()
         {
             base.OnEnd();
-            navMeshAgent.ResetPath();
+            agent.StopMovement();
         }
     }
 }
