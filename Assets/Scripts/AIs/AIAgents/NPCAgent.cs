@@ -15,11 +15,9 @@ public class NPCAgent : MonoBehaviour
 
     protected NavMeshAgent navMeshAgent;
     protected Rigidbody rb;
-    protected FloatingObject floatingObject;
 
     public NavMeshAgent NavMeshAgent { get { return navMeshAgent; } }
     public Rigidbody Rigidbody { get { return rb; } }
-    public FloatingObject FloatingObject { get { return floatingObject; } }
 
     bool isActive = true;
     IEnumerator waterSwitchCoroutine = null;
@@ -54,7 +52,6 @@ public class NPCAgent : MonoBehaviour
         behaviorTrees = GetComponents<BehaviorTree>();
         behaviorManager = GetComponent<BehaviorManager>();
         behaviorManager.UpdateInterval = UpdateIntervalType.Manual;
-        floatingObject = GetComponent<FloatingObject>();
     }
 
     protected virtual void Update()

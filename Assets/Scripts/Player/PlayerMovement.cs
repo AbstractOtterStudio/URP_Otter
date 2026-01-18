@@ -1,52 +1,54 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Crest;
+using Crest.Internal;
 using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
 {
+    enum State
+    {
+        NotInWater,
+        Floating,
+        Diving,
+    }
+
     [Header("==== Basic Movement Settings ====")]
-    [SerializeField] private float maxSpeed = 5f;       // 基础最大速度
-    [SerializeField] private float acceleration = 10f;  // 加速度 (让角色 0.3~0.5s 加速到 maxSpeed)
+    [SerializeField] private float _maxSpeed = 5f;       // 基础最大速度
+    [SerializeField] private float _maxAccel = 10f;
+    [SerializeField] private float _maxAngularSpeedDeg = 10f;
+    [SerializeField]
+    [Tooltip("An animation curve that represents the response of the player's movement to the input. The x axis is the input strength, the y axis is the response strength.")]
+    private AnimationCurve _responseCurve = AnimationCurve.Linear(0f, 0f, 1f, 1f);
 
-    [Header("==== Additional Multipliers ====")]
-    [SerializeField] private float fastMultiplier = 1.5f;  // 快速游动倍数
-    [SerializeField] private float slowMultiplier = 0.5f;  // 慢速游动倍数
-    // 其他 multiplier 可自定义，比如潜水 multiplier,diveSpeedMultiplier 等
-    [SerializeField] private float diveSpeedMultiplier = 0.8f; // 潜水时速度倍数（示例）
-
-    [Header("==== Turning Settings ====")]
-    [SerializeField] private float minTurningSpeed = 3f;
-    [SerializeField] private float maxTurningSpeed = 6f;
-    [SerializeField] private float brakeAngle = 90f;        // 超过此夹角则进入刹车区
-    [SerializeField] private float brakeSpeed = 1.0f;        // 刹车减速度
+    [SerializeField, UnityEngine.Range(0f, 20f)] private float _yawDeadzoneDeg = 2f;
+    [SerializeField]
+    [Tooltip("Yaw response curve. X: normalized yaw error (0-1), Y: response strength.")]
+    private AnimationCurve _yawResponseCurve = AnimationCurve.Linear(0f, 0f, 1f, 1f);
 
     [Header("==== Dive & Float Settings ====")]
-    [SerializeField] private FloatingObject floatingObject;
-    [SerializeField] private float idleWaterAdjustmentSpeed = 1.0f; // 静止时受水位影响的y坐标调整速度
-    [SerializeField] private float movingWaterAdjustmentSpeedMultiplier = 0.2f; // 移动时水位影响调整的倍数，一般这个是<1，因为移动时候我们不想让玩家在y上面一直jitter
-    [SerializeField] private float diveDepth = 1.5f;
-    [SerializeField] private float verticalSpeed = 3f;  // 用于上下浮潜速度
+    [SerializeField] private float _diveTransitionSpeed = 3f;
+    [SerializeField] private float _diveDepth = 1.5f;
 
     [Header("==== Collision Settings ====")]
-    [SerializeField] private float collisionReboundSpeed = 3f;
+    [SerializeField] private float _collisionReboundSpeed = 3f;
 
     [Header("Facing")]
-    [SerializeField] private bool flipModelForward = true;
+    [SerializeField] private bool _flipModelForward = true;
 
-    [Header("==== Debug ====")]
-    [SerializeField] private float currentSpeed;  // 当前速度（标量）
-    private float targetDiveDepth;
-    private float targetFloatDepth;
+    private float _speedMultiplier = 1f;
 
-    private Rigidbody rb;
-    private PlayerStateController stateController;
-    private PlayerInputHandler inputHandler;
-    private Animator animator;
+    private float _targetDiveDepth;
+    private float _targetFloatDepth;
+
+    private Rigidbody _rb;
+    private PlayerStateController _stateController;
+    private PlayerProperty _playerProperty;
+    private PlayerInputHandler _inputHandler;
 
     // 用于记录玩家的输入方向（平面）
-    private Vector3 movementInput;
-    private Vector3 currentVelocity;  // 用于保存实际的运动向量
+    private Vector3 _movementInput;
     public bool IsMoving { get; private set; }
 
     #region Delegates
@@ -59,40 +61,72 @@ public class PlayerMovement : MonoBehaviour
     private Coroutine _floatCoroutine = null;
     #endregion
 
+    [DebugDisplay]
+    private State _state = State.NotInWater;
+
+
+    [Header("==== Water Check Settings ====")]
+    [SerializeField] private float _waterSampleWidth = 1f;
+
+    [Header("==== Buoyancy Settings ====")]
+    [SerializeField] Transform _waterProbe;
+    [SerializeField, UnityEngine.Range(0f, 2.0f)] private float _waterCheckTolerance = 0.1f;
+    [SerializeField] private float _buoyancyCoeff = 3f;
+    [SerializeField] private float _maximumBuoyancyForce = Mathf.Infinity;
+    [SerializeField] private float _dragInWaterUp = 3f;
+    [SerializeField] private float _buoyancyTorque = 8f;
+    [SerializeField] private float _dragInWaterRotational = 0.2f;
+    [SerializeField, UnityEngine.Range(0f, 60f)] private float _maxRollPitchDeg = 20f;
+
+
+    #region Floating State Variables
+    private readonly SampleHeightHelper _sampleHeightHelper = new SampleHeightHelper();
+    private readonly SampleFlowHelper _sampleFlowHelper = new SampleFlowHelper();
+    // displacement from water surface (down is positive)
+    private float _submersionHeight;
+    private Vector3 _waterSurfaceVel;
+    private Vector3 _waterNormal = Vector3.up;
+    #endregion
+
     private void Awake()
     {
-        rb = GetComponent<Rigidbody>();
+        _rb = GetComponent<Rigidbody>();
     }
 
     private void Start()
     {
-        rb = GetComponent<Rigidbody>();
-        stateController = GetComponent<PlayerStateController>();
-        inputHandler = GetComponent<PlayerInputHandler>();
-        animator = GetComponent<Animator>();
-
-        currentSpeed = 0f;
-        currentVelocity = Vector3.zero;
+        _rb = GetComponent<Rigidbody>();
+        _stateController = GetComponent<PlayerStateController>();
+        _playerProperty = GetComponent<PlayerProperty>();
+        _inputHandler = GetComponent<PlayerInputHandler>();
 
         // 潜水/浮水的目标深度
-        targetFloatDepth = transform.position.y;
-        targetDiveDepth = transform.position.y - diveDepth;
+        _targetFloatDepth = transform.position.y;
+        _targetDiveDepth = transform.position.y - _diveDepth;
 
         // 如果有需求，可注册此回调
         OnPlayerSpeedChange = HandlePlayerSpeedChange;
 
-        stateController.OnStateChanged += HandleStateChanged;
+        _stateController.OnStateChanged += HandleStateChanged;
+        UpdateSpeedMultiplier();
     }
 
     private void Update()
     {
         // 从输入获取移动方向（不带 Y 轴，主要在 XZ 平面）
-        movementInput = inputHandler.MovementInput;
-        IsMoving = movementInput != Vector3.zero;
+        _movementInput = _inputHandler.MovementInput;
+        IsMoving = _movementInput != Vector3.zero;
     }
 
     private void FixedUpdate()
     {
+        UpdateWaterState();
+
+        if (_state == State.Floating)
+        {
+            ApplyBuoyancyForce();
+        }
+
         if (GameManager.Instance.GetGameAction())
         {
             MovePlayer();
@@ -100,70 +134,139 @@ public class PlayerMovement : MonoBehaviour
     }
 
     #region === 玩家移动核心逻辑 ===
-
     private void MovePlayer()
     {
-        // 如果正在执行潜水或浮潜，则不进行水位调整
+        // disable movement when in the middle of diving
         if (_diveCoroutine != null || _floatCoroutine != null)
         {
-            floatingObject.VerticalAdjustmentSpeed = 0.0f;
-        }
-        else
-        {
-            floatingObject.VerticalAdjustmentSpeed = IsMoving ? idleWaterAdjustmentSpeed * movingWaterAdjustmentSpeedMultiplier : idleWaterAdjustmentSpeed;
-        }
-
-        if (stateController.IsStateLocked && stateController.PlayerAniState != PlayerInteractAniState.Grab)
-        {
-            rb.velocity = Vector3.zero;
+            _rb.velocity = Vector3.zero;
             return;
         }
 
-        // 1) 计算输入方向
+        // disable movement when state is locked or in interaction animation
+        if (_stateController.IsStateLocked && _stateController.PlayerAniState != PlayerInteractAniState.Grab)
+        {
+            _rb.velocity = Vector3.zero;
+            return;
+        }
+
         Vector3 desiredDirection = GetInputDirection();
+        Debug.DrawLine(transform.position, transform.position + desiredDirection, Color.red);
 
-        // 2) 判断当前朝向与输入方向的夹角
-        float deltaAngle = Vector3.Angle(-transform.forward, desiredDirection);
-
-        if (movementInput != Vector3.zero && desiredDirection.sqrMagnitude > 0.01f)
+        float inputStrength = _movementInput.magnitude;
+        float responseStrength = _responseCurve.Evaluate(inputStrength);
+        if (responseStrength <= 0f || desiredDirection == Vector3.zero)
         {
-
-            if (currentSpeed < 0.5f && deltaAngle > 120f)
-            {
-                TurnFirstThenMove(desiredDirection);
-            }
-            else
-            {
-                // 如果大于 brakeAngle，则执行刹车逻辑
-                if (deltaAngle > brakeAngle)
-                {
-                    BrakeAndTurn(desiredDirection);
-                }
-                else
-                {
-                    NormalTurnAndAccelerate(desiredDirection);
-                }
-            }
-        }
-        else
-        {
-            // 无输入时，逐渐减速到 0（也可以保持惯性，看需求）
-            currentSpeed = Mathf.MoveTowards(currentSpeed, 0f, acceleration * Time.deltaTime);
+            ApplyLinearDamping();
+            return;
         }
 
-        // 3) 更新刚体速度
-        currentVelocity = desiredDirection.normalized * currentSpeed;
-        rb.velocity = currentVelocity + floatingObject.CurrentFlowXZ;
+        ApplyYawRotation(desiredDirection);
+
+        Vector3 desiredVelocity = desiredDirection * (_maxSpeed * _speedMultiplier * responseStrength);
+        Vector3 currentVelocityXZ = Vector3.ProjectOnPlane(_rb.velocity, Vector3.up);
+        Vector3 accel = (desiredVelocity - currentVelocityXZ) / Time.fixedDeltaTime;
+        accel = Vector3.ClampMagnitude(accel, _maxAccel);
+        _rb.AddForce(accel, ForceMode.Acceleration);
+    }
+
+    private void ApplyYawRotation(Vector3 desiredDirection)
+    {
+        Vector3 yawDirection = _flipModelForward ? -desiredDirection : desiredDirection;
+        Vector3 currentForward = Vector3.ProjectOnPlane(transform.forward, Vector3.up).normalized;
+        Vector3 targetForward = Vector3.ProjectOnPlane(yawDirection, Vector3.up).normalized;
+        if (currentForward.sqrMagnitude < 1e-6f || targetForward.sqrMagnitude < 1e-6f)
+        {
+            return;
+        }
+
+        float yawError = Vector3.SignedAngle(currentForward, targetForward, Vector3.up);
+        if (Mathf.Abs(yawError) <= _yawDeadzoneDeg)
+        {
+            return;
+        }
+
+        Quaternion targetRotation = Quaternion.LookRotation(targetForward, Vector3.up);
+        float normalizedError = Mathf.Clamp01(Mathf.Abs(yawError) / 180f);
+        float responseStrength = _yawResponseCurve.Evaluate(normalizedError);
+        float slerpT = Mathf.Clamp01(_maxAngularSpeedDeg * responseStrength * Time.fixedDeltaTime);
+        _rb.MoveRotation(Quaternion.Slerp(_rb.rotation, targetRotation, slerpT));
+    }
+
+    private void ApplyLinearDamping()
+    {
+        Vector3 currentVelocityXZ = Vector3.ProjectOnPlane(_rb.velocity, Vector3.up);
+        if (currentVelocityXZ.sqrMagnitude < 1e-6f)
+        {
+            return;
+        }
+
+        Vector3 dampingAccel = -currentVelocityXZ / Time.fixedDeltaTime;
+        dampingAccel = Vector3.ClampMagnitude(dampingAccel, _maxAccel);
+        _rb.AddForce(dampingAccel, ForceMode.Acceleration);
+    }
+
+    private void UpdateWaterState()
+    {
+        if (OceanRenderer.Instance == null)
+        {
+            _state = State.NotInWater;
+            _submersionHeight = 0f;
+            _waterSurfaceVel = Vector3.zero;
+            return;
+        }
+
+        _sampleHeightHelper.Init(_waterProbe.position, _waterSampleWidth, true);
+        _sampleHeightHelper.Sample(out Vector3 disp, out var normal, out var waterSurfaceVel);
+
+
+        _submersionHeight = disp.y + OceanRenderer.Instance.SeaLevel - _waterProbe.position.y;
+        Debug.DrawLine(_waterProbe.position, _waterProbe.position + Vector3.up * _submersionHeight, Color.green);
+
+        _state = _submersionHeight <= -_waterCheckTolerance ? State.NotInWater : State.Floating;
+        _waterNormal = normal;
+
+        _sampleFlowHelper.Init(_waterProbe.position, _waterSampleWidth);
+        _sampleFlowHelper.Sample(out var surfaceFlow);
+        _waterSurfaceVel = waterSurfaceVel + new Vector3(surfaceFlow.x, 0f, surfaceFlow.y);
+    }
+
+    private void ApplyBuoyancyForce()
+    {
+        Vector3 buoyancy = _buoyancyCoeff * _submersionHeight * _submersionHeight * _submersionHeight * -Physics.gravity.normalized;
+        if (_maximumBuoyancyForce < Mathf.Infinity)
+        {
+            buoyancy = Vector3.ClampMagnitude(buoyancy, _maximumBuoyancyForce);
+        }
+        _rb.AddForce(buoyancy, ForceMode.Acceleration);
+
+        var velocityRelativeToWater = _rb.velocity - _waterSurfaceVel;
+        float verticalDrag = _dragInWaterUp * Vector3.Dot(Vector3.up, -velocityRelativeToWater);
+        _rb.AddForce(verticalDrag * Vector3.up, ForceMode.Acceleration);
+
+        Vector3 limitedNormal = _waterNormal;
+        float normalAngle = Vector3.Angle(Vector3.up, _waterNormal);
+        if (normalAngle > _maxRollPitchDeg && normalAngle > 0f)
+        {
+            Vector3 axis = Vector3.Cross(Vector3.up, _waterNormal).normalized;
+            limitedNormal = Quaternion.AngleAxis(_maxRollPitchDeg, axis) * Vector3.up;
+        }
+
+        Vector3 torqueWidth = Vector3.Cross(transform.up, limitedNormal);
+        _rb.AddTorque(torqueWidth * _buoyancyTorque, ForceMode.Acceleration);
+        _rb.AddTorque(-_dragInWaterRotational * _rb.angularVelocity, ForceMode.Acceleration);
+
+        Debug.DrawLine(transform.position, transform.position + buoyancy, Color.blue);
     }
 
     public void PlayerPause()
     {
-        rb.constraints = RigidbodyConstraints.FreezeAll;
+        _rb.constraints = RigidbodyConstraints.FreezeAll;
     }
 
     public void PlayerResume()
     {
-        rb.constraints = RigidbodyConstraints.FreezePositionY | RigidbodyConstraints.FreezeRotation;
+        _rb.constraints = RigidbodyConstraints.FreezePositionY | RigidbodyConstraints.FreezeRotation;
     }
 
     /// <summary>
@@ -176,90 +279,9 @@ public class PlayerMovement : MonoBehaviour
         Vector3 forward = Vector3.Cross(right, Vector3.up);
 
         // 输入方向(不考虑Y，保持在XZ平面)
-        Vector3 direction = (right * movementInput.x + forward * movementInput.z).normalized;
+        Vector3 direction = (right * _movementInput.x + forward * _movementInput.z).normalized;
         direction.y = 0f;
         return direction;
-    }
-
-    /// <summary>
-    /// 刹车区逻辑：先快速将当前速度减为 0，再朝目标方向重新加速
-    /// </summary>
-    private void BrakeAndTurn(Vector3 desiredDirection)
-    {
-        // 先刹车
-        currentSpeed = Mathf.MoveTowards(currentSpeed, 0f, brakeSpeed * Time.deltaTime);
-
-        // 如果已经几乎停止，再开始朝新的方向加速
-        if (currentSpeed < 0.5f)
-        {
-            TurnSmoothly(desiredDirection, maxTurningSpeed * 2);
-
-            // 再按照普通加速度往 maxSpeed 加
-            currentSpeed = Mathf.MoveTowards(currentSpeed, maxSpeed, acceleration * Time.deltaTime);
-        }
-    }
-
-    /// <summary>
-    /// 普通转向并加速
-    /// </summary>
-    private void NormalTurnAndAccelerate(Vector3 desiredDirection)
-    {
-        // 计算 deltaAngle，用于在 minTurningSpeed ~ maxTurningSpeed 之间插值
-        float angle = Vector3.Angle(transform.forward, desiredDirection);
-        float t = angle / 180f;  // 0 ~ 1, 这里简单做个线性映射
-        float turnSpeed = Mathf.Lerp(minTurningSpeed, maxTurningSpeed, t);
-
-        // 平滑转向
-        TurnSmoothly(desiredDirection, turnSpeed);
-
-        // 加速到 maxSpeed
-        currentSpeed = Mathf.MoveTowards(currentSpeed, maxSpeed, acceleration * Time.deltaTime);
-    }
-
-    /// <summary>
-    /// 瞬间转向（用于刹车完毕后的快速转向）
-    /// </summary>
-    private void TurnInstantly(Vector3 desiredDirection)
-    {
-        if (desiredDirection.sqrMagnitude > 0.01f)
-        {
-            Vector3 face = flipModelForward ? -desiredDirection : desiredDirection;
-            transform.rotation = Quaternion.LookRotation(face, Vector3.up);
-        }
-    }
-
-    /// <summary>
-    /// 当速度很小且需要大角度掉头时，先转向，再移动
-    /// </summary>
-    private void TurnFirstThenMove(Vector3 desiredDirection)
-    {
-        // 1) 让速度保持在一个非常小的值（甚至可以直接设置为 0）
-        currentSpeed = Mathf.MoveTowards(currentSpeed, 0f, brakeSpeed * Time.deltaTime);
-
-        // 2) 用一个稍大的转向速度做平滑转向
-        float fastTurnSpeed = maxTurningSpeed * 5f;
-        TurnSmoothly(desiredDirection, fastTurnSpeed);
-
-        // 3) 判断什么时候“转得差不多”了，可以开始加速
-        float angleAfterTurn = Vector3.Angle(transform.forward, desiredDirection);
-        if (angleAfterTurn < 15f)
-        {
-            // 开始加速
-            currentSpeed = Mathf.MoveTowards(currentSpeed, maxSpeed, acceleration * Time.deltaTime);
-        }
-    }
-
-    /// <summary>
-    /// 平滑转向
-    /// </summary>
-    private void TurnSmoothly(Vector3 desiredDirection, float turnSpeed)
-    {
-        if (desiredDirection.sqrMagnitude > 0.01f)
-        {
-            Vector3 face = flipModelForward ? -desiredDirection : desiredDirection;
-            Quaternion targetRotation = Quaternion.LookRotation(face, Vector3.up);
-            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, turnSpeed * Time.deltaTime);
-        }
     }
 
     /// <summary>
@@ -269,34 +291,37 @@ public class PlayerMovement : MonoBehaviour
     {
         IEnumerator diveCoroutine()
         {
-            // 潜水时可附加一个 multiplier
-            float diveTargetSpeed = maxSpeed * diveSpeedMultiplier;
-            currentSpeed = Mathf.Clamp(currentSpeed, 0f, diveTargetSpeed);
-
             // 下潜
-            while (transform.position.y > targetDiveDepth)
+            while (transform.position.y > _targetDiveDepth)
             {
-                float newY = Mathf.Max(transform.position.y - verticalSpeed * Time.deltaTime, targetDiveDepth);
+                float newY = Mathf.Max(transform.position.y - _diveTransitionSpeed * Time.deltaTime, _targetDiveDepth);
                 transform.position = new Vector3(transform.position.x, newY, transform.position.z);
                 yield return null;
             }
 
+            _state = State.Diving;
             _diveCoroutine = null;
         }
 
         IEnumerator floatCoroutine()
         {
-            while (transform.position.y < targetFloatDepth)
+            if (_state != State.Diving)
             {
-                float newY = Mathf.Min(transform.position.y + verticalSpeed * Time.deltaTime, targetFloatDepth);
+                yield break; // already in floating state
+            }
+
+            while (transform.position.y < _targetFloatDepth)
+            {
+                float newY = Mathf.Min(transform.position.y + _diveTransitionSpeed * Time.deltaTime, _targetFloatDepth);
                 transform.position = new Vector3(transform.position.x, newY, transform.position.z);
                 yield return null;
             }
 
+            _state = State.Floating; // will be updated in UpdateWaterState
             _floatCoroutine = null;
         }
 
-        PlayerPlaceState curPlaceState = stateController.PlayerPlaceState;
+        PlayerPlaceState curPlaceState = _stateController.PlayerPlaceState;
         if (curPlaceState == PlayerPlaceState.Dive || curPlaceState == PlayerPlaceState.Float)
         {
             if (_diveCoroutine != null)
@@ -319,6 +344,8 @@ public class PlayerMovement : MonoBehaviour
         {
             _floatCoroutine = StartCoroutine(floatCoroutine());
         }
+
+        UpdateSpeedMultiplier();
     }
 
     #endregion
@@ -327,42 +354,51 @@ public class PlayerMovement : MonoBehaviour
 
     private void HandlePlayerSpeedChange(PlayerSpeedState speedState)
     {
-        switch (speedState)
-        {
-            case PlayerSpeedState.Fast:
-                // 快速倍数
-                currentSpeed = currentSpeed * fastMultiplier;
-                break;
-            case PlayerSpeedState.Slow:
-                currentSpeed = currentSpeed * slowMultiplier;
-                break;
-            case PlayerSpeedState.Normal:
-            default:
-                currentSpeed = Mathf.Min(currentSpeed, maxSpeed);
-                break;
-        }
+        UpdateSpeedMultiplier();
     }
 
+
     /// <summary>
-    /// 对 currentSpeed 做乘法或除法倍数调整（保留原接口）
+    /// 设置状态速度倍率（来自饥饿、清洁度等状态）
     /// </summary>
-    public void ModifyCurrentSpeed(float multiplier, bool isMultiplying)
+    public void SetSpeedMultiplier(float multiplier)
     {
-        currentSpeed = isMultiplying ? currentSpeed * multiplier : currentSpeed / multiplier;
-        // 可根据需要设置上限/下限
-        if (currentSpeed > maxSpeed * fastMultiplier)
+        _speedMultiplier = Mathf.Max(0f, multiplier);
+    }
+
+    private void UpdateSpeedMultiplier()
+    {
+        float statusMultiplier = 1f;
+        if (_stateController != null && _playerProperty != null)
         {
-            currentSpeed = maxSpeed * fastMultiplier;
+            float fullMultiplier = 1f;
+            if (_stateController.PlayerFullState == PlayerFullState.Agony)
+            {
+                fullMultiplier = 1f - _playerProperty.Status.AgonySpeedRatio;
+            }
+
+            float cleanMultiplier = 1f;
+            switch (_stateController.PlayerCleanState)
+            {
+                case PlayerCleanState.Dirty:
+                    cleanMultiplier = 1f - _playerProperty.Status.DirtySpeedRatio;
+                    break;
+                case PlayerCleanState.TwiceDirty:
+                    cleanMultiplier = 1f - _playerProperty.Status.DirtySpeedRatio * 2f;
+                    break;
+                case PlayerCleanState.Weak:
+                    cleanMultiplier = 1f - _playerProperty.Status.DangerSpeedRatio;
+                    break;
+            }
+
+            statusMultiplier = Mathf.Max(0f, fullMultiplier * cleanMultiplier);
         }
-        if (currentSpeed < 0f)
-        {
-            currentSpeed = 0f;
-        }
+        _speedMultiplier = statusMultiplier;
     }
 
     public float GetCurrentSpeed()
     {
-        return currentSpeed;
+        return _rb.velocity.magnitude;
     }
 
     #endregion
@@ -372,29 +408,8 @@ public class PlayerMovement : MonoBehaviour
     private void OnCollisionEnter(Collision collision)
     {
         Vector3 normal = collision.contacts[0].normal;
-        Vector3 reboundDirection = Vector3.ProjectOnPlane(rb.velocity, normal).normalized;
-        rb.velocity = reboundDirection * collisionReboundSpeed;
-    }
-
-    #endregion
-
-    #region === 公共方法 ===
-
-    /// <summary>
-    /// 设置潜水或浮水的目标水面高度（示例）
-    /// </summary>
-    public void SetDiveOrFloatHeight(bool increase, float height)
-    {
-        if (increase)
-        {
-            targetDiveDepth += height;
-            targetFloatDepth += height;
-        }
-        else
-        {
-            targetDiveDepth -= height;
-            targetFloatDepth -= height;
-        }
+        Vector3 reboundDirection = Vector3.ProjectOnPlane(_rb.velocity, normal).normalized;
+        // SetDesiredVelocity(reboundDirection * _collisionReboundSpeed);
     }
 
     #endregion
