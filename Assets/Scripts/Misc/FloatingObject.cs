@@ -9,6 +9,7 @@ using UnityEngine;
 * Y坐标根据crest水面变化以transform调整
 * XZ坐标根据flow变化以rg body或者transform调整
 */
+[Obsolete("Use Crest.SimpleFloatingObject instead")]
 public class FloatingObject : MonoBehaviour
 {
     enum FlowAdjustmentType
