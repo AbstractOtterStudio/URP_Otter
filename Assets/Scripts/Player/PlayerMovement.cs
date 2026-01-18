@@ -121,7 +121,10 @@ public class PlayerMovement : MonoBehaviour
 
     private void FixedUpdate()
     {
-        UpdateWaterState();
+        if (_state != State.Diving)
+        {
+            UpdateWaterState();
+        }
 
         if (_state == State.Floating)
         {
@@ -300,6 +303,7 @@ public class PlayerMovement : MonoBehaviour
                 yield return null;
             }
 
+            _rb.useGravity = false;
             _state = State.Diving;
             _diveCoroutine = null;
         }
@@ -318,6 +322,7 @@ public class PlayerMovement : MonoBehaviour
                 yield return null;
             }
 
+            _rb.useGravity = true;
             _state = State.Floating; // will be updated in UpdateWaterState
             _floatCoroutine = null;
         }

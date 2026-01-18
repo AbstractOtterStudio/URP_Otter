@@ -7337,8 +7337,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _maxSpeed: 5
-  _maxAccel: 6
-  _maxAngularSpeedDeg: 10
+  _maxAccel: 3
+  _maxAngularSpeedDeg: 4
   _responseCurve:
     serializedVersion: 2
     m_Curve:
@@ -7379,17 +7379,26 @@ MonoBehaviour:
     - serializedVersion: 3
       time: 0
       value: 0
-      inSlope: 0
-      outSlope: 0
+      inSlope: 2
+      outSlope: 2
       tangentMode: 0
       weightedMode: 0
       inWeight: 0
       outWeight: 0
     - serializedVersion: 3
+      time: 0.23647556
+      value: 0.5356157
+      inSlope: 1.3937155
+      outSlope: 1.3937155
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
       time: 1
       value: 1
-      inSlope: 2
-      outSlope: 2
+      inSlope: 0
+      outSlope: 0
       tangentMode: 0
       weightedMode: 0
       inWeight: 0
@@ -7401,7 +7410,7 @@ MonoBehaviour:
   _diveDepth: 1.5
   _collisionReboundImpulse: 3
   _flipModelForward: 1
-  _waterSampleWidth: 1
+  _waterSampleWidth: 2
   _waterProbe: {fileID: 2914836409785566970}
   _waterCheckTolerance: 0.5
   _buoyancyCoeff: 5
