@@ -189,7 +189,7 @@ Transform:
   m_GameObject: {fileID: 307772251927016519}
   serializedVersion: 2
   m_LocalRotation: {x: -0.7071067, y: -0.000000030908616, z: 0.000000030908623, w: 0.7071068}
-  m_LocalPosition: {x: -0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0.3, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -7075,8 +7075,8 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 8401987675115264029}
-  - {fileID: 8801840776437950405}
   - {fileID: 916104699229644260}
+  - {fileID: 8801840776437950405}
   - {fileID: 8308170557638214203}
   - {fileID: 5591389956810703864}
   - {fileID: 7151360455326743241}
@@ -7337,7 +7337,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _maxSpeed: 5
-  _maxAccel: 10
+  _maxAccel: 6
   _maxAngularSpeedDeg: 10
   _responseCurve:
     serializedVersion: 2
@@ -7372,7 +7372,7 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  _yawDeadzoneDeg: 1
+  _yawDeadzoneDeg: 0.1
   _yawResponseCurve:
     serializedVersion: 2
     m_Curve:
@@ -7399,7 +7399,7 @@ MonoBehaviour:
     m_RotationOrder: 4
   _diveTransitionSpeed: 3
   _diveDepth: 1.5
-  _collisionReboundSpeed: 3
+  _collisionReboundImpulse: 3
   _flipModelForward: 1
   _waterSampleWidth: 1
   _waterProbe: {fileID: 2914836409785566970}
@@ -8647,7 +8647,7 @@ Transform:
   m_GameObject: {fileID: 5587397279135819339}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -0.404, z: -0.212}
+  m_LocalPosition: {x: 0, y: -0.719, z: -0.212}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -9688,7 +9688,7 @@ Transform:
   m_GameObject: {fileID: 7465657076298664577}
   serializedVersion: 2
   m_LocalRotation: {x: -0.7071067, y: -0.000000030908616, z: 0.000000030908623, w: 0.7071068}
-  m_LocalPosition: {x: -0, y: 0.1, z: -0.3859463}
+  m_LocalPosition: {x: 0, y: 0, z: -0.38594818}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

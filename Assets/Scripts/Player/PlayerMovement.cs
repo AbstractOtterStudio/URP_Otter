@@ -32,7 +32,7 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private float _diveDepth = 1.5f;
 
     [Header("==== Collision Settings ====")]
-    [SerializeField] private float _collisionReboundSpeed = 3f;
+    [SerializeField] private float _collisionReboundImpulse = 3f;
 
     [Header("Facing")]
     [SerializeField] private bool _flipModelForward = true;
@@ -69,8 +69,9 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private float _waterSampleWidth = 1f;
 
     [Header("==== Buoyancy Settings ====")]
-    [SerializeField] Transform _waterProbe;
-    [SerializeField, UnityEngine.Range(0f, 2.0f)] private float _waterCheckTolerance = 0.1f;
+    [SerializeField, Tooltip("The transform to sample the water height and flow and test if the player is in water. The position is the sample point.")] Transform _waterProbe;
+    [SerializeField, UnityEngine.Range(0f, 2.0f)]
+    private float _waterCheckTolerance = 0.1f;
     [SerializeField] private float _buoyancyCoeff = 3f;
     [SerializeField] private float _maximumBuoyancyForce = Mathf.Infinity;
     [SerializeField] private float _dragInWaterUp = 3f;
@@ -409,7 +410,7 @@ public class PlayerMovement : MonoBehaviour
     {
         Vector3 normal = collision.contacts[0].normal;
         Vector3 reboundDirection = Vector3.ProjectOnPlane(_rb.velocity, normal).normalized;
-        // SetDesiredVelocity(reboundDirection * _collisionReboundSpeed);
+        _rb.AddForce(reboundDirection * _collisionReboundImpulse, ForceMode.Impulse);
     }
 
     #endregion
