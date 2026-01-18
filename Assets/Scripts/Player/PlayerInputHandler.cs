@@ -2,8 +2,12 @@ using UnityEngine;
 
 public class PlayerInputHandler : MonoBehaviour
 {
-    public Vector3 MovementInput { get; private set; }   // 长度 ∈ [0,1]
-    public Vector2 ScreenDelta   { get; private set; }   // 提供给 UI
+    /**
+    * An input vector that represents the direction and strength of the player's input.
+    * The length of the vector is normalized to [0,1].
+    */
+    public Vector3 MovementInput { get; private set; }
+    public Vector2 ScreenDelta { get; private set; }   // 提供给 UI
     public Vector2 PlayerScreenPos { get; private set; } // 提供给 UI
 
     public bool IsInteracting { get; private set; }
@@ -18,12 +22,12 @@ public class PlayerInputHandler : MonoBehaviour
     public float innerRadiusPx = 120f;                // r₁
     public float outerRadiusPx = 200f;               // r₂
 
-    [Header("Fine‑Tune (deg)")]
+    [Header("Fine-Tune (deg)")]
     [Tooltip("鼠标 → 角色行进方向的额外角度偏移（顺时针为正）")]
     public float moveAngleBiasDeg = 0f;
 
     [Header("Movement Smoothing (sec)")]
-    [Range(0f,0.3f)] public float moveSmoothTime = 0.05f;
+    [Range(0f, 0.3f)] public float moveSmoothTime = 0.05f;
     private Vector3 moveVel;
     private Vector3 smoothDir;
     private Plane dynPlane;
@@ -39,7 +43,8 @@ public class PlayerInputHandler : MonoBehaviour
         //Cursor.visible = false;
     }
 
-    private void Start() {
+    private void Start()
+    {
         moveAngleBiasDeg = -cam.transform.eulerAngles.y;
     }
 
@@ -55,7 +60,7 @@ public class PlayerInputHandler : MonoBehaviour
         HandleActionInput();
     }
 
-     // 在屏幕平面上得到 Δ
+    // 在屏幕平面上得到 Δ
     private void CalcScreenDelta()
     {
         PlayerScreenPos = cam.WorldToScreenPoint(transform.position);
@@ -66,10 +71,11 @@ public class PlayerInputHandler : MonoBehaviour
     private void CalcMovementInput()
     {
         float enterRadius = Mathf.Max(0f, innerRadiusPx);
+        float outerRadius = Mathf.Max(outerRadiusPx, enterRadius + 1f);
         if (enterRadius > 0f)
         {
-            float exitRadius = Mathf.Max(outerRadiusPx, enterRadius + 1f)/4; // exit threshold must be larger to avoid jitter
-            float sqrEnter = enterRadius * enterRadius/16;
+            float exitRadius = Mathf.Max(outerRadiusPx, enterRadius + 1f) / 4; // exit threshold must be larger to avoid jitter
+            float sqrEnter = enterRadius * enterRadius / 16;
             float sqrExit = exitRadius * exitRadius;
             float sqrDist = ScreenDelta.sqrMagnitude;
 
@@ -124,7 +130,9 @@ public class PlayerInputHandler : MonoBehaviour
         else
             smoothDir = dir;
 
-        MovementInput = smoothDir; // 大小恒为 1（或 0）
+        float dist = ScreenDelta.magnitude;
+        float strength = Mathf.InverseLerp(enterRadius, outerRadius, dist);
+        MovementInput = smoothDir * strength; // 大小 ∈ [0,1]
     }
 
 
@@ -153,9 +161,9 @@ public class PlayerInputHandler : MonoBehaviour
     private void OnDrawGizmos()
     {
         if (!Application.isPlaying) return;
-    Gizmos.color = Color.green;
-    Gizmos.DrawLine(transform.position,
-                    transform.position + MovementInput * 5f);
+        Gizmos.color = Color.green;
+        Gizmos.DrawLine(transform.position,
+                        transform.position + MovementInput * 5f);
     }
 
 }
